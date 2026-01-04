@@ -1,0 +1,11 @@
+{
+  "expo": {
+    "name": "Flacron GameZone",
+    "slug": "flacron-gamezone",
+    "scheme": "flacrongamezone",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "platforms": ["ios", "android"],
+    "sdkVersion": "51.0.0"
+  }
+}
