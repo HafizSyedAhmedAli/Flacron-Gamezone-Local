@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum MatchStatus {
+  UPCOMING
+  LIVE
+  FINISHED
+}
+
+enum StreamType {
+  EMBED
+  NONE
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  role      Role     @default(USER)
+  createdAt DateTime @default(now())
+
+  subscription Subscription?
+}
+
+model Subscription {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  stripeCustomerId     String?
+  stripeSubscriptionId String?
+  status               String   @default("inactive")
+  currentPeriodEnd     DateTime?
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model League {
+  id          String   @id @default(cuid())
+  name        String
+  country     String?
+  logo        String?
+  apiLeagueId Int?     @unique
+  createdAt   DateTime @default(now())
+
+  teams   Team[]
+  matches Match[]
+}
+
+model Team {
+  id        String   @id @default(cuid())
+  name      String
+  logo      String?
+  apiTeamId Int?     @unique
+  leagueId  String?
+  createdAt DateTime @default(now())
+
+  league League? @relation(fields: [leagueId], references: [id])
+
+  homeMatches Match[] @relation("HomeTeam")
+  awayMatches Match[] @relation("AwayTeam")
+}
+
+model Match {
+  id           String      @id @default(cuid())
+  apiFixtureId Int?        @unique
+  leagueId     String?
+  homeTeamId   String
+  awayTeamId   String
+  kickoffTime  DateTime
+  status       MatchStatus @default(UPCOMING)
+  score        String?     // e.g. "2-1" or "0-0"
+  venue        String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  league    League? @relation(fields: [leagueId], references: [id])
+  homeTeam  Team    @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam  Team    @relation("AwayTeam", fields: [awayTeamId], references: [id])
+
+  stream    Stream?
+  aiTexts   AISummary[]
+}
+
+model Stream {
+  id        String     @id @default(cuid())
+  matchId   String     @unique
+  type      StreamType @default(NONE)
+  provider  String?
+  url       String?
+  isActive  Boolean    @default(false)
+
+  match Match @relation(fields: [matchId], references: [id])
+}
+
+model AISummary {
+  id        String   @id @default(cuid())
+  matchId   String
+  provider  String
+  language  String
+  kind      String   // "preview" | "summary"
+  content   String
+  createdAt DateTime @default(now())
+
+  match Match @relation(fields: [matchId], references: [id])
+
+  @@index([matchId, language, kind])
+}
