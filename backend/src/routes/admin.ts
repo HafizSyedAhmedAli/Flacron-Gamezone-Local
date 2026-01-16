@@ -2,6 +2,11 @@ import { Router } from "express";
 import { z } from "zod";
 import { prisma } from "../lib/prisma.js";
 import { validateBody } from "../lib/validate.js";
+import axios from "axios";
+import { cacheGet, cacheSet } from "../lib/redis.js";
+
+const LEAGUES_CACHE_KEY = "football:leagues";
+const LEAGUES_TTL = 60 * 5; // 5 minutes
 
 export const adminRouter = Router();
 
@@ -13,12 +18,99 @@ const leagueSchema = z.object({
   apiLeagueId: z.number().int().optional(),
 });
 
+// Get all leagues from Football API for browsing : /api/admin/leagues
+adminRouter.get("/leagues", async (req, res) => {
+  try {
+    // Try Redis first
+    const cachedLeagues = await cacheGet<any[]>(LEAGUES_CACHE_KEY);
+    if (cachedLeagues) {
+      return res.json({
+        success: true,
+        leagues: cachedLeagues,
+        cached: true,
+      });
+    }
+
+    if (!process.env.API_FOOTBALL_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "Football API key not configured",
+      });
+    }
+
+    const config = {
+      headers: {
+        "x-apisports-key": process.env.API_FOOTBALL_KEY,
+      },
+      timeout: 10_000,
+    };
+
+    const { data } = await axios.get(
+      "https://v3.football.api-sports.io/leagues",
+      config
+    );
+    if (!data || !data.response) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid response from Football API",
+      });
+    }
+
+    const leaguesData = data.response.map((item: any) => ({
+      apiLeagueId: item.league.id,
+      name: item.league.name,
+      logo: item.league.logo,
+      country: item.country?.name || 'Unknown',
+    }));
+
+    await cacheSet(LEAGUES_CACHE_KEY, leaguesData, LEAGUES_TTL);
+
+    res.json({ success: true, leagues: leaguesData });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "An error occurred.",
+    });
+  }
+});
+
+// Get saved leagues from database : /api/admin/leagues/saved
+adminRouter.get("/leagues/saved", async (req, res) => {
+  try {
+    const leagues = await prisma.league.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(leagues);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch saved leagues" });
+  }
+});
+
+// Save a league from to your database : /api/admin/league
 adminRouter.post("/league", validateBody(leagueSchema), async (req, res) => {
-  const data = (req as any).validated;
-  const league = await prisma.league.create({
-    data: { ...data, logo: data.logo || null },
-  });
-  res.json(league);
+  try {
+    const { apiLeagueId, name, country, logo } = req.body;
+
+    // Check if league already exists
+    const existing = await prisma.league.findFirst({
+      where: apiLeagueId ? { apiLeagueId } : { name },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "League already added" });
+    }
+
+    const league = await prisma.league.create({
+      data: { apiLeagueId, name, country, logo },
+    });
+
+    res.json(league);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to create league" });
+  }
 });
 
 adminRouter.put(

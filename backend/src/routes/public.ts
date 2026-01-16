@@ -5,7 +5,7 @@ export const publicRouter = Router();
 
 publicRouter.get("/leagues", async (_req, res) => {
   const leagues = await prisma.league.findMany({ orderBy: { name: "asc" } });
-  res.json(leagues);
+  res.json({success: true, leagues});
 });
 
 publicRouter.get("/teams", async (req, res) => {
