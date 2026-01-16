@@ -31,6 +31,13 @@ adminRouter.get("/leagues", async (req, res) => {
       });
     }
 
+    if (!process.env.API_FOOTBALL_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "Football API key not configured",
+      });
+    }
+
     const config = {
       headers: {
         "x-apisports-key": process.env.API_FOOTBALL_KEY,
@@ -42,9 +49,8 @@ adminRouter.get("/leagues", async (req, res) => {
       "https://v3.football.api-sports.io/leagues",
       config
     );
-
     if (!data || !data.response) {
-      return res.json({
+      return res.status(400).json({
         success: false,
         message: "Invalid response from Football API",
       });
@@ -54,7 +60,7 @@ adminRouter.get("/leagues", async (req, res) => {
       apiLeagueId: item.league.id,
       name: item.league.name,
       logo: item.league.logo,
-      country: item.country.name,
+      country: item.country?.name || 'Unknown',
     }));
 
     await cacheSet(LEAGUES_CACHE_KEY, leaguesData, LEAGUES_TTL);
@@ -62,9 +68,9 @@ adminRouter.get("/leagues", async (req, res) => {
     res.json({ success: true, leagues: leaguesData });
   } catch (error) {
     console.error(error);
-    res.json({
+    res.status(500).json({
       success: false,
-      message: error instanceof Error ? error.message : "An error occured.",
+      message: error instanceof Error ? error.message : "An error occurred.",
     });
   }
 });
@@ -89,7 +95,7 @@ adminRouter.post("/league", validateBody(leagueSchema), async (req, res) => {
 
     // Check if league already exists
     const existing = await prisma.league.findFirst({
-      where: { apiLeagueId },
+      where: apiLeagueId ? { apiLeagueId } : { name },
     });
 
     if (existing) {

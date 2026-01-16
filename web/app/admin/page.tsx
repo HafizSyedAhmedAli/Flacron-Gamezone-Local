@@ -30,7 +30,10 @@ export default function AdminPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<{
+    text: string;
+    type: "success" | "error" | "info";
+  } | null>(null);
   const [loading, setLoading] = useState(false);
 
   // League browser states
@@ -72,7 +75,7 @@ export default function AdminPage() {
       }
     } catch (err) {
       console.error(err);
-      setMsg("Failed to load data");
+      setMsg({ text: "Failed to load data", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -86,7 +89,7 @@ export default function AdminPage() {
       setShowBrowser(true);
     } catch (err) {
       console.error(err);
-      setMsg("Failed to load leagues from API");
+      setMsg({ text: "Failed to load leagues from API", type: "error" });
     } finally {
       setBrowsing(false);
     }
@@ -100,11 +103,11 @@ export default function AdminPage() {
         country: league.country,
         logo: league.logo,
       });
-      setMsg(`Added ${league.name} to your leagues`);
+      setMsg({ text: `Added ${league.name} to your leagues`, type: "success" });
       refreshAll();
     } catch (err) {
       console.error(err);
-      setMsg("Failed to add league");
+      setMsg({ text: "Failed to add league", type: "error" });
     }
   }
 
@@ -113,7 +116,7 @@ export default function AdminPage() {
     if (!name) return;
     const leagueId = leagues[0]?.id || null;
     await apiPost("/api/admin/team", { name, leagueId, logo: "" });
-    setMsg("Team created");
+    setMsg({ text: "Team created", type: "success" });
     refreshAll();
   }
 
@@ -133,20 +136,20 @@ export default function AdminPage() {
       score: "0-0",
       venue: "",
     });
-    setMsg("Match created");
+    setMsg({ text: "Match created", type: "success" });
     refreshAll();
   }
 
   async function setMatchStatus(id: string | number, status: string) {
     await apiPut(`/api/admin/match/${id}`, { status });
-    setMsg("Match updated");
+    setMsg({ text: "Match updated", type: "success" });
     refreshAll();
   }
 
   async function deleteResource(url: string) {
     if (!confirm("Confirm delete?")) return;
     await apiDelete(url);
-    setMsg("Deleted");
+    setMsg({ text: "Deleted", type: "success" });
     refreshAll();
   }
 
@@ -171,13 +174,13 @@ export default function AdminPage() {
         logo: editingLeague.logo === "" ? "" : editingLeague.logo, // backend converts "" -> null
       };
       await apiPut(`/api/admin/league/${editingLeague.id}`, payload);
-      setMsg("League saved");
+      setMsg({ text: "League saved", type: "success" });
       setShowEditModal(false);
       setEditingLeague(null);
       refreshAll();
     } catch (err) {
       console.error(err);
-      setMsg("Failed to save league");
+      setMsg({ text: "Failed to save league", type: "error" });
     } finally {
       setSavingLeague(false);
     }
@@ -193,13 +196,13 @@ export default function AdminPage() {
     setDeleting(true);
     try {
       await apiDelete(`/api/admin/league/${leagueToDelete.id}`);
-      setMsg("League deleted");
+      setMsg({ text: "League deleted", type: "success" });
       setShowDeleteConfirm(false);
       setLeagueToDelete(null);
       refreshAll();
     } catch (err) {
       console.error(err);
-      setMsg("Failed to delete league");
+      setMsg({ text: "Failed to delete league", type: "error" });
     } finally {
       setDeleting(false);
     }
@@ -227,8 +230,16 @@ export default function AdminPage() {
         </div>
 
         {msg && (
-          <div className="text-sm bg-green-500/10 text-green-500 p-3 rounded-lg">
-            {msg}
+          <div
+            className={`text-sm p-3 rounded-lg ${
+              msg.type === "error"
+                ? "bg-red-500/10 text-red-500"
+                : msg.type === "success"
+                ? "bg-green-500/10 text-green-500"
+                : "bg-blue-500/10 text-blue-500"
+            }`}
+          >
+            {msg.text}
           </div>
         )}
 
@@ -371,7 +382,15 @@ export default function AdminPage() {
                             if (score)
                               apiPut(`/api/admin/match/${m.id}`, {
                                 score,
-                              }).then(refreshAll);
+                              })
+                                .then(refreshAll)
+                                .catch((err) => {
+                                  console.error(err);
+                                  setMsg({
+                                    text: "Failed to update match score",
+                                    type: "error",
+                                  });
+                                });
                           }}
                         >
                           <Edit className="w-4 h-4" /> EDIT
@@ -497,9 +516,15 @@ export default function AdminPage() {
                           onClick={() => {
                             const name = prompt("New name", tn.name);
                             if (name)
-                              apiPut(`/api/admin/team/${tn.id}`, { name }).then(
-                                refreshAll
-                              );
+                              apiPut(`/api/admin/team/${tn.id}`, { name })
+                                .then(refreshAll)
+                                .catch((err) => {
+                                  console.error(err);
+                                  setMsg({
+                                    text: "Failed to update team name",
+                                    type: "error",
+                                  });
+                                });
                           }}
                         >
                           Edit
