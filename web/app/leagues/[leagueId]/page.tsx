@@ -367,6 +367,10 @@ export default function LeagueDetailsPage({ params }: LeagueDetailsPageProps) {
           "Failed to fetch league details, using dummy data:",
           error,
         );
+        // Set error message for display
+        setFetchError(
+          error instanceof Error ? error.message : "Failed to load league details"
+        );
         // Use dummy data on error
         setData(DUMMY_DATA);
       } finally {
@@ -445,8 +449,13 @@ export default function LeagueDetailsPage({ params }: LeagueDetailsPageProps) {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-slate-700/50">
+            <div className="flex gap-2 border-b border-slate-700/50" role="tablist">
               <button
+                id="tab-standings"
+                role="tab"
+                aria-selected={activeTab === "standings"}
+                aria-controls="panel-standings"
+                tabIndex={activeTab === "standings" ? 0 : -1}
                 onClick={() => setActiveTab("standings")}
                 className={`px-4 py-2 font-medium transition-colors relative ${
                   activeTab === "standings"
@@ -461,6 +470,11 @@ export default function LeagueDetailsPage({ params }: LeagueDetailsPageProps) {
                 )}
               </button>
               <button
+                id="tab-fixtures"
+                role="tab"
+                aria-selected={activeTab === "fixtures"}
+                aria-controls="panel-fixtures"
+                tabIndex={activeTab === "fixtures" ? 0 : -1}
                 onClick={() => setActiveTab("fixtures")}
                 className={`px-4 py-2 font-medium transition-colors relative ${
                   activeTab === "fixtures"
@@ -475,6 +489,11 @@ export default function LeagueDetailsPage({ params }: LeagueDetailsPageProps) {
                 )}
               </button>
               <button
+                id="tab-results"
+                role="tab"
+                aria-selected={activeTab === "results"}
+                aria-controls="panel-results"
+                tabIndex={activeTab === "results" ? 0 : -1}
                 onClick={() => setActiveTab("results")}
                 className={`px-4 py-2 font-medium transition-colors relative ${
                   activeTab === "results"
@@ -492,7 +511,7 @@ export default function LeagueDetailsPage({ params }: LeagueDetailsPageProps) {
 
             {/* Standings Tab */}
             {activeTab === "standings" && (
-              <div className="bg-card border border-slate-700/50 rounded-xl overflow-hidden">
+              <div id="panel-standings" role="tabpanel" aria-labelledby="tab-standings" className="bg-card border border-slate-700/50 rounded-xl overflow-hidden">
                 {data.standings.length === 0 ? (
                   <div className="p-8 text-center text-muted-foreground">
                     <Trophy className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -598,7 +617,7 @@ export default function LeagueDetailsPage({ params }: LeagueDetailsPageProps) {
 
             {/* Fixtures Tab */}
             {activeTab === "fixtures" && (
-              <div className="space-y-3">
+              <div id="panel-fixtures" role="tabpanel" aria-labelledby="tab-fixtures" className="space-y-3">
                 {data.upcomingMatches.length === 0 ? (
                   <div className="bg-card border border-slate-700/50 rounded-xl p-8 text-center text-muted-foreground">
                     <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
@@ -669,7 +688,7 @@ export default function LeagueDetailsPage({ params }: LeagueDetailsPageProps) {
 
             {/* Results Tab */}
             {activeTab === "results" && (
-              <div className="space-y-3">
+              <div id="panel-results" role="tabpanel" aria-labelledby="tab-results" className="space-y-3">
                 {data.recentMatches.length === 0 ? (
                   <div className="bg-card border border-slate-700/50 rounded-xl p-8 text-center text-muted-foreground">
                     <TrendingUp className="w-12 h-12 mx-auto mb-4 opacity-50" />
