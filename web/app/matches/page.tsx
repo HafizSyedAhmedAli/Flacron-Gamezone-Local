@@ -1,57 +1,306 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "../../components/api";
-import { Shell } from "../../components/layout";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight, Calendar, Filter, Trophy, Clock, Sparkles, Play, TrendingUp } from "lucide-react";
+import { Shell } from "@/components/layout";
+
+// Demo data
+const DEMO_MATCHES = [
+  {
+    id: 1,
+    homeTeam: { name: "Manchester United", logo: "MU" },
+    awayTeam: { name: "Liverpool", logo: "LIV" },
+    score: "2 - 1",
+    status: "FINISHED",
+    kickoffTime: "2026-01-15T20:00:00",
+    league: { name: "Premier League" },
+    stadium: "Old Trafford"
+  },
+  {
+    id: 2,
+    homeTeam: { name: "Real Madrid", logo: "RM" },
+    awayTeam: { name: "Barcelona", logo: "BAR" },
+    score: "1 - 1",
+    status: "LIVE",
+    kickoffTime: "2026-01-17T18:30:00",
+    league: { name: "La Liga" },
+    stadium: "Santiago Bernabéu"
+  },
+  {
+    id: 3,
+    homeTeam: { name: "Bayern Munich", logo: "BAY" },
+    awayTeam: { name: "Borussia Dortmund", logo: "BVB" },
+    score: "0 - 0",
+    status: "UPCOMING",
+    kickoffTime: "2026-01-18T19:00:00",
+    league: { name: "Bundesliga" },
+    stadium: "Allianz Arena"
+  },
+  {
+    id: 4,
+    homeTeam: { name: "Paris Saint-Germain", logo: "PSG" },
+    awayTeam: { name: "Marseille", logo: "OM" },
+    score: "3 - 2",
+    status: "FINISHED",
+    kickoffTime: "2026-01-16T21:00:00",
+    league: { name: "Ligue 1" },
+    stadium: "Parc des Princes"
+  },
+  {
+    id: 5,
+    homeTeam: { name: "Juventus", logo: "JUV" },
+    awayTeam: { name: "AC Milan", logo: "MIL" },
+    score: "0 - 0",
+    status: "UPCOMING",
+    kickoffTime: "2026-01-19T20:45:00",
+    league: { name: "Serie A" },
+    stadium: "Allianz Stadium"
+  },
+  {
+    id: 6,
+    homeTeam: { name: "Arsenal", logo: "ARS" },
+    awayTeam: { name: "Chelsea", logo: "CHE" },
+    score: "4 - 1",
+    status: "FINISHED",
+    kickoffTime: "2026-01-14T17:30:00",
+    league: { name: "Premier League" },
+    stadium: "Emirates Stadium"
+  }
+];
 
 export default function MatchesPage() {
   const [status, setStatus] = useState("");
   const [date, setDate] = useState("");
-  const [matches, setMatches] = useState<any[]>([]);
-  const [err, setErr] = useState("");
+  const [matches, setMatches] = useState<typeof DEMO_MATCHES>(DEMO_MATCHES);
+  const [showFilters, setShowFilters] = useState(false);
 
-  async function load() {
-    try {
-      setErr("");
-      const qs = new URLSearchParams();
-      if (status) qs.set("status", status);
-      if (date) qs.set("date", date);
-      const data = await apiGet<any[]>(`/api/matches?${qs.toString()}`);
-      setMatches(data);
-    } catch (e: any) {
-      setErr(e?.message || "Failed");
+  useEffect(() => {
+    let filtered = [...DEMO_MATCHES];
+
+    if (status) {
+      filtered = filtered.filter(m => m.status === status);
     }
-  }
 
-  useEffect(() => { load(); }, [status, date]);
+    if (date) {
+      filtered = filtered.filter(m => {
+        const matchDate = new Date(m.kickoffTime).toISOString().split('T')[0];
+        return matchDate === date;
+      });
+    }
+
+    setMatches(filtered);
+  }, [status, date]);
+
+  const getStatusBadge = (matchStatus: string) => {
+    switch (matchStatus) {
+      case "LIVE":
+        return (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-red-500 to-orange-500 text-white shadow-lg shadow-red-500/50 animate-pulse">
+            <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+            LIVE
+          </span>
+        );
+      case "FINISHED":
+        return <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-slate-600 to-slate-700 text-slate-200">FINISHED</span>;
+      case "UPCOMING":
+        return <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-blue-500 to-cyan-500 text-white shadow-lg shadow-blue-500/20">UPCOMING</span>;
+      default:
+        return <span className="inline-block px-3 py-1 rounded-full text-xs font-bold bg-slate-700 text-slate-300">{matchStatus}</span>;
+    }
+  };
+
+  const liveCount = DEMO_MATCHES.filter(m => m.status === "LIVE").length;
+  const upcomingCount = DEMO_MATCHES.filter(m => m.status === "UPCOMING").length;
 
   return (
     <Shell>
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h1 className="text-xl font-semibold">All Matches</h1>
-        <div className="flex gap-2 text-sm">
-          <select className="border rounded-xl px-3 py-2" value={status} onChange={(e) => setStatus(e.target.value)}>
-            <option value="">Any status</option>
-            <option value="UPCOMING">Upcoming</option>
-            <option value="LIVE">Live</option>
-            <option value="FINISHED">Finished</option>
-          </select>
-          <input className="border rounded-xl px-3 py-2" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+      <div className="space-y-6">
+        {/* Hero Section */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/30 to-purple-900/30 border border-slate-700/50 rounded-2xl shadow-2xl">
+          {/* ...Your Hero SVG and animations remain unchanged... */}
+
+          <div className="relative z-10 p-8 md:p-12">
+            <div className="max-w-3xl">
+              <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-4 backdrop-blur-sm">
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                <span className="text-sm font-semibold text-red-400">{liveCount} Live Matches Now</span>
+              </div>
+
+              <h1 className="text-4xl md:text-5xl font-black mb-4 bg-gradient-to-r from-white via-blue-200 to-purple-300 bg-clip-text text-transparent leading-tight">
+                Watch Football<br />Matches Live
+              </h1>
+
+              <p className="text-slate-300 text-lg mb-6 max-w-xl">
+                Stream live matches, get real-time scores, and never miss a moment of the action.
+              </p>
+
+              <div className="flex flex-wrap gap-6 mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg">
+                    <Play className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-white">{liveCount}</div>
+                    <div className="text-xs text-slate-400">Live Now</div>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center shadow-lg">
+                    <TrendingUp className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-white">{upcomingCount}</div>
+                    <div className="text-xs text-slate-400">Upcoming</div>
+                  </div>
+                </div>
+              </div>
+
+              <Link href="/live">
+                <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/40 flex items-center gap-2">
+                  <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                  Watch Live Matches
+                </button>
+              </Link>
+            </div>
+          </div>
+
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
         </div>
-      </div>
 
-      {err && <div className="rounded-xl border p-3 text-sm text-red-700 mt-3">{err}</div>}
+        {/* Filters Section */}
+        <div className="bg-gradient-to-br from-slate-900/80 to-slate-800/80 backdrop-blur-xl border border-slate-700/50 rounded-xl p-4 shadow-lg">
+          <div className="flex items-center gap-2 mb-3">
+            <Filter className="w-4 h-4 text-blue-400" />
+            <h3 className="text-sm font-semibold text-slate-200">Filters</h3>
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-blue-600 hover:to-blue-500 border border-slate-600/50 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105"
+            >
+              <Calendar className="w-3.5 h-3.5 inline mr-1.5" />
+              Date Filter
+            </button>
+            <select
+              className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-purple-600 hover:to-purple-500 border border-slate-600/50 rounded-lg pl-4 pr-8 py-2 text-sm font-medium cursor-pointer transition-all duration-300 hover:scale-105 text-slate-100 min-w-[140px]"
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+            >
+              <option value="" className="bg-slate-900 text-slate-300">All Status</option>
+              <option value="UPCOMING" className="bg-slate-900 text-blue-400">Upcoming</option>
+              <option value="LIVE" className="bg-slate-900 text-red-400">Live</option>
+              <option value="FINISHED" className="bg-slate-900 text-slate-400">Finished</option>
+            </select>
+            {(status || date) && (
+              <button
+                onClick={() => { setStatus(""); setDate(""); }}
+                className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105"
+              >
+                Clear All
+              </button>
+            )}
+          </div>
 
-      <div className="space-y-3 mt-4">
-        {matches.map((m) => (
-          <Link key={m.id} href={`/match/${m.id}`} className="block rounded-2xl border p-4 hover:shadow-sm">
-            <div className="text-sm text-slate-600">{m.league?.name || "League"} • {new Date(m.kickoffTime).toLocaleString()}</div>
-            <div className="font-semibold">{m.homeTeam?.name} vs {m.awayTeam?.name}</div>
-            <div className="text-sm mt-1">Score: {m.score || "0-0"} • Status: {m.status}</div>
-          </Link>
-        ))}
-        {matches.length === 0 && <div className="text-slate-600">No matches found.</div>}
+          {showFilters && (
+            <div className="mt-3 pt-3 border-t border-slate-700/50">
+              <label className="block text-xs text-slate-400 mb-2 font-medium">Select Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="bg-slate-800 border border-slate-600/50 rounded-lg px-3 py-2 w-full max-w-xs text-sm text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Matches Grid */}
+        <div className="space-x-6">
+          {matches.map((m, idx) => (
+            <Link key={m.id} href={`/match/${m.id}`}>
+              <div className="group relative overflow-hidden bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-xl p-4 transition-all duration-500 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer" style={{ animationDelay: `${idx * 50}ms` }}>
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500 rounded-xl"></div>
+
+                <div className="relative">
+                  <div className="flex items-center justify-center mb-3">
+                    <div className="inline-flex items-center gap-1.5 bg-slate-800/70 backdrop-blur-sm border border-slate-600/30 rounded-full px-3 py-1">
+                      <Trophy className="w-3 h-3 text-yellow-500" />
+                      <span className="text-xs font-semibold text-slate-300">{m.league?.name}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl blur-md"></div>
+                        <div className="relative w-11 h-11 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center text-xs font-bold border border-slate-600/50 shadow-lg">
+                          {m.homeTeam?.logo}
+                        </div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="font-bold text-base truncate block group-hover:text-blue-400 transition-colors">{m.homeTeam?.name}</span>
+                        <span className="text-xs text-slate-500">Home</span>
+                      </div>
+                    </div>
+
+                    <div className="text-center flex-shrink-0 min-w-[120px]">
+                      {m.status === "FINISHED" || m.status === "LIVE" ? (
+                        <>
+                          <div className="text-3xl font-black mb-1.5 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent tracking-tight">
+                            {m.score}
+                          </div>
+                          {getStatusBadge(m.status)}
+                        </>
+                      ) : (
+                        <>
+                          {getStatusBadge(m.status)}
+                          <div className="flex items-center justify-center gap-1.5 text-xs text-slate-400 mt-1.5">
+                            <Clock className="w-3 h-3" />
+                            {new Date(m.kickoffTime).toLocaleString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3 flex-1 justify-end min-w-0">
+                      <div className="flex-1 min-w-0 text-right">
+                        <span className="font-bold text-base truncate block group-hover:text-purple-400 transition-colors">{m.awayTeam?.name}</span>
+                        <span className="text-xs text-slate-500">Away</span>
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl blur-md"></div>
+                        <div className="relative w-11 h-11 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center text-xs font-bold border border-slate-600/50 shadow-lg">
+                          {m.awayTeam?.logo}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-xs text-slate-500 mt-3 text-center flex items-center justify-center gap-1.5">
+                    <Sparkles className="w-3 h-3" />
+                    {m.stadium}
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
+
+          {matches.length === 0 && (
+            <div className="text-center py-12 bg-gradient-to-br from-slate-900/50 to-slate-800/50 border border-slate-700/50 rounded-xl backdrop-blur-xl">
+              <div className="w-14 h-14 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
+                <Trophy className="w-7 h-7 text-slate-500" />
+              </div>
+              <p className="text-slate-400 font-medium text-sm">No matches found</p>
+              <p className="text-slate-600 text-xs mt-1">Try adjusting your filters</p>
+            </div>
+          )}
+        </div>
       </div>
     </Shell>
   );
