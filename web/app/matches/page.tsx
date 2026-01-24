@@ -116,9 +116,134 @@ export default function MatchesPage() {
   return (
     <Shell>
       <div className="space-y-6">
-        {/* Hero Section */}
+        {/* Hero Section with Football Field Animation */}
         <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/30 to-purple-900/30 border border-slate-700/50 rounded-2xl shadow-2xl">
-          {/* ...Your Hero SVG and animations remain unchanged... */}
+          {/* Stadium Field Pattern Background */}
+          <div className="absolute inset-0 opacity-5">
+            {/* Horizontal field lines */}
+            <div className="absolute top-0 left-0 right-0 h-px bg-white" style={{ top: '20%' }}></div>
+            <div className="absolute top-0 left-0 right-0 h-px bg-white" style={{ top: '40%' }}></div>
+            <div className="absolute top-0 left-0 right-0 h-0.5 bg-white" style={{ top: '50%' }}></div>
+            <div className="absolute top-0 left-0 right-0 h-px bg-white" style={{ top: '60%' }}></div>
+            <div className="absolute top-0 left-0 right-0 h-px bg-white" style={{ top: '80%' }}></div>
+            
+            {/* Center circle */}
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 rounded-full border-2 border-white"></div>
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-white"></div>
+            
+            {/* Penalty boxes */}
+            <div className="absolute top-1/2 left-0 transform -translate-y-1/2 w-20 h-40 border-2 border-white border-l-0"></div>
+            <div className="absolute top-1/2 right-0 transform -translate-y-1/2 w-20 h-40 border-2 border-white border-r-0"></div>
+          </div>
+
+          {/* Animated Glow Orbs */}
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute top-0 left-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+            <div className="absolute top-1/2 left-1/3 w-48 h-48 bg-cyan-500 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+          </div>
+
+          {/* Diagonal Stripes Pattern */}
+          <div className="absolute inset-0 opacity-5" style={{
+            backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 20px, rgba(255,255,255,0.03) 20px, rgba(255,255,255,0.03) 40px)'
+          }}></div>
+
+          {/* Floating Football Animation */}
+          <div className="absolute top-1/2 right-10 transform -translate-y-1/2 opacity-40 hidden md:block">
+            <div className="relative animate-bounce" style={{ animationDuration: '3s' }}>
+              <svg width="140" height="140" viewBox="0 0 140 140" className="drop-shadow-2xl filter drop-shadow-xl">
+                <defs>
+                  {/* Realistic ball gradient with proper lighting */}
+                  <radialGradient id="ballGradient" cx="35%" cy="35%">
+                    <stop offset="0%" stopColor="#ffffff" />
+                    <stop offset="40%" stopColor="#f8f8f8" />
+                    <stop offset="70%" stopColor="#e0e0e0" />
+                    <stop offset="100%" stopColor="#b0b0b0" />
+                  </radialGradient>
+                  
+                  {/* Shadow gradient */}
+                  <radialGradient id="shadowGradient" cx="50%" cy="50%">
+                    <stop offset="0%" stopColor="#000000" stopOpacity="0.4" />
+                    <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+                  </radialGradient>
+                </defs>
+                
+                {/* Ground shadow */}
+                <ellipse cx="70" cy="125" rx="35" ry="10" fill="url(#shadowGradient)"/>
+                
+                {/* Main ball sphere */}
+                <circle cx="70" cy="70" r="50" fill="url(#ballGradient)"/>
+                
+                {/* Traditional soccer ball pattern - Pentagon in center */}
+                <path d="M 70 30 L 85 42 L 80 62 L 60 62 L 55 42 Z" 
+                      fill="#000000" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"/>
+                
+                {/* Surrounding hexagons */}
+                <path d="M 55 42 L 42 50 L 42 66 L 55 75 L 60 62 Z" 
+                      fill="#ffffff" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.95"/>
+                
+                <path d="M 85 42 L 98 50 L 98 66 L 85 75 L 80 62 Z" 
+                      fill="#ffffff" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.95"/>
+                
+                <path d="M 60 62 L 55 75 L 60 92 L 75 92 L 80 75 L 75 62 Z" 
+                      fill="#ffffff" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.95"/>
+                
+                <path d="M 70 30 L 55 42 L 60 28 L 70 22 L 80 28 L 85 42 Z" 
+                      fill="#ffffff" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.95"/>
+                
+                {/* Side pentagons (darker) */}
+                <path d="M 42 50 L 32 58 L 35 73 L 42 66 Z" 
+                      fill="#000000" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.85"/>
+                
+                <path d="M 98 50 L 108 58 L 105 73 L 98 66 Z" 
+                      fill="#000000" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.85"/>
+                
+                <path d="M 60 92 L 55 105 L 70 112 L 85 105 L 80 92 Z" 
+                      fill="#000000" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.85"/>
+                
+                {/* Bottom hexagons */}
+                <path d="M 42 66 L 35 73 L 42 88 L 55 88 L 55 75 Z" 
+                      fill="#ffffff" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.9"/>
+                
+                <path d="M 98 66 L 105 73 L 98 88 L 85 88 L 85 75 Z" 
+                      fill="#ffffff" 
+                      stroke="#1a1a1a" 
+                      strokeWidth="0.5"
+                      opacity="0.9"/>
+                
+                {/* Realistic highlight/shine */}
+                <ellipse cx="55" cy="50" rx="18" ry="12" fill="white" opacity="0.5" transform="rotate(-25 55 50)"/>
+                <ellipse cx="58" cy="47" rx="10" ry="7" fill="white" opacity="0.7" transform="rotate(-25 58 47)"/>
+                <ellipse cx="60" cy="45" rx="5" ry="3" fill="white" opacity="0.9"/>
+              </svg>
+            </div>
+          </div>
 
           <div className="relative z-10 p-8 md:p-12">
             <div className="max-w-3xl">
@@ -216,7 +341,7 @@ export default function MatchesPage() {
         </div>
 
         {/* Matches Grid */}
-        <div className="space-x-6">
+        <div className="space-y-4">
           {matches.map((m, idx) => (
             <Link key={m.id} href={`/match/${m.id}`}>
               <div className="group relative overflow-hidden bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-xl p-4 transition-all duration-500 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer" style={{ animationDelay: `${idx * 50}ms` }}>
