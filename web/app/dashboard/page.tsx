@@ -184,10 +184,9 @@ export default function FlacronDashboard() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Player Card */}
-            <div className="bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 overflow-hidden" style={{ animation: 'slideUp 0.6s ease-out 0.6s both' }}>
+            <div className="relative bg-gradient-to-br from-slate-800/90 to-slate-900/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-6 overflow-hidden" style={{ animation: 'slideUp 0.6s ease-out 0.6s both' }}>
               <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full blur-2xl" />
-              <div className="relative">
-                <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center mb-4 shadow-lg">
+              <div className="relative">                <div className="w-20 h-20 mx-auto rounded-2xl bg-gradient-to-br from-orange-500 to-pink-500 flex items-center justify-center mb-4 shadow-lg">
                   <span className="text-3xl font-bold text-white">P</span>
                 </div>
                 <h3 className="text-xl font-bold text-center text-white mb-1">Player</h3>

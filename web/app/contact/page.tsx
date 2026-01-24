@@ -206,7 +206,7 @@ export default function ContactPage() {
                   </div>
                 )}
 
-                <div className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                   <div className="grid md:grid-cols-2 gap-5">
                     {/* Name field */}
                     <div className="space-y-2">
@@ -329,8 +329,7 @@ export default function ContactPage() {
 
                   {/* Submit button */}
                   <button
-                    type="button"
-                    onClick={handleSubmit}
+                    type="submit"
                     disabled={loading}
                     className="relative w-full group/btn overflow-hidden"
                   >
@@ -353,8 +352,7 @@ export default function ContactPage() {
                       )}
                     </div>
                   </button>
-                </div>
-              </div>
+                </form>              </div>
             </div>
           </div>
 

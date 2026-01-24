@@ -178,7 +178,7 @@ export default function SignupPage() {
               </div>
             )}
 
-            <div className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {/* Name field */}
               <div className="space-y-2">
                 <label htmlFor="name" className="block text-sm font-medium text-slate-300">
@@ -379,8 +379,7 @@ export default function SignupPage() {
 
               {/* Signup button */}
               <button
-                type="button"
-                onClick={handleSubmit}
+                type="submit"
                 disabled={loading}
                 className="relative w-full group overflow-hidden mt-6"
               >
@@ -403,8 +402,7 @@ export default function SignupPage() {
                   )}
                 </div>
               </button>
-            </div>
-
+            </form>
             {/* Divider */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">

@@ -149,7 +149,7 @@ export default function LoginPage() {
               </div>
             )}
 
-            <div className="space-y-5">
+            <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email field with enhanced styling */}
               <div className="space-y-2">
                 <label htmlFor="email" className="block text-sm font-medium text-slate-300">
@@ -167,7 +167,6 @@ export default function LoginPage() {
                     placeholder="you@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     required
                     aria-invalid={Boolean(error.email)}
                     aria-describedby={error.email ? "email-error" : undefined}
@@ -198,7 +197,6 @@ export default function LoginPage() {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSubmit(e)}
                     required
                     aria-invalid={Boolean(error.password)}
                     aria-describedby={error.password ? "password-error" : undefined}
@@ -254,7 +252,6 @@ export default function LoginPage() {
               {/* Login button with enhanced effects */}
               <button
                 type="submit"
-                onClick={handleSubmit}
                 disabled={loading}
                 className="relative w-full group overflow-hidden"
               >
@@ -277,8 +274,7 @@ export default function LoginPage() {
                   )}
                 </div>
               </button>
-            </div>
-
+            </form>
             {/* Divider with enhanced styling */}
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
