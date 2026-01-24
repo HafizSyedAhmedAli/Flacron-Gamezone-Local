@@ -199,6 +199,104 @@ publicRouter.get("/teams", async (req, res) => {
   res.json(teams);
 });
 
+publicRouter.get("/teams/:id", async (req, res) => {
+  try {
+    const teamId = req.params.id;
+
+    // Fetch team details
+    const team = await prisma.team.findUnique({
+      where: { id: teamId },
+      include: {
+        league: {
+          select: {
+            id: true,
+            name: true,
+            country: true,
+            logo: true,
+          },
+        },
+      },
+    });
+
+    if (!team) {
+      return res.status(404).json({ error: "Team not found" });
+    }
+
+    // Fetch home matches
+    const homeMatches = await prisma.match.findMany({
+      where: { homeTeamId: teamId },
+      include: {
+        homeTeam: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            apiTeamId: true,
+          },
+        },
+        awayTeam: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            apiTeamId: true,
+          },
+        },
+        league: {
+          select: {
+            id: true,
+            name: true,
+            country: true,
+            logo: true,
+          },
+        },
+      },
+      orderBy: { kickoffTime: "desc" },
+    });
+
+    // Fetch away matches
+    const awayMatches = await prisma.match.findMany({
+      where: { awayTeamId: teamId },
+      include: {
+        homeTeam: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            apiTeamId: true,
+          },
+        },
+        awayTeam: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+            apiTeamId: true,
+          },
+        },
+        league: {
+          select: {
+            id: true,
+            name: true,
+            country: true,
+            logo: true,
+          },
+        },
+      },
+      orderBy: { kickoffTime: "desc" },
+    });
+
+    res.json({
+      ...team,
+      homeMatches,
+      awayMatches,
+    });
+  } catch (error) {
+    console.error("Error fetching team details:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 publicRouter.get("/matches", async (req, res) => {
   const status = String(req.query.status || "").toUpperCase();
   const leagueId = String(req.query.leagueId || "");

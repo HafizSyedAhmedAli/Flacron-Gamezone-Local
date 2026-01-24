@@ -6,11 +6,14 @@ import axios from "axios";
 import { cacheGet, cacheSet } from "../lib/redis.js";
 
 const LEAGUES_CACHE_KEY = "football:leagues";
+const TEAMS_CACHE_KEY = "football:teams";
 const LEAGUES_TTL = 60 * 5; // 5 minutes
+const TEAMS_TTL = 60 * 10; // 10 minutes
 
 export const adminRouter = Router();
 
-// League CRUD
+// ==================== LEAGUES ====================
+
 const leagueSchema = z.object({
   name: z.string().min(1),
   country: z.string().optional(),
@@ -21,7 +24,6 @@ const leagueSchema = z.object({
 // Get all leagues from Football API for browsing : /api/admin/leagues
 adminRouter.get("/leagues", async (req, res) => {
   try {
-    // Try Redis first
     const cachedLeagues = await cacheGet<any[]>(LEAGUES_CACHE_KEY);
     if (cachedLeagues) {
       return res.json({
@@ -47,7 +49,7 @@ adminRouter.get("/leagues", async (req, res) => {
 
     const { data } = await axios.get(
       "https://v3.football.api-sports.io/leagues",
-      config
+      config,
     );
     if (!data || !data.response) {
       return res.status(400).json({
@@ -60,7 +62,7 @@ adminRouter.get("/leagues", async (req, res) => {
       apiLeagueId: item.league.id,
       name: item.league.name,
       logo: item.league.logo,
-      country: item.country?.name || 'Unknown',
+      country: item.country?.name || "Unknown",
     }));
 
     await cacheSet(LEAGUES_CACHE_KEY, leaguesData, LEAGUES_TTL);
@@ -75,11 +77,10 @@ adminRouter.get("/leagues", async (req, res) => {
   }
 });
 
-// Get saved leagues from database : /api/admin/leagues/saved
 adminRouter.get("/leagues/saved", async (req, res) => {
   try {
     const leagues = await prisma.league.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: "desc" },
     });
     res.json(leagues);
   } catch (error) {
@@ -88,12 +89,10 @@ adminRouter.get("/leagues/saved", async (req, res) => {
   }
 });
 
-// Save a league from to your database : /api/admin/league
 adminRouter.post("/league", validateBody(leagueSchema), async (req, res) => {
   try {
     const { apiLeagueId, name, country, logo } = req.body;
 
-    // Check if league already exists
     const existing = await prisma.league.findFirst({
       where: apiLeagueId ? { apiLeagueId } : { name },
     });
@@ -123,7 +122,7 @@ adminRouter.put(
       data: { ...data, logo: data.logo === "" ? null : data.logo },
     });
     res.json(league);
-  }
+  },
 );
 
 adminRouter.delete("/league/:id", async (req, res) => {
@@ -131,7 +130,8 @@ adminRouter.delete("/league/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-// Team CRUD
+// ==================== TEAMS ====================
+
 const teamSchema = z.object({
   name: z.string().min(1),
   logo: z.string().url().optional().or(z.literal("")),
@@ -139,38 +139,172 @@ const teamSchema = z.object({
   leagueId: z.string().optional().nullable(),
 });
 
+// Get all teams from Football API for browsing : /api/admin/teams
+adminRouter.get("/teams", async (req, res) => {
+  try {
+    const { leagueId } = req.query;
+
+    // Build cache key based on league filter
+    const cacheKey = leagueId
+      ? `${TEAMS_CACHE_KEY}:league:${leagueId}`
+      : TEAMS_CACHE_KEY;
+
+    const cachedTeams = await cacheGet<any[]>(cacheKey);
+    if (cachedTeams) {
+      return res.json({
+        success: true,
+        teams: cachedTeams,
+        cached: true,
+      });
+    }
+
+    if (!process.env.API_FOOTBALL_KEY) {
+      return res.status(500).json({
+        success: false,
+        message: "Football API key not configured",
+      });
+    }
+
+    const config = {
+      headers: {
+        "x-apisports-key": process.env.API_FOOTBALL_KEY,
+      },
+      timeout: 10_000,
+    };
+
+    // If leagueId is provided, fetch teams for that league
+    // Otherwise fetch teams from popular leagues
+    const url = leagueId
+      ? `https://v3.football.api-sports.io/teams?league=${leagueId}&season=2024`
+      : "https://v3.football.api-sports.io/teams?league=39&season=2024"; // Default: Premier League
+
+    const { data } = await axios.get(url, config);
+
+    if (!data || !data.response) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid response from Football API",
+      });
+    }
+
+    const teamsData = data.response.map((item: any) => ({
+      apiTeamId: item.team.id,
+      name: item.team.name,
+      logo: item.team.logo,
+      country: item.team.country || "Unknown",
+      founded: item.team.founded,
+      venue: item.venue?.name,
+    }));
+
+    await cacheSet(cacheKey, teamsData, TEAMS_TTL);
+
+    res.json({ success: true, teams: teamsData });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : "An error occurred.",
+    });
+  }
+});
+
+// Get saved teams from database : /api/admin/teams/saved
+adminRouter.get("/teams/saved", async (req, res) => {
+  try {
+    const teams = await prisma.team.findMany({
+      include: {
+        league: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(teams);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch saved teams" });
+  }
+});
+
+// Save a team to your database : /api/admin/team
 adminRouter.post("/team", validateBody(teamSchema), async (req, res) => {
-  const data = (req as any).validated;
-  const team = await prisma.team.create({
-    data: { ...data, logo: data.logo || null },
-  });
-  res.json(team);
+  try {
+    const { apiTeamId, name, logo, leagueId } = req.body;
+
+    // Check if team already exists
+    const existing = await prisma.team.findFirst({
+      where: apiTeamId ? { apiTeamId } : { name },
+    });
+
+    if (existing) {
+      return res.status(400).json({ error: "Team already added" });
+    }
+    const league = await prisma.league.findUnique({
+      where: { apiLeagueId: Number.parseInt(leagueId) },
+    });
+
+    if (!league) {
+      return res.status(400).json({ message: "League does not exist" });
+    }
+
+    const team = await prisma.team.create({
+      data: {
+        apiTeamId,
+        name,
+        logo: logo || null,
+        leagueId: league.id || null,
+      },
+      include: {
+        league: true,
+      },
+    });
+    res.json(team);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to create team" });
+  }
 });
 
 adminRouter.put(
   "/team/:id",
   validateBody(teamSchema.partial()),
   async (req, res) => {
-    const data = (req as any).validated;
-    const team = await prisma.team.update({
-      where: { id: req.params.id },
-      data: { ...data, logo: data.logo === "" ? null : data.logo },
-    });
-    res.json(team);
-  }
+    try {
+      const data = (req as any).validated;
+      const team = await prisma.team.update({
+        where: { id: req.params.id },
+        data: {
+          ...data,
+          logo: data.logo === "" ? null : data.logo,
+          leagueId: data.leagueId === "" ? null : data.leagueId,
+        },
+        include: {
+          league: true,
+        },
+      });
+      res.json(team);
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ error: "Failed to update team" });
+    }
+  },
 );
 
 adminRouter.delete("/team/:id", async (req, res) => {
-  await prisma.team.delete({ where: { id: req.params.id } });
-  res.json({ ok: true });
+  try {
+    await prisma.team.delete({ where: { id: req.params.id } });
+    res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to delete team" });
+  }
 });
 
-// Match CRUD
+// ==================== MATCHES ====================
+
 const matchSchema = z.object({
   leagueId: z.string().optional().nullable(),
   homeTeamId: z.string().min(1),
   awayTeamId: z.string().min(1),
-  kickoffTime: z.string().min(1), // ISO string
+  kickoffTime: z.string().min(1),
   status: z.enum(["UPCOMING", "LIVE", "FINISHED"]).optional(),
   score: z.string().optional().nullable(),
   venue: z.string().optional().nullable(),
@@ -217,7 +351,7 @@ adminRouter.put(
       },
     });
     res.json(match);
-  }
+  },
 );
 
 adminRouter.delete("/match/:id", async (req, res) => {
@@ -225,7 +359,8 @@ adminRouter.delete("/match/:id", async (req, res) => {
   res.json({ ok: true });
 });
 
-// Stream assignment
+// ==================== STREAMS ====================
+
 const streamSchema = z.object({
   matchId: z.string().min(1),
   type: z.enum(["EMBED", "NONE"]),
@@ -255,6 +390,8 @@ adminRouter.post("/stream", validateBody(streamSchema), async (req, res) => {
   res.json(stream);
 });
 
+// ==================== USERS ====================
+
 adminRouter.get("/users", async (_req, res) => {
   const users = await prisma.user.findMany({
     include: { subscription: true },
@@ -268,6 +405,6 @@ adminRouter.get("/users", async (_req, res) => {
       role: u.role,
       createdAt: u.createdAt,
       subscription: u.subscription,
-    }))
+    })),
   );
 });
