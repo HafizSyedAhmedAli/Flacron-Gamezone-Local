@@ -52,7 +52,7 @@ export default function AdminPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
-    // if (!getToken()) { location.href = "/login"; return; }
+    if (!getToken()) { location.href = "/login"; return; }
     refreshAll();
   }, []);
 
