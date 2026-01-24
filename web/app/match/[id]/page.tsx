@@ -1,85 +1,744 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet, apiPost, getToken } from "../../../components/api";
-import { Shell } from "../../../components/layout";
+import { ChevronLeft, Trophy, Clock, MapPin, Play, Sparkles, Globe, FileText, TrendingUp, Activity, Shield, Award, Target, Flame, Crosshair, AlertCircle, Tv } from "lucide-react";
+
+// Dummy data - Replace this with actual API calls later
+const DUMMY_MATCHES = {
+  "1": {
+    id: "1",
+    homeTeam: { 
+      id: "team1",
+      name: "Manchester United",
+      logo: "https://media.api-sports.io/football/teams/33.png",
+      apiTeamId: 33
+    },
+    awayTeam: { 
+      id: "team2",
+      name: "Liverpool",
+      logo: "https://media.api-sports.io/football/teams/40.png",
+      apiTeamId: 40
+    },
+    league: { 
+      id: "league1",
+      name: "Premier League", 
+      country: "England", 
+      logo: "https://media.api-sports.io/football/leagues/39.png",
+      apiLeagueId: 39
+    },
+    status: "LIVE",
+    score: "2 - 1",
+    kickoffTime: new Date().toISOString(),
+    venue: "Old Trafford, Manchester",
+    apiFixtureId: 12345,
+    stream: { 
+      id: "stream1",
+      matchId: "1",
+      type: "EMBED", 
+      provider: "StreamPro",
+      isActive: true, 
+      url: "https://example.com/stream"
+    },
+    aiTexts: []
+  },
+  "2": {
+    id: "2",
+    homeTeam: { 
+      id: "team3",
+      name: "Barcelona",
+      logo: "https://media.api-sports.io/football/teams/529.png",
+      apiTeamId: 529
+    },
+    awayTeam: { 
+      id: "team4",
+      name: "Real Madrid",
+      logo: "https://media.api-sports.io/football/teams/541.png",
+      apiTeamId: 541
+    },
+    league: { 
+      id: "league2",
+      name: "La Liga", 
+      country: "Spain", 
+      logo: "https://media.api-sports.io/football/leagues/140.png",
+      apiLeagueId: 140
+    },
+    status: "UPCOMING",
+    score: null,
+    kickoffTime: new Date(Date.now() + 86400000).toISOString(),
+    venue: "Camp Nou, Barcelona",
+    apiFixtureId: 67890,
+    stream: { 
+      id: "stream2",
+      matchId: "2",
+      type: "NONE", 
+      provider: null,
+      isActive: false, 
+      url: null 
+    },
+    aiTexts: []
+  },
+  "3": {
+    id: "3",
+    homeTeam: { 
+      id: "team5",
+      name: "Bayern Munich",
+      logo: "https://media.api-sports.io/football/teams/157.png",
+      apiTeamId: 157
+    },
+    awayTeam: { 
+      id: "team6",
+      name: "Borussia Dortmund",
+      logo: "https://media.api-sports.io/football/teams/165.png",
+      apiTeamId: 165
+    },
+    league: { 
+      id: "league3",
+      name: "Bundesliga", 
+      country: "Germany", 
+      logo: "https://media.api-sports.io/football/leagues/78.png",
+      apiLeagueId: 78
+    },
+    status: "FINISHED",
+    score: "3 - 2",
+    kickoffTime: new Date(Date.now() - 86400000).toISOString(),
+    venue: "Allianz Arena, Munich",
+    apiFixtureId: 11111,
+    stream: null,
+    aiTexts: [
+      {
+        id: "ai1",
+        matchId: "3",
+        kind: "preview",
+        language: "en",
+        provider: "Claude AI",
+        content: "⚡ GAME ZONE PREVIEW ⚡\n\nThis highly anticipated Bundesliga showdown promises to be an absolute thriller! Bayern Munich, dominating the league with their relentless attacking force, face off against Borussia Dortmund's counter-attacking specialists.\n\n🎯 KEY BATTLES:\n• Midfield control will be crucial\n• Bayern's home fortress advantage\n• Dortmund's pace on the break\n\n💥 PREDICTION: Expect fireworks! Both teams love to attack, meaning we could see 5+ goals in this absolute banger of a match!",
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: "ai2",
+        matchId: "3",
+        kind: "summary",
+        language: "en",
+        provider: "Claude AI",
+        content: "🔥 GAME ZONE MATCH REPORT 🔥\n\nWHAT. A. GAME! Bayern Munich edged out Dortmund 3-2 in an absolute thriller that had everything!\n\n⚽ MATCH HIGHLIGHTS:\n• Bayern struck first with a rocket from outside the box\n• Dortmund leveled with a clinical counter-attack\n• Back and forth action with both teams trading goals\n• Bayern's winner came in the 78th minute - pure drama!\n\n🏆 MAN OF THE MATCH: Bayern's midfielder orchestrated the entire show with 2 assists and the match-winning goal.\n\n💬 VERDICT: This is why we love football! Der Klassiker lived up to the hype and then some. Bayern maintains their title push while Dortmund showed they're still a force to be reckoned with!",
+        createdAt: new Date().toISOString()
+      },
+      {
+        id: "ai3",
+        matchId: "3",
+        kind: "preview",
+        language: "fr",
+        provider: "Claude AI",
+        content: "⚡ APERÇU GAME ZONE ⚡\n\nCe choc très attendu de la Bundesliga promet d'être un véritable spectacle ! Le Bayern Munich, dominant la ligue avec sa force d'attaque implacable, affronte les spécialistes de la contre-attaque de Dortmund.\n\n🎯 BATAILLES CLÉS:\n• Le contrôle du milieu de terrain sera crucial\n• L'avantage de la forteresse à domicile du Bayern\n• La vitesse de Dortmund en transition\n\n💥 PRÉDICTION: Attendez-vous à des feux d'artifice! Les deux équipes adorent attaquer!",
+        createdAt: new Date().toISOString()
+      }
+    ]
+  }
+};
+
+const generateDummyAIContent = (kind: string, language: string, matchId: string) => {
+  const previews = {
+    en: "⚡ GAME ZONE PREVIEW ⚡\n\nGet ready for an epic showdown! Both teams are in stellar form and hungry for victory.\n\n🎯 KEY FACTORS:\n• Home advantage could be decisive\n• Star players in red-hot form\n• Tactical masterclass expected\n\n💥 This match has all the ingredients for a classic encounter. Buckle up, football fans!",
+    fr: "⚡ APERÇU GAME ZONE ⚡\n\nPréparez-vous pour un affrontement épique ! Les deux équipes sont en grande forme et affamées de victoire.\n\n🎯 FACTEURS CLÉS:\n• L'avantage à domicile pourrait être décisif\n• Les joueurs vedettes en pleine forme\n• Chef-d'œuvre tactique attendu\n\n💥 Ce match a tous les ingrédients pour une rencontre classique !"
+  };
+  
+  const summaries = {
+    en: "🔥 GAME ZONE MATCH REPORT 🔥\n\nWhat an incredible match! Both teams delivered an absolute spectacle!\n\n⚽ KEY MOMENTS:\n• Brilliant tactical adjustments\n• World-class saves from both keepers\n• Individual moments of magic decided the outcome\n\n🏆 This match showcased elite-level football at its finest. Both teams can hold their heads high after this epic battle!",
+    fr: "🔥 RAPPORT DE MATCH GAME ZONE 🔥\n\nQuel match incroyable ! Les deux équipes ont livré un spectacle absolu !\n\n⚽ MOMENTS CLÉS:\n• Ajustements tactiques brillants\n• Arrêts de classe mondiale des deux gardiens\n• Des moments de magie individuelle ont décidé du résultat\n\n🏆 Ce match a présenté le football d'élite à son meilleur !"
+  };
+  
+  return kind === "match-preview" ? previews[language as keyof typeof previews] : summaries[language as keyof typeof summaries];
+};
 
 export default function MatchDetail({ params }: { params: { id: string } }) {
   const [match, setMatch] = useState<any>(null);
   const [err, setErr] = useState("");
   const [lang, setLang] = useState<"en" | "fr">("en");
+  const [generating, setGenerating] = useState<string | null>(null);
 
   async function load() {
     try {
       setErr("");
-      const data = await apiGet(`/api/match/${params.id}`);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const data = DUMMY_MATCHES[params.id as keyof typeof DUMMY_MATCHES];
+      if (!data) throw new Error("Match not found");
       setMatch(data);
     } catch (e: any) {
-      setErr(e?.message || "Failed");
+      setErr(e?.message || "Failed to load match details");
     }
   }
 
   useEffect(() => { load(); }, [params.id]);
 
   async function gen(kind: "match-preview" | "match-summary") {
-    if (!getToken()) { location.href = "/login"; return; }
-    await apiPost(`/api/ai/${kind}`, { matchId: params.id, language: lang });
-    await load();
+    try {
+      setGenerating(kind);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      const newContent = generateDummyAIContent(kind, lang, params.id);
+      const contentKind = kind === "match-preview" ? "preview" : "summary";
+      
+      setMatch((prev: any) => ({
+        ...prev,
+        aiTexts: [
+          ...prev.aiTexts.filter((t: any) => !(t.kind === contentKind && t.language === lang)),
+          { 
+            id: `ai_${Date.now()}`,
+            matchId: prev.id,
+            kind: contentKind, 
+            language: lang, 
+            content: newContent, 
+            provider: "Claude AI",
+            createdAt: new Date().toISOString()
+          }
+        ]
+      }));
+    } catch (e: any) {
+      setErr(e?.message || "Failed to generate content");
+    } finally {
+      setGenerating(null);
+    }
   }
 
-  if (err) return <Shell><div className="text-red-700">{err}</div></Shell>;
-  if (!match) return <Shell><div>Loading…</div></Shell>;
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "LIVE":
+        return (
+          <div className="relative inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-red-600 to-orange-600 shadow-lg shadow-red-500/50">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500 to-orange-500 rounded-xl animate-pulse"></div>
+            <div className="relative flex items-center gap-2">
+              <span className="relative flex h-3 w-3">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-3 w-3 bg-white"></span>
+              </span>
+              <span className="text-sm font-black tracking-wider text-white uppercase">🔴 Live Now</span>
+            </div>
+          </div>
+        );
+      case "FINISHED":
+        return (
+          <div className="relative inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-slate-700 to-slate-600 shadow-lg">
+            <Trophy className="w-4 h-4 text-yellow-400" />
+            <span className="text-sm font-black tracking-wider text-slate-200 uppercase">Full Time</span>
+          </div>
+        );
+      case "UPCOMING":
+        return (
+          <div className="relative inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 shadow-lg shadow-blue-500/30">
+            <Clock className="w-4 h-4 text-white animate-pulse" />
+            <span className="text-sm font-black tracking-wider text-white uppercase">Coming Soon</span>
+          </div>
+        );
+      default:
+        return null;
+    }
+  };
+
+  if (err && !match) {
+    return (
+      <div className="min-h-screen bg-[#0a0e27] flex flex-col">
+        <div className="flex-1 p-4 md:p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-slate-900/90 to-red-900/30 border-2 border-red-500/30 rounded-2xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(239,68,68,0.1),transparent)]"></div>
+              <div className="relative">
+                <div className="w-20 h-20 bg-gradient-to-br from-red-600 to-red-700 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-2xl shadow-red-500/30">
+                  <AlertCircle className="w-10 h-10 text-white" />
+                </div>
+                <p className="text-red-400 font-bold text-xl mb-2">⚠️ {err}</p>
+                <p className="text-slate-400 text-sm">Try match ID: 1, 2, or 3</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
+
+  if (!match) {
+    return (
+      <div className="min-h-screen bg-[#0a0e27] flex flex-col">
+        <div className="flex-1 p-4 md:p-6">
+          <div className="max-w-7xl mx-auto">
+            <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-2 border-cyan-500/20 rounded-2xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1),transparent)]"></div>
+              <div className="relative">
+                <div className="w-20 h-20 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-2xl shadow-cyan-500/30">
+                  <Activity className="w-10 h-10 text-white" />
+                </div>
+                <p className="text-slate-300 font-bold text-xl">⚡ Loading match data...</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   const preview = (match.aiTexts || []).find((x: any) => x.kind === "preview" && x.language === lang);
   const summary = (match.aiTexts || []).find((x: any) => x.kind === "summary" && x.language === lang);
 
   return (
-    <Shell>
-      <div className="rounded-2xl border p-5 space-y-3">
-        <div className="text-sm text-slate-600">{match.league?.name || "League"} • {new Date(match.kickoffTime).toLocaleString()}</div>
-        <h1 className="text-xl font-semibold">{match.homeTeam?.name} vs {match.awayTeam?.name}</h1>
-        <div className="text-sm">Status: <b>{match.status}</b> • Score: <b>{match.score || "0-0"}</b></div>
-        {match.venue && <div className="text-sm text-slate-600">Venue: {match.venue}</div>}
+    <div className="min-h-screen bg-[#0a0e27] flex flex-col">
+      <div className="flex-1 p-4 md:p-6">
+        <div className="max-w-7xl mx-auto space-y-6">
+          {/* Game Zone Style Back Button */}
+          <button 
+            onClick={() => window.history.back()}
+            className="group flex items-center gap-3 text-slate-400 hover:text-cyan-400 transition-all duration-300 px-4 py-2.5 rounded-xl hover:bg-slate-800/70 border border-transparent hover:border-cyan-500/30"
+          >
+            <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/70 group-hover:bg-gradient-to-br group-hover:from-cyan-600 group-hover:to-blue-600 transition-all duration-300 shadow-lg">
+              <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
+            </div>
+            <span className="text-sm font-bold uppercase tracking-wide">← Back</span>
+          </button>
 
-        <div className="flex items-center gap-2 text-sm">
-          <label className="text-slate-600">Language:</label>
-          <select className="border rounded-xl px-3 py-2" value={lang} onChange={(e) => setLang(e.target.value as any)}>
-            <option value="en">English</option>
-            <option value="fr">French</option>
-          </select>
-        </div>
+          {/* Game Zone Hero Section */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 border-2 border-cyan-500/30 rounded-2xl shadow-2xl shadow-cyan-500/20">
+            {/* Animated Gaming Background */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(6,182,212,0.3)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%,100%_100%] animate-[shimmer_3s_linear_infinite]"></div>
+            </div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,_rgba(6,182,212,0.15),transparent_50%),radial-gradient(circle_at_70%_80%,_rgba(59,130,246,0.15),transparent_50%)]"></div>
 
-        <div className="rounded-2xl border p-4">
-          <div className="font-semibold mb-2">Watch Live</div>
-          {match.stream?.type === "EMBED" && match.stream?.isActive ? (
-            <div className="text-sm text-slate-600">
-              Embed is configured. (For security, this MVP renders a link instead of raw iframe.)
-              <div className="mt-2">
-                <a className="underline" href={match.stream.url} target="_blank">Open official stream</a>
+            <div className="relative z-10 p-6 md:p-10">
+              {/* League Badge - Gaming Style */}
+              <div className="flex items-center justify-center mb-8">
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
+                  <div className="relative flex items-center gap-4 bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/50 rounded-2xl px-6 py-4 shadow-2xl">
+                    {match.league?.logo ? (
+                      <img src={match.league.logo} alt={match.league.name} className="w-10 h-10 object-contain" />
+                    ) : (
+                      <Trophy className="w-10 h-10 text-cyan-400" />
+                    )}
+                    <div>
+                      <div className="text-lg font-black text-white uppercase tracking-wide">{match.league?.name}</div>
+                      <div className="text-xs text-cyan-400 font-bold flex items-center gap-1.5">
+                        <MapPin className="w-3 h-3" />
+                        {match.league?.country}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Teams Battle Zone */}
+              <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 md:gap-8 mb-8">
+                {/* Home Team */}
+                <div className="text-center md:text-right">
+                  <div className="relative inline-block mb-4 group">
+                    <div className="absolute -inset-2 bg-gradient-to-br from-cyan-500/40 to-blue-500/40 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-300"></div>
+                    <div className="relative">
+                      {match.homeTeam?.logo ? (
+                        <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl p-4 border-2 border-cyan-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+                          <img src={match.homeTeam.logo} alt={match.homeTeam.name} className="w-full h-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black border-2 border-cyan-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                          {match.homeTeam?.name?.charAt(0)}
+                        </div>
+                      )}
+                      <div className="absolute -bottom-3 -right-3 w-12 h-12 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg border-2 border-slate-900">
+                        <Shield className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <h2 className="text-xl md:text-3xl font-black text-white mb-2 uppercase tracking-tight">{match.homeTeam?.name}</h2>
+                  <div className="inline-flex items-center gap-2 bg-cyan-500/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-cyan-500/30">
+                    <span className="text-xs font-black text-cyan-400 uppercase tracking-wider">🏠 Home</span>
+                  </div>
+                </div>
+
+                {/* Score/VS Section - Gaming Style */}
+                <div className="text-center min-w-[140px] md:min-w-[180px]">
+                  {match.status === "FINISHED" || match.status === "LIVE" ? (
+                    <div className="space-y-4">
+                      <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-r from-cyan-600/20 via-blue-600/20 to-cyan-600/20 blur-3xl"></div>
+                        <div className="relative text-5xl md:text-7xl font-black bg-gradient-to-r from-cyan-400 via-blue-400 to-cyan-400 bg-clip-text text-transparent drop-shadow-2xl tracking-tighter">
+                          {match.score || "0 - 0"}
+                        </div>
+                      </div>
+                      {getStatusBadge(match.status)}
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {getStatusBadge(match.status)}
+                      <div className="flex flex-col items-center gap-2 text-sm bg-slate-900/70 backdrop-blur-sm rounded-xl px-4 py-3 border-2 border-blue-500/30 shadow-lg">
+                        <Clock className="w-6 h-6 text-blue-400 animate-pulse" />
+                        <div className="font-black text-white uppercase tracking-wide">
+                          {new Date(match.kickoffTime).toLocaleString('en-US', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Away Team */}
+                <div className="text-center md:text-left">
+                  <div className="relative inline-block mb-4 group">
+                    <div className="absolute -inset-2 bg-gradient-to-br from-blue-500/40 to-purple-500/40 rounded-3xl blur-2xl group-hover:blur-3xl transition-all duration-300"></div>
+                    <div className="relative">
+                      {match.awayTeam?.logo ? (
+                        <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl p-4 border-2 border-blue-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
+                          <img src={match.awayTeam.logo} alt={match.awayTeam.name} className="w-full h-full object-contain" />
+                        </div>
+                      ) : (
+                        <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black border-2 border-blue-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300">
+                          {match.awayTeam?.name?.charAt(0)}
+                        </div>
+                      )}
+                      <div className="absolute -bottom-3 -left-3 w-12 h-12 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl flex items-center justify-center shadow-lg border-2 border-slate-900">
+                        <Target className="w-6 h-6 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                  <h2 className="text-xl md:text-3xl font-black text-white mb-2 uppercase tracking-tight">{match.awayTeam?.name}</h2>
+                  <div className="inline-flex items-center gap-2 bg-blue-500/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-blue-500/30">
+                    <span className="text-xs font-black text-blue-400 uppercase tracking-wider">✈️ Away</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Venue Badge */}
+              {match.venue && (
+                <div className="flex items-center justify-center">
+                  <div className="inline-flex items-center gap-2 bg-slate-900/70 backdrop-blur-sm rounded-xl px-5 py-2.5 border border-slate-700/50 shadow-lg">
+                    <MapPin className="w-4 h-4 text-cyan-400" />
+                    <span className="text-sm text-slate-300 font-semibold">{match.venue}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Gaming Style Border */}
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500"></div>
+          </div>
+
+          {/* Language & Stream Section */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* Language Selector */}
+            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-purple-500/30 rounded-2xl p-6 shadow-xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,_rgba(168,85,247,0.1),transparent)]"></div>
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Globe className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-black text-white uppercase tracking-wide">Language</h3>
+                </div>
+                <select 
+                  className="w-full bg-slate-800/90 border-2 border-purple-500/50 rounded-xl px-5 py-3.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all cursor-pointer hover:border-purple-400"
+                  value={lang} 
+                  onChange={(e) => setLang(e.target.value as "en" | "fr")}
+                >
+                  <option value="en">🇬🇧 English</option>
+                  <option value="fr">🇫🇷 French</option>
+                </select>
               </div>
             </div>
-          ) : (
-            <div className="text-sm text-slate-600">Score-only mode (no video available).</div>
+
+            {/* Stream Section */}
+            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl p-6 shadow-xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,_rgba(6,182,212,0.1),transparent)]"></div>
+              <div className="relative">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                    <Tv className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-black text-white uppercase tracking-wide">Live Stream</h3>
+                </div>
+                {match.stream?.type === "EMBED" && match.stream?.isActive ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-xs bg-green-500/20 rounded-lg px-3 py-2 border border-green-500/30">
+                      <span className="relative flex h-2 w-2">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      </span>
+                      <span className="font-bold text-green-400">STREAM ACTIVE • {match.stream.provider}</span>
+                    </div>
+                    <a 
+                      href={match.stream.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="group relative inline-flex items-center justify-center gap-3 w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 hover:from-cyan-500 hover:via-blue-500 hover:to-cyan-500 text-white font-black px-6 py-4 rounded-xl shadow-lg shadow-cyan-500/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/50 uppercase tracking-wide"
+                    >
+                      <Play className="w-5 h-5 group-hover:scale-125 transition-transform" />
+                      <span>Watch Live</span>
+                      <Flame className="w-5 h-5 group-hover:scale-125 transition-transform" />
+                    </a>
+                  </div>
+                ) : (
+                  <div className="text-center py-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
+                    <p className="text-xs text-slate-400 font-semibold">🎮 Score-only mode • No stream available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* AI Content Section - Gaming Style */}
+          <div className="grid md:grid-cols-2 gap-6">
+            {/* AI Preview */}
+            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl shadow-2xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,_rgba(6,182,212,0.15),transparent)]"></div>
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-white text-lg uppercase tracking-wide">AI Preview</h3>
+                      <p className="text-xs text-cyan-400 font-bold">⚡ Pre-Match Analysis</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => gen("match-preview")}
+                    disabled={generating === "match-preview"}
+                    className="relative group bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-black px-5 py-3 rounded-xl text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/30 disabled:scale-100 disabled:cursor-not-allowed shadow-md uppercase tracking-wide"
+                  >
+                    {generating === "match-preview" ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Generating...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <Crosshair className="w-4 h-4" />
+                        Generate
+                      </span>
+                    )}
+                  </button>
+                </div>
+                <div className="bg-slate-950/60 rounded-xl p-5 min-h-[240px] max-h-[420px] overflow-y-auto border-2 border-cyan-500/20 backdrop-blur-sm custom-scrollbar">
+                  {preview?.content ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-medium">{preview.content}</p>
+                      {preview.provider && (
+                        <div className="flex items-center gap-2 pt-3 border-t border-cyan-500/30">
+                          <Flame className="w-3 h-3 text-cyan-400" />
+                          <span className="text-xs text-cyan-400 font-bold uppercase">Powered by {preview.provider}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                      <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4">
+                        <FileText className="w-8 h-8 text-slate-600" />
+                      </div>
+                      <p className="text-sm text-slate-400 font-bold mb-1">⚡ No preview yet</p>
+                      <p className="text-xs text-slate-600 font-semibold">Click Generate for AI analysis</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* AI Summary */}
+            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-purple-500/30 rounded-2xl shadow-2xl">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,_rgba(168,85,247,0.15),transparent)]"></div>
+              <div className="relative p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-white text-lg uppercase tracking-wide">AI Summary</h3>
+                      <p className="text-xs text-purple-400 font-bold">🔥 Post-Match Report</p>
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => gen("match-summary")}
+                    disabled={generating === "match-summary"}
+                    className="relative group bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-black px-5 py-3 rounded-xl text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 disabled:scale-100 disabled:cursor-not-allowed shadow-md uppercase tracking-wide"
+                  >
+                    {generating === "match-summary" ? (
+                      <span className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        Generating...
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <Crosshair className="w-4 h-4" />
+                        Generate
+                      </span>
+                    )}
+                  </button>
+                </div>
+                <div className="bg-slate-950/60 rounded-xl p-5 min-h-[240px] max-h-[420px] overflow-y-auto border-2 border-purple-500/20 backdrop-blur-sm custom-scrollbar">
+                  {summary?.content ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-slate-200 leading-relaxed whitespace-pre-wrap font-medium">{summary.content}</p>
+                      {summary.provider && (
+                        <div className="flex items-center gap-2 pt-3 border-t border-purple-500/30">
+                          <Flame className="w-3 h-3 text-purple-400" />
+                          <span className="text-xs text-purple-400 font-bold uppercase">Powered by {summary.provider}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                      <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4">
+                        <FileText className="w-8 h-8 text-slate-600" />
+                      </div>
+                      <p className="text-sm text-slate-400 font-bold mb-1">🔥 No summary yet</p>
+                      <p className="text-xs text-slate-600 font-semibold">Click Generate for AI report</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Error Display */}
+          {err && (
+            <div className="relative overflow-hidden bg-gradient-to-br from-red-900/30 to-red-800/30 border-2 border-red-500/50 rounded-2xl p-5 backdrop-blur-sm shadow-lg">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(239,68,68,0.15),transparent)]"></div>
+              <div className="relative flex items-center gap-3">
+                <div className="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <AlertCircle className="w-5 h-5 text-white" />
+                </div>
+                <p className="text-sm text-red-300 font-bold">⚠️ {err}</p>
+              </div>
+            </div>
           )}
         </div>
+      </div>
+      
+      <Footer />
 
-        <div className="grid md:grid-cols-2 gap-3">
-          <div className="rounded-2xl border p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="font-semibold">AI Match Preview</div>
-              <button className="border rounded-xl px-3 py-2 text-sm" onClick={() => gen("match-preview")}>Generate</button>
+      <style jsx>{`
+        @keyframes shimmer {
+          0% { background-position: -1000px 0; }
+          100% { background-position: 1000px 0; }
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(15, 23, 42, 0.5);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, rgb(6, 182, 212), rgb(59, 130, 246));
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, rgb(8, 145, 178), rgb(37, 99, 235));
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// Footer Component - Clean version matching your site
+function Footer() {
+  return (
+    <footer className="relative mt-auto bg-[#1e293b] border-t border-slate-700/50">
+      <div className="relative max-w-7xl mx-auto px-4 py-8">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+          {/* Brand Section */}
+          <div>
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg">
+                FG
+              </div>
+              <span className="font-bold text-white text-lg">
+                Flacron <span className="text-blue-400">GameZone</span>
+              </span>
             </div>
-            <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{preview?.content || "No preview yet."}</p>
+            <p className="text-sm text-slate-400">
+              Football match discovery and live game platform.
+            </p>
           </div>
-          <div className="rounded-2xl border p-4">
-            <div className="flex items-center justify-between gap-2">
-              <div className="font-semibold">AI Match Summary</div>
-              <button className="border rounded-xl px-3 py-2 text-sm" onClick={() => gen("match-summary")}>Generate</button>
-            </div>
-            <p className="text-sm text-slate-700 mt-2 whitespace-pre-wrap">{summary?.content || "No summary yet."}</p>
+
+          {/* Platform Links */}
+          <div>
+            <h3 className="font-semibold mb-4 text-sm text-white">Platform</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a href="/live" className="text-slate-400 hover:text-white transition-colors">
+                  Live Matches
+                </a>
+              </li>
+              <li>
+                <a href="/matches" className="text-slate-400 hover:text-white transition-colors">
+                  All Matches
+                </a>
+              </li>
+              <li>
+                <a href="/leagues" className="text-slate-400 hover:text-white transition-colors">
+                  Leagues
+                </a>
+              </li>
+              <li>
+                <a href="/teams" className="text-slate-400 hover:text-white transition-colors">
+                  Teams
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Account Links */}
+          <div>
+            <h3 className="font-semibold mb-4 text-sm text-white">Account</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a href="/pricing" className="text-slate-400 hover:text-white transition-colors">
+                  Pricing
+                </a>
+              </li>
+              <li>
+                <a href="/login" className="text-slate-400 hover:text-white transition-colors">
+                  Login
+                </a>
+              </li>
+              <li>
+                <a href="/signup" className="text-slate-400 hover:text-white transition-colors">
+                  Sign Up
+                </a>
+              </li>
+            </ul>
+          </div>
+
+          {/* Legal Links */}
+          <div>
+            <h3 className="font-semibold mb-4 text-sm text-white">Legal</h3>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <a href="/privacy" className="text-slate-400 hover:text-white transition-colors">
+                  Privacy Policy
+                </a>
+              </li>
+              <li>
+                <a href="/terms" className="text-slate-400 hover:text-white transition-colors">
+                  Terms of Service
+                </a>
+              </li>
+              <li>
+                <a href="/contact" className="text-slate-400 hover:text-white transition-colors">
+                  Contact
+                </a>
+              </li>
+            </ul> 
           </div>
         </div>
+
+        {/* Bottom Copyright */}
+        <div className="border-t border-slate-700/50 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400 gap-2">
+          <p>© {new Date().getFullYear()} Flacron GameZone. All rights reserved.</p>
+          <p>Football Match Discovery & Live Game Platform</p>
+        </div>
       </div>
-    </Shell>
+    </footer>
   );
 }
