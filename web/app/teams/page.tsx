@@ -3,133 +3,60 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../../components/api";
 import { Shell } from "../../components/layout";
-import { ChevronLeft, ChevronRight, Search, Trophy, Users, Shield, Award, Zap, Target } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  Trophy,
+  Users,
+  Shield,
+  Award,
+  Zap,
+  Target,
+} from "lucide-react";
 import Link from "next/link";
-
-// Demo teams data - TODO: REMOVE THIS WHEN BACKEND IS READY
-// Backend should return teams with: id, name, league: { name }, logo (image URL), wins, matches
-const DEMO_TEAMS = [
-  { 
-    id: 1, 
-    name: "Manchester United", 
-    league: { name: "Premier League" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/en/7/7a/Manchester_United_FC_crest.svg",
-    wins: 12, 
-    matches: 18
-  },
-  { 
-    id: 2, 
-    name: "Barcelona", 
-    league: { name: "La Liga" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/en/4/47/FC_Barcelona_%28crest%29.svg",
-    wins: 15, 
-    matches: 20
-  },
-  { 
-    id: 3, 
-    name: "Juventus", 
-    league: { name: "Serie A" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/1/15/Juventus_FC_2017_logo.svg",
-    wins: 10, 
-    matches: 16
-  },
-  { 
-    id: 4, 
-    name: "Bayern Munich", 
-    league: { name: "Bundesliga" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/1/1b/FC_Bayern_M%C3%BCnchen_logo_%282017%29.svg",
-    wins: 8, 
-    matches: 14
-  },
-  { 
-    id: 5, 
-    name: "PSG", 
-    league: { name: "Ligue 1" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/en/a/a7/Paris_Saint-Germain_F.C..svg",
-    wins: 14, 
-    matches: 19
-  },
-  { 
-    id: 6, 
-    name: "Real Madrid", 
-    league: { name: "La Liga" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/en/5/56/Real_Madrid_CF.svg",
-    wins: 11, 
-    matches: 17
-  },
-  { 
-    id: 7, 
-    name: "Liverpool", 
-    league: { name: "Premier League" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/en/0/0c/Liverpool_FC.svg",
-    wins: 13, 
-    matches: 18
-  },
-  { 
-    id: 8, 
-    name: "Inter Milan", 
-    league: { name: "Serie A" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/0/05/FC_Internazionale_Milano_2021.svg",
-    wins: 9, 
-    matches: 15
-  },
-  { 
-    id: 9, 
-    name: "Chelsea", 
-    league: { name: "Premier League" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/en/c/cc/Chelsea_FC.svg",
-    wins: 16, 
-    matches: 20
-  },
-  { 
-    id: 10, 
-    name: "AC Milan", 
-    league: { name: "Serie A" }, 
-    logo: "https://upload.wikimedia.org/wikipedia/commons/d/d0/Logo_of_AC_Milan.svg",
-    wins: 7, 
-    matches: 13
-  },
-];
 
 export default function TeamsPage() {
   const [q, setQ] = useState("");
   const [teams, setTeams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const itemsPerPage = 12;
 
   async function load() {
     setIsLoading(true);
+    setError(null);
     try {
       const qs = new URLSearchParams();
       if (q) qs.set("q", q);
       const data = await apiGet<any[]>(`/api/teams?${qs.toString()}`);
-      
-      // TODO: Remove this fallback when backend is ready
-      if (!data || data.length === 0) {
-        setTeams(DEMO_TEAMS);
-      } else {
-        setTeams(data);
-      }
+
+      setTeams(data);
     } catch (error) {
-      console.log("Using demo teams");
-      setTeams(DEMO_TEAMS);
+      console.error("Failed to load teams:", error);
+      setError(error instanceof Error ? error.message : "Failed to load teams");
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }
 
-  useEffect(() => { 
-    load(); 
+  useEffect(() => {
+    load();
     setPage(0);
   }, [q]);
 
   // Filter teams based on search
-  const filteredTeams = teams.filter(t => 
-    t.name.toLowerCase().includes(q.toLowerCase()) ||
-    (t.league?.name || "").toLowerCase().includes(q.toLowerCase())
+  const filteredTeams = teams.filter(
+    (t) =>
+      t.name.toLowerCase().includes(q.toLowerCase()) ||
+      (t.league?.name || "").toLowerCase().includes(q.toLowerCase()),
   );
 
-  const paginatedTeams = filteredTeams.slice(page * itemsPerPage, (page + 1) * itemsPerPage);
+  const paginatedTeams = filteredTeams.slice(
+    page * itemsPerPage,
+    (page + 1) * itemsPerPage,
+  );
   const totalPages = Math.ceil(filteredTeams.length / itemsPerPage);
 
   const handlePrevPage = () => {
@@ -145,28 +72,33 @@ export default function TeamsPage() {
 
   return (
     <Shell>
+      {error && <div className="text-center py-8 text-red-400">{error}</div>}
       <div className="space-y-8">
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-900/20 to-slate-900 border border-slate-700/50 p-8 md:p-12">
           {/* Animated background elements */}
           <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse-slow" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse-slow" style={{ animationDelay: '1s' }} />
-          
+          <div
+            className="absolute bottom-0 left-0 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl animate-pulse-slow"
+            style={{ animationDelay: "1s" }}
+          />
+
           <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8">
             <div className="flex-1 space-y-4">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/20 rounded-full text-sm font-medium text-blue-400">
                 <Zap className="w-4 h-4" />
                 <span>Live Tournament</span>
               </div>
-              
+
               <h1 className="text-4xl md:text-5xl font-bold leading-tight">
                 <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
                   Compete with the Best
                 </span>
               </h1>
-              
+
               <p className="text-slate-400 text-lg max-w-2xl">
-                Browse all competing teams, track their performance, and follow the action in real-time.
+                Browse all competing teams, track their performance, and follow
+                the action in real-time.
               </p>
 
               {/* Stats */}
@@ -176,27 +108,33 @@ export default function TeamsPage() {
                     <Shield className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-white">{teams.length}</div>
+                    <div className="text-2xl font-bold text-white">
+                      {teams.length}
+                    </div>
                     <div className="text-sm text-slate-400">Active Teams</div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
                     <Target className="w-6 h-6 text-cyan-400" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-white">{totalMatches}</div>
+                    <div className="text-2xl font-bold text-white">
+                      {totalMatches}
+                    </div>
                     <div className="text-sm text-slate-400">Total Matches</div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3">
                   <div className="w-12 h-12 rounded-xl bg-green-500/10 border border-green-500/20 flex items-center justify-center">
                     <Trophy className="w-6 h-6 text-green-400" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-white">{totalWins}</div>
+                    <div className="text-2xl font-bold text-white">
+                      {totalWins}
+                    </div>
                     <div className="text-sm text-slate-400">Total Wins</div>
                   </div>
                 </div>
@@ -221,10 +159,12 @@ export default function TeamsPage() {
         {/* Header with pagination */}
         <div className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 text-sm text-slate-400">
-            <span className="font-medium text-white">{filteredTeams.length}</span>
+            <span className="font-medium text-white">
+              {filteredTeams.length}
+            </span>
             <span>teams found</span>
           </div>
-          
+
           {filteredTeams.length > itemsPerPage && (
             <div className="flex gap-2 items-center bg-slate-900/50 rounded-xl px-2 py-2 border border-slate-700/50">
               <button
@@ -267,50 +207,54 @@ export default function TeamsPage() {
         ) : paginatedTeams.length > 0 ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {paginatedTeams.map((t, idx) => {
-              const winRate = t.wins && t.matches ? Math.round((t.wins / t.matches) * 100) : 0;
-              
+              const winRate =
+                t.wins && t.matches
+                  ? Math.round((t.wins / t.matches) * 100)
+                  : 0;
+
               return (
                 <Link
                   key={t.id}
                   href={`/teams/${t.id}`}
                   className="group bg-gradient-to-b from-slate-900/40 to-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-5 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 cursor-pointer relative overflow-hidden block"
                   style={{
-                    animation: `fadeInUp 0.4s ease-out ${idx * 0.05}s both`
+                    animation: `fadeInUp 0.4s ease-out ${idx * 0.05}s both`,
                   }}
                 >
                   {/* Hover glow effect */}
-                  <div 
+                  <div
                     className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
                     style={{
-                      background: `radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08), transparent 70%)`
+                      background: `radial-gradient(circle at 50% 0%, rgba(59, 130, 246, 0.08), transparent 70%)`,
                     }}
                   />
-                  
+
                   {/* Team Logo */}
                   <div className="relative mb-4 mx-auto w-24 h-24">
                     <div className="relative group-hover:scale-110 transition-transform duration-300">
                       <div className="w-24 h-24 rounded-xl bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-sm border border-slate-700/50 flex items-center justify-center p-3 shadow-xl group-hover:shadow-2xl group-hover:border-blue-500/30 transition-all">
                         {t.logo ? (
-                          <img 
-                            src={t.logo} 
+                          <img
+                            src={t.logo}
                             alt={t.name}
                             className="w-full h-full object-contain"
                             onError={(e) => {
                               const target = e.currentTarget;
-                              target.style.display = 'none';
-                              const fallback = target.nextElementSibling as HTMLElement;
-                              if (fallback) fallback.style.display = 'flex';
+                              target.style.display = "none";
+                              const fallback =
+                                target.nextElementSibling as HTMLElement;
+                              if (fallback) fallback.style.display = "flex";
                             }}
                           />
                         ) : null}
-                        <div 
+                        <div
                           className="w-full h-full flex items-center justify-center font-bold text-3xl text-blue-400"
-                          style={{ display: t.logo ? 'none' : 'flex' }}
+                          style={{ display: t.logo ? "none" : "flex" }}
                         >
                           {t.name.substring(0, 2).toUpperCase()}
                         </div>
                       </div>
-                      
+
                       {t.wins > 0 && (
                         <div className="absolute -top-2 -right-2 bg-gradient-to-br from-yellow-400 to-orange-500 text-slate-900 text-xs font-bold px-2 py-1 rounded-full shadow-md flex items-center gap-0.5">
                           <Trophy className="w-3 h-3" />
@@ -319,27 +263,35 @@ export default function TeamsPage() {
                       )}
                     </div>
                   </div>
-                  
+
                   {/* Team Info */}
                   <div className="relative z-10 text-center space-y-1.5">
                     <h3 className="font-semibold text-sm leading-tight line-clamp-1 group-hover:text-blue-400 transition-colors duration-200">
                       {t.name}
                     </h3>
-                    
+
                     <div className="flex items-center justify-center gap-1 text-xs text-slate-500">
                       <Award className="w-3 h-3" />
-                      <span className="line-clamp-1">{t.league?.name || "—"}</span>
+                      <span className="line-clamp-1">
+                        {t.league?.name || "—"}
+                      </span>
                     </div>
 
                     {/* Stats */}
                     <div className="flex justify-center gap-3 pt-2 text-xs border-t border-slate-700/50">
                       <div className="text-center">
-                        <div className="font-semibold text-white">{t.matches || 0}</div>
+                        <div className="font-semibold text-white">
+                          {t.matches || 0}
+                        </div>
                         <div className="text-slate-500 text-[10px]">Played</div>
                       </div>
                       <div className="text-center">
-                        <div className="font-semibold text-blue-400">{winRate}%</div>
-                        <div className="text-slate-500 text-[10px]">Win Rate</div>
+                        <div className="font-semibold text-blue-400">
+                          {winRate}%
+                        </div>
+                        <div className="text-slate-500 text-[10px]">
+                          Win Rate
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -358,9 +310,13 @@ export default function TeamsPage() {
                 <Users className="w-10 h-10 text-slate-600" />
               </div>
             </div>
-            <h3 className="text-lg font-semibold text-slate-300 mb-2">No Teams Found</h3>
+            <h3 className="text-lg font-semibold text-slate-300 mb-2">
+              No Teams Found
+            </h3>
             <p className="text-sm text-slate-500 max-w-sm mx-auto">
-              {q ? "Try adjusting your search terms" : "Create teams in Admin to get started"}
+              {q
+                ? "Try adjusting your search terms"
+                : "Create teams in Admin to get started"}
             </p>
           </div>
         )}
@@ -377,16 +333,17 @@ export default function TeamsPage() {
             transform: translateY(0);
           }
         }
-        
+
         @keyframes pulse-slow {
-          0%, 100% {
+          0%,
+          100% {
             opacity: 0.3;
           }
           50% {
             opacity: 0.5;
           }
         }
-        
+
         .animate-pulse-slow {
           animation: pulse-slow 4s ease-in-out infinite;
         }
