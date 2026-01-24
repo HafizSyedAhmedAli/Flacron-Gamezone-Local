@@ -397,12 +397,9 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
               {upcomingMatches.length > 0 ? upcomingMatches.map((match, idx) => (
                 <Link 
                   key={match.id} 
-                  href={`/matches/${match.id}`}
-                  className="block bg-gradient-to-br from-slate-900/80 to-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 group"
-                  style={{
-                    animation: `fadeInUp 0.4s ease-out ${idx * 0.1}s both`
-                  }}
-                >
+                  href={`/match/${match.id}`}
+                  className="block bg-gradient-to-br ..."
+                >                  
                   <div className="flex items-center justify-between mb-4">
                     <span className="text-xs font-semibold px-3 py-1.5 bg-blue-500/10 text-blue-400 rounded-lg border border-blue-500/20">
                       {match.league?.name || "League"}
@@ -466,13 +463,10 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
                 const isDraw = homeScore === awayScore;
                 
                 return (
+                 
                   <Link 
                     key={match.id}
-                    href={`/matches/${match.id}`}
-                    className="block bg-gradient-to-br from-slate-900/80 to-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-5 hover:border-green-500/50 hover:shadow-xl hover:shadow-green-500/5 transition-all duration-300 group"
-                    style={{
-                      animation: `fadeInUp 0.4s ease-out ${idx * 0.1}s both`
-                    }}
+                    href={`/match/${match.id}`}                    
                   >
                     <div className="flex items-center justify-between mb-4">
                       <span className="text-xs font-semibold px-3 py-1.5 bg-green-500/10 text-green-400 rounded-lg border border-green-500/20">
