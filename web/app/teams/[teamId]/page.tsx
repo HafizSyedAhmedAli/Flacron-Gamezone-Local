@@ -73,7 +73,6 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
     setError(null);
     try {
       const data = await apiGet<TeamDetailsResponse>(`/api/teams/${teamId}`);
-      console.log("Team data received:", data); // Debug log
       setTeam(data);
     } catch (err) {
       console.error("Error loading team:", err);
@@ -179,6 +178,10 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
     .filter((r): r is "W" | "D" | "L" => r !== null)
     .reverse();
 
+  const finishedMatchesCount = allMatches.filter(
+    (m) => m.status === "FINISHED",
+  ).length;
+
   return (
     <Shell>
       <div className="space-y-8">
@@ -252,7 +255,7 @@ export default function TeamDetailPage({ params }: TeamDetailPageProps) {
           />
           <TeamStatsCard
             icon={Flame}
-            value={allMatches.length}
+            value={finishedMatchesCount}
             label="Played"
             color="purple"
           />

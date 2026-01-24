@@ -33,6 +33,11 @@ export default function LeaguesPage() {
 
     try {
       const response = await apiGet<LeaguesResponse>("/api/leagues");
+      
+      if (!response.success) {
+        throw new Error("Failed to fetch leagues");
+      }
+      
       setLeagues(response.leagues ?? []);
     } catch (error) {
       console.error("Failed to fetch leagues:", error);

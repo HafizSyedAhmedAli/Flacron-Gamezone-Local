@@ -7,7 +7,7 @@ interface UsersTabProps {
 }
 
 export function UsersTab({ users }: UsersTabProps) {
-  if (users.length === 0) {
+  if (users?.length === 0) {
     return (
       <div className="text-slate-600 text-sm">
         If this is empty, you are not ADMIN or backend blocked the request.

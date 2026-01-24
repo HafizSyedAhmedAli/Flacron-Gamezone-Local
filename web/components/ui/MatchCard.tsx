@@ -19,7 +19,7 @@ interface MatchCardProps {
   score: string | null;
   venue: string | null;
   league: League;
-  currentTeamName?: string; // To highlight the current team's score
+  currentTeamName?: string;
   variant?: "upcoming" | "finished";
 }
 
@@ -38,15 +38,28 @@ export function MatchCard({
   const isUpcoming = variant === "upcoming";
   const accentColor = isUpcoming ? "blue" : "green";
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
+  const accentClasses = {
+    blue: {
+      cardHover: "hover:border-blue-500/50 hover:shadow-blue-500/10",
+      badge: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+      chevron: "text-blue-400 group-hover:text-blue-500",
+    },
+    green: {
+      cardHover: "hover:border-green-500/50 hover:shadow-green-500/10",
+      badge: "bg-green-500/10 text-green-400 border-green-500/20",
+      chevron: "text-green-400 group-hover:text-green-500",
+    },
+  };
+
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
     });
-  };
 
   const renderScore = () => {
     if (!score) return null;
+
     const [homeScore, awayScore] = score.split("-").map(Number);
 
     return (
@@ -80,11 +93,19 @@ export function MatchCard({
 
   const renderMatchResult = () => {
     if (!score || !currentTeamName) return null;
+    if (
+      currentTeamName !== homeTeam.name &&
+      currentTeamName !== awayTeam.name
+    ) {
+      return null;
+    }
 
     const [homeScore, awayScore] = score.split("-").map(Number);
+
     const isWin =
       (homeTeam.name === currentTeamName && homeScore > awayScore) ||
       (awayTeam.name === currentTeamName && awayScore > homeScore);
+
     const isDraw = homeScore === awayScore;
 
     return (
@@ -118,11 +139,15 @@ export function MatchCard({
   return (
     <Link
       href={`/match/${matchId}`}
-      className={`block bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-${accentColor}-500/50 hover:shadow-lg hover:shadow-${accentColor}-500/10 transition-all duration-300 group`}
+      className={`block bg-gradient-to-br from-slate-800/40 to-slate-900/40 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 ${
+        accentClasses[accentColor].cardHover
+      } hover:shadow-lg transition-all duration-300 group`}
     >
       <div className="flex items-center justify-between mb-4">
         <span
-          className={`text-xs font-semibold px-3 py-1.5 bg-${accentColor}-500/10 text-${accentColor}-400 rounded-lg border border-${accentColor}-500/20`}
+          className={`text-xs font-semibold px-3 py-1.5 ${
+            accentClasses[accentColor].badge
+          } rounded-lg`}
         >
           {isUpcoming ? league.name : "FINISHED"}
         </span>
@@ -165,8 +190,11 @@ export function MatchCard({
         ) : (
           renderMatchResult()
         )}
+
         <ChevronRight
-          className={`w-5 h-5 text-slate-600 group-hover:text-${accentColor}-400 group-hover:translate-x-1 transition-all`}
+          className={`w-5 h-5 ${
+            accentClasses[accentColor].chevron
+          } group-hover:translate-x-1 transition-all`}
         />
       </div>
     </Link>

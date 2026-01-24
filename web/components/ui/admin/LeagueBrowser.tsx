@@ -36,10 +36,9 @@ export function LeagueBrowser({
 
   const filteredLeagues = leagues.filter(
     (l) =>
-      l.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      l.country.toLowerCase().includes(searchTerm.toLowerCase()),
+      (l.name ?? "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (l.country ?? "").toLowerCase().includes(searchTerm.toLowerCase()),
   );
-
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
       <div className="bg-slate-900 border border-slate-700 rounded-xl max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">

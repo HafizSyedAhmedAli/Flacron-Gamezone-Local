@@ -20,11 +20,13 @@ export default function TeamsPage() {
   const [q, setQ] = useState("");
   const [teams, setTeams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const itemsPerPage = 12;
 
   async function load() {
     setIsLoading(true);
+    setError(null);
     try {
       const qs = new URLSearchParams();
       if (q) qs.set("q", q);
@@ -32,7 +34,8 @@ export default function TeamsPage() {
 
       setTeams(data);
     } catch (error) {
-      console.log("Using demo teams");
+      console.error("Failed to load teams:", error);
+      setError(error instanceof Error ? error.message : "Failed to load teams");
     } finally {
       setIsLoading(false);
     }
@@ -69,6 +72,7 @@ export default function TeamsPage() {
 
   return (
     <Shell>
+      {error && <div className="text-center py-8 text-red-400">{error}</div>}
       <div className="space-y-8">
         {/* Hero Section */}
         <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-900 via-blue-900/20 to-slate-900 border border-slate-700/50 p-8 md:p-12">

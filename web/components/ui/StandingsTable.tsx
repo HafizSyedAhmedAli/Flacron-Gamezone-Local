@@ -122,8 +122,9 @@ export function StandingsTable({
           <tbody>
             {standings.map((standing, index) => {
               const isPromotion = index < promotionZones;
-              const isRelegation = index >= standings.length - relegationZones;
-
+              const relegationStart = standings.length - relegationZones;
+              const isRelegation =
+                index >= relegationStart && index >= promotionZones;
               return (
                 <tr
                   key={standing.team.id}

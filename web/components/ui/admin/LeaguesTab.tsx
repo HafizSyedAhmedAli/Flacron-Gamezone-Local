@@ -17,7 +17,7 @@ export function LeaguesTab({
   onDelete,
   onBrowse,
 }: LeaguesTabProps) {
-  if (leagues.length === 0) {
+  if (leagues?.length === 0) {
     return (
       <div className="text-center py-12 text-slate-500">
         <p className="mb-4">No leagues added yet</p>

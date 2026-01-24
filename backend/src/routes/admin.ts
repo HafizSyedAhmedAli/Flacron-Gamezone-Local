@@ -237,6 +237,11 @@ adminRouter.post("/team", validateBody(teamSchema), async (req, res) => {
     if (existing) {
       return res.status(400).json({ error: "Team already added" });
     }
+
+    if (!leagueId) {
+      return res.status(400).json({ message: "leagueId is required" });
+    }
+
     const league = await prisma.league.findUnique({
       where: { apiLeagueId: Number.parseInt(leagueId) },
     });

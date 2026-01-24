@@ -1,4 +1,4 @@
-import { Clock, Trophy, LucideIcon } from "lucide-react";
+import { LucideIcon } from "lucide-react";
 import { MatchCard } from "./MatchCard";
 
 interface TeamData {
@@ -21,6 +21,36 @@ interface Match {
   league: League;
 }
 
+// Tailwind-safe color mapping
+const colorStyles = {
+  blue: {
+    iconBg: "bg-blue-500/10 border-blue-500/20",
+    iconText: "text-blue-400",
+    badgeBg: "bg-blue-500/10 border-blue-500/20",
+    badgeText: "text-blue-400",
+  },
+  green: {
+    iconBg: "bg-green-500/10 border-green-500/20",
+    iconText: "text-green-400",
+    badgeBg: "bg-green-500/10 border-green-500/20",
+    badgeText: "text-green-400",
+  },
+  yellow: {
+    iconBg: "bg-yellow-500/10 border-yellow-500/20",
+    iconText: "text-yellow-400",
+    badgeBg: "bg-yellow-500/10 border-yellow-500/20",
+    badgeText: "text-yellow-400",
+  },
+  red: {
+    iconBg: "bg-red-500/10 border-red-500/20",
+    iconText: "text-red-400",
+    badgeBg: "bg-red-500/10 border-red-500/20",
+    badgeText: "text-red-400",
+  },
+} as const;
+
+type ColorVariant = keyof typeof colorStyles;
+
 interface MatchesSectionProps {
   title: string;
   icon: LucideIcon;
@@ -28,8 +58,8 @@ interface MatchesSectionProps {
   variant: "upcoming" | "finished";
   currentTeamName?: string;
   emptyMessage: string;
-  iconColor: string;
-  badgeColor: string;
+  iconColor: ColorVariant;
+  badgeColor: ColorVariant;
 }
 
 export function MatchesSection({
@@ -42,26 +72,31 @@ export function MatchesSection({
   iconColor,
   badgeColor,
 }: MatchesSectionProps) {
+  const iconStyles = colorStyles[iconColor];
+  const badgeStyles = colorStyles[badgeColor];
+
   return (
     <div className="space-y-4">
+      {/* Header with icon and badge */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold flex items-center gap-3">
           <div
-            className={`w-10 h-10 rounded-xl bg-${iconColor}-500/10 border border-${iconColor}-500/20 flex items-center justify-center`}
+            className={`w-10 h-10 rounded-xl ${iconStyles.iconBg} flex items-center justify-center`}
           >
-            <Icon className={`w-5 h-5 text-${iconColor}-400`} />
+            <Icon className={`w-5 h-5 ${iconStyles.iconText}`} />
           </div>
           {title}
         </h2>
         <div
-          className={`px-3 py-1.5 bg-${badgeColor}-500/10 border border-${badgeColor}-500/20 rounded-full`}
+          className={`px-3 py-1.5 rounded-full border ${badgeStyles.badgeBg} flex items-center justify-center`}
         >
-          <span className={`text-sm font-semibold text-${badgeColor}-400`}>
+          <span className={`text-sm font-semibold ${badgeStyles.badgeText}`}>
             {matches.length}
           </span>
         </div>
       </div>
 
+      {/* Matches list or empty state */}
       <div className="space-y-3">
         {matches.length > 0 ? (
           matches.map((match) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface LeagueEditModalProps {
@@ -25,6 +25,13 @@ export function LeagueEditModal({
   onChange,
   isSaving,
 }: LeagueEditModalProps) {
+  const [imageError, setImageError] = useState(false);
+
+  // Reset error when logo URL changes
+  useEffect(() => {
+    setImageError(false);
+  }, [league?.logo]);
+
   if (!isOpen || !league) return null;
 
   return (
@@ -57,16 +64,15 @@ export function LeagueEditModal({
           onChange={(e) => onChange("logo", e.target.value)}
         />
 
-        {league.logo && (
+        {/* Image Preview */}
+        {league.logo && !imageError && (
           <div className="mb-3">
             <div className="text-sm mb-1">Preview</div>
             <img
               src={league.logo}
               alt="logo preview"
               className="w-32 h-16 object-contain rounded bg-white/5 border border-slate-700"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={() => setImageError(true)}
             />
           </div>
         )}

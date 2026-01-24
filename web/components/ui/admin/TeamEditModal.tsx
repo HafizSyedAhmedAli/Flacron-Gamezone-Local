@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 
 interface TeamEditModalProps {
@@ -27,6 +27,13 @@ export function TeamEditModal({
   isSaving,
   leagues,
 }: TeamEditModalProps) {
+  const [logoError, setLogoError] = useState(false);
+
+  // Reset error whenever the logo URL changes
+  useEffect(() => {
+    setLogoError(false);
+  }, [team?.logo]);
+
   if (!isOpen || !team) return null;
 
   return (
@@ -66,16 +73,14 @@ export function TeamEditModal({
           onChange={(e) => onChange("logo", e.target.value)}
         />
 
-        {team.logo && (
+        {team.logo && !logoError && (
           <div className="mb-3">
             <div className="text-sm mb-1">Preview</div>
             <img
               src={team.logo}
               alt="logo preview"
               className="w-32 h-16 object-contain rounded bg-white/5 border border-slate-700"
-              onError={(e) => {
-                (e.target as HTMLImageElement).style.display = "none";
-              }}
+              onError={() => setLogoError(true)}
             />
           </div>
         )}

@@ -1,4 +1,4 @@
-import { LucideIcon } from "lucide-react";
+import { LucideIcon, TrendingUp } from "lucide-react";
 
 interface TeamStatsCardProps {
   icon: LucideIcon;
@@ -76,7 +76,7 @@ export function TeamStatsCard({
           <Icon className={`w-6 h-6 ${styles.text}`} />
         </div>
         {showTrending && (
-          <div className={`w-5 h-5 ${styles.text} opacity-50`} />
+          <TrendingUp className={`w-5 h-5 ${styles.text} opacity-50`} />
         )}
       </div>
       <div className="text-3xl font-bold text-white mb-1">{value}</div>

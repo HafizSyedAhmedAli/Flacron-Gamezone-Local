@@ -61,12 +61,17 @@ export function SimpleMatchCard({
 
         {/* Score/Time Center */}
         <div className="text-center px-4">
-          {status === "FINISHED" && score ? (
+          {(status === "FINISHED" || status === "LIVE") && score ? (
             <>
               <div className="text-xl font-bold">{score}</div>
               <div className="text-xs text-muted-foreground mt-1">
                 {formatDate(kickoffTime)}
               </div>
+              {status === "LIVE" && (
+                <span className="inline-block px-2 py-1 rounded bg-red-500 text-white text-xs font-bold mt-1 animate-pulse">
+                  LIVE
+                </span>
+              )}
             </>
           ) : (
             <>

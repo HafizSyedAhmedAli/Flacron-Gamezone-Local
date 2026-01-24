@@ -88,6 +88,10 @@ export function TeamBrowser({
             <div className="text-center text-slate-400 py-8">
               Loading teams...
             </div>
+          ) : filteredTeams.length === 0 ? (
+            <div className="text-center text-slate-400 py-8">
+              No teams found matching your search.
+            </div>
           ) : (
             filteredTeams.map((team) => {
               const alreadyAdded = savedTeams.some(
