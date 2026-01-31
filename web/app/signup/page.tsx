@@ -15,6 +15,8 @@ import {
   UserPlus,
 } from "lucide-react";
 import { apiAuthPost, setToken } from "@/components/api";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 type FormErrors = {
   name?: string;
@@ -39,6 +41,7 @@ export default function SignupPage() {
   const [error, setError] = useState<FormErrors>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
   const [passwordStrength, setPasswordStrength] = useState(0);
 
   useEffect(() => {
@@ -121,7 +124,7 @@ export default function SignupPage() {
       localStorage.setItem("fgz_user", JSON.stringify(data.user));
 
       // Redirect to dashboard
-      window.location.href = "/";
+      router.replace("/");
     } catch (err) {
       console.error("Signup error:", err);
 
@@ -143,7 +146,7 @@ export default function SignupPage() {
   };
 
   const handleNavigation = (path: string) => {
-    window.location.href = path;
+    router.push(path);
   };
 
   const getPasswordStrengthColor = () => {
@@ -229,45 +232,6 @@ export default function SignupPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {/* Name field - Note: Backend doesn't store name, but keeping for UX */}
-              <div className="space-y-2">
-                <label
-                  htmlFor="name"
-                  className="block text-sm font-medium text-slate-300"
-                >
-                  Full Name
-                </label>
-                <div className="relative group">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <User className="w-5 h-5 text-slate-500 group-focus-within:text-purple-400 transition-colors" />
-                  </div>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    autoComplete="name"
-                    placeholder="John Doe"
-                    value={formData.name}
-                    onChange={handleChange}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
-                    required
-                    aria-invalid={Boolean(error.name)}
-                    aria-describedby={error.name ? "name-error" : undefined}
-                    className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 hover:border-slate-600/50"
-                  />
-                </div>
-                {error.name && (
-                  <p
-                    id="name-error"
-                    className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
-                    role="alert"
-                  >
-                    <AlertCircle className="w-4 h-4" />
-                    {error.name}
-                  </p>
-                )}
-              </div>
-
               {/* Email field */}
               <div className="space-y-2">
                 <label
@@ -289,7 +253,6 @@ export default function SignupPage() {
                     placeholder="you@example.com"
                     value={formData.email}
                     onChange={handleChange}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
                     required
                     aria-invalid={Boolean(error.email)}
                     aria-describedby={error.email ? "email-error" : undefined}
@@ -328,7 +291,6 @@ export default function SignupPage() {
                     placeholder="Create a strong password"
                     value={formData.password}
                     onChange={handleChange}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
                     required
                     aria-invalid={Boolean(error.password)}
                     aria-describedby={
@@ -407,7 +369,6 @@ export default function SignupPage() {
                     placeholder="Confirm your password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
-                    onKeyDown={(e) => e.key === "Enter" && handleSubmit(e)}
                     required
                     aria-invalid={Boolean(error.confirmPassword)}
                     aria-describedby={
@@ -461,21 +422,13 @@ export default function SignupPage() {
                   </div>
                   <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors select-none">
                     I agree to the{" "}
-                    <button
-                      type="button"
-                      onClick={() => handleNavigation("/terms")}
-                      className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2"
-                    >
+                    <Link href="/terms" className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2" aria-label="Terms of Service">
                       Terms of Service
-                    </button>{" "}
+                    </Link>{" "}
                     and{" "}
-                    <button
-                      type="button"
-                      onClick={() => handleNavigation("/privacy")}
-                      className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2"
-                    >
+                    <Link href="/privacy" className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2" aria-label="Privacy Policy">
                       Privacy Policy
-                    </button>
+                    </Link>
                   </span>
                 </label>
                 {error.terms && (

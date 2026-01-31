@@ -612,14 +612,6 @@ export default function AdminPage() {
     }
   }
 
-  // Legacy methods kept for backward compatibility
-  async function handleUpdateScore(matchId: string, currentScore: string) {
-    const match = matches.find((m) => m.id === matchId);
-    if (match) {
-      openEditMatchModal(match);
-    }
-  }
-
   async function handleSetMatchStatus(matchId: string, status: string) {
     try {
       await apiPut(`/api/admin/match/${matchId}`, { status });

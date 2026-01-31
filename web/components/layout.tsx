@@ -1,17 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  logout as authLogout,
+  isAuthenticated as checkAuth,
+  isAdmin
+} from "@/lib/auth";
+import { cn } from "@/lib/utils";
+import { LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import {
-  getUser,
-  logout as authLogout,
-  isAdmin,
-  isAuthenticated as checkAuth,
-} from "@/lib/auth";
+import React, { useEffect, useState } from "react";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -25,8 +24,38 @@ export function Shell({ children }: ShellProps) {
   const router = useRouter();
 
   useEffect(() => {
-    setIsAuthenticated(checkAuth());
-    setUserIsAdmin(isAdmin());
+    // helper to refresh auth state
+    const refreshAuth = () => {
+      setIsAuthenticated(checkAuth());
+      setUserIsAdmin(isAdmin());
+    };
+
+    // initial check
+    refreshAuth();
+
+    // Re-check when window/tab regains focus or becomes visible
+    const onFocus = () => refreshAuth();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshAuth();
+    };
+
+    // Listen for storage events to handle multi-tab sign-in/sign-out
+    const onStorage = (e: StorageEvent) => {
+      // If token or user was changed/removed in another tab, refresh
+      if (!e.key || e.key === "fgz_user" || e.key === "fgz_token") {
+        refreshAuth();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   const handleLogout = () => {

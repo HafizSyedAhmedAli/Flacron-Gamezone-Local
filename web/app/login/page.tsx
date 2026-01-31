@@ -11,6 +11,8 @@ import {
   AlertCircle,
 } from "lucide-react";
 import { apiAuthPost, setToken } from "@/components/api";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type FormErrors = {
   email?: string;
@@ -26,6 +28,7 @@ export default function LoginPage() {
   const [error, setError] = useState<FormErrors>({});
   const [loading, setLoading] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -41,15 +44,39 @@ export default function LoginPage() {
   }, []);
 
   useEffect(() => {
+    // Debounce writes to localStorage to avoid excessive I/O while the user is typing
+    let timer: ReturnType<typeof setTimeout> | null = null;
+
     try {
       if (rememberMe) {
-        localStorage.setItem("remembered_email", email);
+        // Only persist after user stops typing for 500ms
+        timer = setTimeout(() => {
+          try {
+            if (email) {
+              localStorage.setItem("remembered_email", email);
+            } else {
+              // remove if email is empty
+              localStorage.removeItem("remembered_email");
+            }
+          } catch {
+            // ignore
+          }
+        }, 500);
       } else {
-        localStorage.removeItem("remembered_email");
+        // If user unchecks rememberMe, remove stored email immediately
+        try {
+          localStorage.removeItem("remembered_email");
+        } catch {
+          // ignore
+        }
       }
     } catch {
       // ignore
     }
+
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
   }, [rememberMe, email]);
 
   const validate = (): FormErrors => {
@@ -97,7 +124,7 @@ export default function LoginPage() {
       localStorage.setItem("fgz_user", JSON.stringify(data.user));
 
       // Redirect to dashboard
-      window.location.href = "/";
+      router.replace("/");
     } catch (err) {
       console.error("Login error:", err);
 
@@ -119,7 +146,7 @@ export default function LoginPage() {
   };
 
   const handleNavigation = (path: string) => {
-    window.location.href = path;
+    router.push(path);
   };
 
   return (
@@ -386,13 +413,13 @@ export default function LoginPage() {
         {/* Footer text */}
         <p className="text-center text-xs text-slate-500 mt-6 animate-fadeIn">
           By signing in, you agree to our{" "}
-          <button className="text-blue-400 hover:text-blue-300 transition-colors">
+          <Link href="/terms" className="text-blue-400 hover:text-blue-300 transition-colors" aria-label="Terms of Service">
             Terms of Service
-          </button>{" "}
+          </Link>{" "}
           and{" "}
-          <button className="text-blue-400 hover:text-blue-300 transition-colors">
+          <Link href="/privacy" className="text-blue-400 hover:text-blue-300 transition-colors" aria-label="Privacy Policy">
             Privacy Policy
-          </button>
+          </Link>
         </p>
       </div>
 
