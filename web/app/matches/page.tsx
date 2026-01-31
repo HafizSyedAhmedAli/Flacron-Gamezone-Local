@@ -202,7 +202,7 @@ export default function MatchesPage() {
                 width="140"
                 height="140"
                 viewBox="0 0 140 140"
-                className="drop-shadow-2xl filter drop-shadow-xl"
+                className="drop-shadow-2xl filter"
               >
                 <defs>
                   {/* Realistic ball gradient with proper lighting */}

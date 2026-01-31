@@ -7,7 +7,6 @@ import { Edit, Trash2, Search } from "lucide-react";
 interface MatchesTabProps {
   matches: any[];
   onEdit: (match: any) => void;
-  onUpdateScore?: (matchId: string, currentScore: string) => void;
   onDelete: (matchId: string) => void;
   onSetStatus: (matchId: string, status: string) => void;
   onBrowse: () => void;
@@ -16,7 +15,6 @@ interface MatchesTabProps {
 export function MatchesTab({
   matches,
   onEdit,
-  onUpdateScore,
   onDelete,
   onSetStatus,
   onBrowse,

@@ -1,26 +1,26 @@
 // File: src/app/admin/page.tsx
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Plus, Search } from "lucide-react";
-import { apiGet, apiPost, apiPut, apiDelete, getToken } from "@/components/api";
+import { apiDelete, apiGet, apiPost, apiPut, getToken } from "@/components/api";
 import { Shell } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 // Import all components
-import { LeagueBrowser } from "@/components/ui/admin/LeagueBrowser";
-import { TeamBrowser } from "@/components/ui/admin/TeamBrowser";
-import { MatchBrowser } from "@/components/ui/admin/MatchBrowser";
-import { LeagueEditModal } from "@/components/ui/admin/LeagueEditModal";
-import { TeamEditModal } from "@/components/ui/admin/TeamEditModal";
-import { MatchEditModal } from "@/components/ui/admin/MatchEditModal";
-import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
-import { LeaguesTab } from "@/components/ui/admin/LeaguesTab";
-import { TeamsTab } from "@/components/ui/admin/TeamsTab";
-import { MatchesTab } from "@/components/ui/admin/MatchesTab";
-import { UsersTab } from "@/components/ui/admin/UsersTab";
-import { StatsCards } from "@/components/ui/admin/StatsCards";
 import { AlertMessage } from "@/components/ui/admin/AlertMessage";
+import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
+import { LeagueBrowser } from "@/components/ui/admin/LeagueBrowser";
+import { LeagueEditModal } from "@/components/ui/admin/LeagueEditModal";
+import { LeaguesTab } from "@/components/ui/admin/LeaguesTab";
+import { MatchBrowser } from "@/components/ui/admin/MatchBrowser";
+import { MatchEditModal } from "@/components/ui/admin/MatchEditModal";
+import { MatchesTab } from "@/components/ui/admin/MatchesTab";
+import { StatsCards } from "@/components/ui/admin/StatsCards";
+import { TeamBrowser } from "@/components/ui/admin/TeamBrowser";
+import { TeamEditModal } from "@/components/ui/admin/TeamEditModal";
+import { TeamsTab } from "@/components/ui/admin/TeamsTab";
+import { UsersTab } from "@/components/ui/admin/UsersTab";
 
 // Types
 interface LeaguesResponse {
@@ -296,7 +296,6 @@ export default function AdminPage() {
   async function handleTeamLeagueChange(leagueId: string) {
     setSelectedLeagueForTeams(leagueId);
     setBrowsingTeams(true);
-    console.log("leagueId from handleTeamLeagueChange:", leagueId);
     try {
       const url = leagueId
         ? `/api/admin/teams?leagueId=${leagueId}`
@@ -433,31 +432,40 @@ export default function AdminPage() {
     }
   }
 
+  // Request sequencing refs to avoid out-of-order responses overwriting state
+  const matchesRequestIdRef = useRef(0);
+  const activeMatchesRequestsRef = useRef(0);
+
   async function handleMatchLeagueChange(leagueId: string) {
     setSelectedLeagueForMatches(leagueId);
-    console.log("setSelectedLeagueForMatches:", leagueId);
+    const requestId = ++matchesRequestIdRef.current;
     await refreshMatchesFromApi(
       leagueId,
       selectedDateForMatches,
       selectedStatusForMatches,
+      requestId,
     );
   }
 
   async function handleMatchDateChange(date: string) {
     setSelectedDateForMatches(date);
+    const requestId = ++matchesRequestIdRef.current;
     await refreshMatchesFromApi(
       selectedLeagueForMatches,
       date,
       selectedStatusForMatches,
+      requestId,
     );
   }
 
   async function handleMatchStatusChange(status: string) {
     setSelectedStatusForMatches(status);
+    const requestId = ++matchesRequestIdRef.current;
     await refreshMatchesFromApi(
       selectedLeagueForMatches,
       selectedDateForMatches,
       status,
+      requestId,
     );
   }
 
@@ -465,8 +473,12 @@ export default function AdminPage() {
     leagueId: string,
     date: string,
     status: string,
+    requestId?: number,
   ) {
+    const myRequestId = requestId ?? ++matchesRequestIdRef.current;
+    activeMatchesRequestsRef.current++;
     setBrowsingMatches(true);
+
     try {
       const params = new URLSearchParams();
       if (leagueId) params.append("leagueId", leagueId);
@@ -475,12 +487,29 @@ export default function AdminPage() {
 
       const url = `/api/admin/matches${params.toString() ? `?${params.toString()}` : ""}`;
       const response = await apiGet<MatchesResponse>(url);
-      setApiMatches(response.matches || []);
+
+      // Only update state if this response corresponds to the latest request
+      if (myRequestId === matchesRequestIdRef.current) {
+        setApiMatches(response.matches || []);
+        setShowMatchBrowser(true);
+      } else {
+        // Outdated response - ignore
+        console.log("Ignored outdated matches response", myRequestId);
+      }
     } catch (err) {
-      console.error(err);
-      setMsg({ text: "Failed to load matches", type: "error" });
+      // Only surface error for the latest request
+      if (myRequestId === matchesRequestIdRef.current) {
+        console.error(err);
+        setMsg({ text: "Failed to load matches", type: "error" });
+      } else {
+        console.log("Ignored matches error from outdated request", myRequestId);
+      }
     } finally {
-      setBrowsingMatches(false);
+      activeMatchesRequestsRef.current--;
+      if (activeMatchesRequestsRef.current <= 0) {
+        activeMatchesRequestsRef.current = 0;
+        setBrowsingMatches(false);
+      }
     }
   }
 

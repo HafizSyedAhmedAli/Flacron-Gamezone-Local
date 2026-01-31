@@ -58,10 +58,10 @@ adminRouter.get("/leagues", async (req, res) => {
       `${process.env.API_FOOTBALL_BASEURL}/leagues`,
       apiFootballConfig,
     );
-    
+
     let leaguesData: any[] = [];
 
-    if (apiFootballData?.response.length === 0) {
+    if (apiFootballData?.response?.length === 0) {
       console.log(apiFootballData?.errors);
       console.log("Using Backup API");
 
@@ -219,7 +219,7 @@ adminRouter.get("/teams", async (req, res) => {
     const { data: apiFootballData } = await axios.get(url, apiFootballConfig);
 
     let teamsData: any[] = [];
-    if (apiFootballData?.response.length === 0) {
+    if (apiFootballData?.response?.length === 0) {
       console.log(apiFootballData?.errors);
       console.log("Using Backup API for teams");
 
@@ -253,20 +253,38 @@ adminRouter.get("/teams", async (req, res) => {
         ),
       ];
 
-      const venuesRes = await axios.get(
-        `${process.env.API_SPORT_MONKS_BASEURL}/venues`,
-        {
-          params: {
-            api_token: process.env.API_SPORT_MONKS_KEY,
-            ids: venueIds.join(","),
-          },
-        },
-      );
-      const venueMap: Record<number, string> = {};
+      // Build a safe venue map. If there are no venue IDs, skip the request entirely.
+      let venueMap: Record<number, string> = {};
+      if (venueIds.length === 0) {
+        venueMap = {};
+      } else {
+        try {
+          const venuesRes = await axios.get(
+            `${process.env.API_SPORT_MONKS_BASEURL}/venues`,
+            {
+              params: {
+                api_token: process.env.API_SPORT_MONKS_KEY,
+                ids: venueIds.join(","),
+              },
+              timeout: 10_000,
+            },
+          );
 
-      venuesRes.data.data.forEach((v: any) => {
-        venueMap[v.id] = v.name;
-      });
+          // Validate response shape before iterating
+          if (venuesRes?.data?.data && Array.isArray(venuesRes.data.data)) {
+            venuesRes.data.data.forEach((v: any) => {
+              venueMap[v.id] = v.name;
+            });
+          } else {
+            console.error("Invalid response when fetching venues:", venuesRes?.data);
+            venueMap = {};
+          }
+        } catch (err) {
+          // Log and fall back to empty map so callers still receive a defined value
+          console.error("Failed to fetch venues from SportMonks:", err);
+          venueMap = {};
+        }
+      }
       const teamsData = sportMonksData.data.map((team: any) => {
         const venue = venueMap[team.venue_id];
 
@@ -368,7 +386,8 @@ adminRouter.post("/team", validateBody(teamSchema), async (req, res) => {
         config,
       );
 
-      const requiredLeague = data.response[0].league.name;
+      const leagueInfo = data.response?.[0]?.league;
+      const requiredLeague = leagueInfo?.name || `League ID ${leagueId}`;
 
       return res.status(404).json({
         success: false,
