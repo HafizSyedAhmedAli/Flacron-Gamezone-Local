@@ -1,7 +1,7 @@
 // File: src/app/admin/page.tsx
 "use client";
 
-import { apiDelete, apiGet, apiPost, apiPut, getToken } from "@/components/api";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/components/api";
 import { Shell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -21,6 +21,8 @@ import { TeamBrowser } from "@/components/ui/admin/TeamBrowser";
 import { TeamEditModal } from "@/components/ui/admin/TeamEditModal";
 import { TeamsTab } from "@/components/ui/admin/TeamsTab";
 import { UsersTab } from "@/components/ui/admin/UsersTab";
+import { useRequireAdmin } from "@/hooks/useAuth";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
 
 // Types
 interface LeaguesResponse {
@@ -143,12 +145,8 @@ export default function AdminPage() {
   const [deletingMatch, setDeletingMatch] = useState(false);
   const [showDeleteMatchConfirm, setShowDeleteMatchConfirm] = useState(false);
 
-  // Check auth and load data
+  // Load data on mount
   useEffect(() => {
-    if (!getToken()) {
-      location.href = "/login";
-      return;
-    }
     refreshAll();
   }, []);
 
@@ -614,14 +612,6 @@ export default function AdminPage() {
     }
   }
 
-  // Legacy methods kept for backward compatibility
-  async function handleUpdateScore(matchId: string, currentScore: string) {
-    const match = matches.find((m) => m.id === matchId);
-    if (match) {
-      openEditMatchModal(match);
-    }
-  }
-
   async function handleSetMatchStatus(matchId: string, status: string) {
     try {
       await apiPut(`/api/admin/match/${matchId}`, { status });
@@ -647,247 +637,253 @@ export default function AdminPage() {
       isActive ? "bg-accent dark:bg-accent/50 text-white" : ""
     }`;
 
+  // Protect admin route - automatically redirects non-admin users
+  const { isChecking } = useRequireAdmin();
+
   return (
     <Shell>
-      <div className="space-y-8">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
-          <p className="text-muted-foreground">
-            Manage matches, teams, and leagues
-          </p>
-        </div>
+      {isChecking ? (
+        <LoadingSpinner size="lg" fullScreen />
+      ) : (
+        <div className="space-y-8">
+          {/* Header */}
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Admin Panel</h1>
+            <p className="text-muted-foreground">
+              Manage matches, teams, and leagues
+            </p>
+          </div>
 
-        {/* Alert Message */}
-        <AlertMessage message={msg} />
+          {/* Alert Message */}
+          <AlertMessage message={msg} />
 
-        {/* Action Buttons */}
-        <div className="flex gap-4 flex-wrap">
-          <Button
-            onClick={() => {
-              setSelectedLeagueForMatches("");
-              setSelectedDateForMatches("");
-              setSelectedStatusForMatches("");
-              browseApiMatches();
-            }}
-            className="gap-2"
-            disabled={browsingMatches}
-          >
-            <Search className="w-4 h-4" />
-            {browsingMatches ? "Loading..." : "Browse Matches"}
-          </Button>
-          <Button
-            onClick={() => {
-              setSelectedLeagueForTeams("");
-              browseApiTeams();
-            }}
-            className="gap-2"
-            disabled={browsingTeams}
-          >
-            <Search className="w-4 h-4" />
-            {browsingTeams ? "Loading..." : "Browse Teams"}
-          </Button>
-          <Button
-            onClick={browseApiLeagues}
-            className="gap-2"
-            disabled={browsingLeagues}
-          >
-            <Search className="w-4 h-4" />
-            {browsingLeagues ? "Loading..." : "Browse Leagues"}
-          </Button>
-        </div>
-
-        {/* Modals */}
-        <LeagueBrowser
-          isOpen={showLeagueBrowser}
-          onClose={() => setShowLeagueBrowser(false)}
-          leagues={apiLeagues}
-          savedLeagues={leagues}
-          searchTerm={leagueSearchTerm}
-          onSearchChange={setLeagueSearchTerm}
-          onAddLeague={addLeagueFromApi}
-          isLoading={browsingLeagues}
-        />
-
-        <TeamBrowser
-          isOpen={showTeamBrowser}
-          onClose={() => setShowTeamBrowser(false)}
-          teams={apiTeams}
-          savedTeams={teams}
-          searchTerm={teamSearchTerm}
-          onSearchChange={setTeamSearchTerm}
-          onAddTeam={addTeamFromApi}
-          leagues={leagues}
-          selectedLeague={selectedLeagueForTeams}
-          onLeagueChange={handleTeamLeagueChange}
-          isLoading={browsingTeams}
-        />
-
-        <MatchBrowser
-          isOpen={showMatchBrowser}
-          onClose={() => setShowMatchBrowser(false)}
-          matches={apiMatches}
-          savedMatches={matches}
-          searchTerm={matchSearchTerm}
-          onSearchChange={setMatchSearchTerm}
-          onAddMatch={addMatchFromApi}
-          leagues={leagues}
-          selectedLeague={selectedLeagueForMatches}
-          onLeagueChange={handleMatchLeagueChange}
-          selectedDate={selectedDateForMatches}
-          onDateChange={handleMatchDateChange}
-          selectedStatus={selectedStatusForMatches}
-          onStatusChange={handleMatchStatusChange}
-          isLoading={browsingMatches}
-        />
-
-        <LeagueEditModal
-          isOpen={showEditLeagueModal}
-          league={editingLeague}
-          onClose={() => {
-            setShowEditLeagueModal(false);
-            setEditingLeague(null);
-          }}
-          onSave={saveEditingLeague}
-          onChange={(field, value) =>
-            setEditingLeague((s: any) => ({ ...s, [field]: value }))
-          }
-          isSaving={savingLeague}
-        />
-
-        <TeamEditModal
-          isOpen={showEditTeamModal}
-          team={editingTeam}
-          onClose={() => {
-            setShowEditTeamModal(false);
-            setEditingTeam(null);
-          }}
-          onSave={saveEditingTeam}
-          onChange={(field, value) =>
-            setEditingTeam((s: any) => ({ ...s, [field]: value }))
-          }
-          isSaving={savingTeam}
-          leagues={leagues}
-        />
-
-        <MatchEditModal
-          isOpen={showEditMatchModal}
-          match={editingMatch}
-          onClose={() => {
-            setShowEditMatchModal(false);
-            setEditingMatch(null);
-          }}
-          onSave={saveEditingMatch}
-          onChange={(field, value) =>
-            setEditingMatch((s: any) => ({ ...s, [field]: value }))
-          }
-          isSaving={savingMatch}
-          leagues={leagues}
-          teams={teams}
-        />
-
-        <DeleteConfirmModal
-          isOpen={showDeleteLeagueConfirm}
-          title="Confirm delete"
-          message={`Are you sure you want to delete ${leagueToDelete?.name}? This action cannot be undone.`}
-          onConfirm={confirmDeleteLeague}
-          onCancel={() => {
-            setShowDeleteLeagueConfirm(false);
-            setLeagueToDelete(null);
-          }}
-          isDeleting={deletingLeague}
-        />
-
-        <DeleteConfirmModal
-          isOpen={showDeleteTeamConfirm}
-          title="Confirm delete"
-          message={`Are you sure you want to delete ${teamToDelete?.name}? This action cannot be undone.`}
-          onConfirm={confirmDeleteTeam}
-          onCancel={() => {
-            setShowDeleteTeamConfirm(false);
-            setTeamToDelete(null);
-          }}
-          isDeleting={deletingTeam}
-        />
-
-        <DeleteConfirmModal
-          isOpen={showDeleteMatchConfirm}
-          title="Confirm delete"
-          message={`Are you sure you want to delete this match? This action cannot be undone.`}
-          onConfirm={confirmDeleteMatch}
-          onCancel={() => {
-            setShowDeleteMatchConfirm(false);
-            setMatchToDelete(null);
-          }}
-          isDeleting={deletingMatch}
-        />
-
-        {/* Tab Selector */}
-        <div className="flex gap-2 mt-4">
-          {(["leagues", "teams", "matches", "users"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className={tabButtonClass(tab === t)}
+          {/* Action Buttons */}
+          <div className="flex gap-4 flex-wrap">
+            <Button
+              onClick={() => {
+                setSelectedLeagueForMatches("");
+                setSelectedDateForMatches("");
+                setSelectedStatusForMatches("");
+                browseApiMatches();
+              }}
+              className="gap-2"
+              disabled={browsingMatches}
             >
-              {t[0].toUpperCase() + t.slice(1)}
-            </button>
-          ))}
+              <Search className="w-4 h-4" />
+              {browsingMatches ? "Loading..." : "Browse Matches"}
+            </Button>
+            <Button
+              onClick={() => {
+                setSelectedLeagueForTeams("");
+                browseApiTeams();
+              }}
+              className="gap-2"
+              disabled={browsingTeams}
+            >
+              <Search className="w-4 h-4" />
+              {browsingTeams ? "Loading..." : "Browse Teams"}
+            </Button>
+            <Button
+              onClick={browseApiLeagues}
+              className="gap-2"
+              disabled={browsingLeagues}
+            >
+              <Search className="w-4 h-4" />
+              {browsingLeagues ? "Loading..." : "Browse Leagues"}
+            </Button>
+          </div>
+
+          {/* Modals */}
+          <LeagueBrowser
+            isOpen={showLeagueBrowser}
+            onClose={() => setShowLeagueBrowser(false)}
+            leagues={apiLeagues}
+            savedLeagues={leagues}
+            searchTerm={leagueSearchTerm}
+            onSearchChange={setLeagueSearchTerm}
+            onAddLeague={addLeagueFromApi}
+            isLoading={browsingLeagues}
+          />
+
+          <TeamBrowser
+            isOpen={showTeamBrowser}
+            onClose={() => setShowTeamBrowser(false)}
+            teams={apiTeams}
+            savedTeams={teams}
+            searchTerm={teamSearchTerm}
+            onSearchChange={setTeamSearchTerm}
+            onAddTeam={addTeamFromApi}
+            leagues={leagues}
+            selectedLeague={selectedLeagueForTeams}
+            onLeagueChange={handleTeamLeagueChange}
+            isLoading={browsingTeams}
+          />
+
+          <MatchBrowser
+            isOpen={showMatchBrowser}
+            onClose={() => setShowMatchBrowser(false)}
+            matches={apiMatches}
+            savedMatches={matches}
+            searchTerm={matchSearchTerm}
+            onSearchChange={setMatchSearchTerm}
+            onAddMatch={addMatchFromApi}
+            leagues={leagues}
+            selectedLeague={selectedLeagueForMatches}
+            onLeagueChange={handleMatchLeagueChange}
+            selectedDate={selectedDateForMatches}
+            onDateChange={handleMatchDateChange}
+            selectedStatus={selectedStatusForMatches}
+            onStatusChange={handleMatchStatusChange}
+            isLoading={browsingMatches}
+          />
+
+          <LeagueEditModal
+            isOpen={showEditLeagueModal}
+            league={editingLeague}
+            onClose={() => {
+              setShowEditLeagueModal(false);
+              setEditingLeague(null);
+            }}
+            onSave={saveEditingLeague}
+            onChange={(field, value) =>
+              setEditingLeague((s: any) => ({ ...s, [field]: value }))
+            }
+            isSaving={savingLeague}
+          />
+
+          <TeamEditModal
+            isOpen={showEditTeamModal}
+            team={editingTeam}
+            onClose={() => {
+              setShowEditTeamModal(false);
+              setEditingTeam(null);
+            }}
+            onSave={saveEditingTeam}
+            onChange={(field, value) =>
+              setEditingTeam((s: any) => ({ ...s, [field]: value }))
+            }
+            isSaving={savingTeam}
+            leagues={leagues}
+          />
+
+          <MatchEditModal
+            isOpen={showEditMatchModal}
+            match={editingMatch}
+            onClose={() => {
+              setShowEditMatchModal(false);
+              setEditingMatch(null);
+            }}
+            onSave={saveEditingMatch}
+            onChange={(field, value) =>
+              setEditingMatch((s: any) => ({ ...s, [field]: value }))
+            }
+            isSaving={savingMatch}
+            leagues={leagues}
+            teams={teams}
+          />
+
+          <DeleteConfirmModal
+            isOpen={showDeleteLeagueConfirm}
+            title="Confirm delete"
+            message={`Are you sure you want to delete ${leagueToDelete?.name}? This action cannot be undone.`}
+            onConfirm={confirmDeleteLeague}
+            onCancel={() => {
+              setShowDeleteLeagueConfirm(false);
+              setLeagueToDelete(null);
+            }}
+            isDeleting={deletingLeague}
+          />
+
+          <DeleteConfirmModal
+            isOpen={showDeleteTeamConfirm}
+            title="Confirm delete"
+            message={`Are you sure you want to delete ${teamToDelete?.name}? This action cannot be undone.`}
+            onConfirm={confirmDeleteTeam}
+            onCancel={() => {
+              setShowDeleteTeamConfirm(false);
+              setTeamToDelete(null);
+            }}
+            isDeleting={deletingTeam}
+          />
+
+          <DeleteConfirmModal
+            isOpen={showDeleteMatchConfirm}
+            title="Confirm delete"
+            message={`Are you sure you want to delete this match? This action cannot be undone.`}
+            onConfirm={confirmDeleteMatch}
+            onCancel={() => {
+              setShowDeleteMatchConfirm(false);
+              setMatchToDelete(null);
+            }}
+            isDeleting={deletingMatch}
+          />
+
+          {/* Tab Selector */}
+          <div className="flex gap-2 mt-4">
+            {(["leagues", "teams", "matches", "users"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={tabButtonClass(tab === t)}
+              >
+                {t[0].toUpperCase() + t.slice(1)}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content */}
+          {loading ? (
+            <div className="text-sm text-slate-500">Loading…</div>
+          ) : (
+            <>
+              {tab === "leagues" && (
+                <LeaguesTab
+                  leagues={leagues}
+                  onEdit={openEditLeagueModal}
+                  onDelete={openDeleteLeagueConfirm}
+                  onBrowse={browseApiLeagues}
+                />
+              )}
+
+              {tab === "teams" && (
+                <TeamsTab
+                  teams={teams}
+                  onEdit={openEditTeamModal}
+                  onDelete={openDeleteTeamConfirm}
+                  onBrowse={() => {
+                    setSelectedLeagueForTeams("");
+                    browseApiTeams();
+                  }}
+                />
+              )}
+
+              {tab === "matches" && (
+                <MatchesTab
+                  matches={matches}
+                  onEdit={openEditMatchModal}
+                  onDelete={handleDeleteMatch}
+                  onSetStatus={handleSetMatchStatus}
+                  onBrowse={() => {
+                    setSelectedLeagueForMatches("");
+                    setSelectedDateForMatches("");
+                    setSelectedStatusForMatches("");
+                    browseApiMatches();
+                  }}
+                />
+              )}
+
+              {tab === "users" && <UsersTab users={users} />}
+            </>
+          )}
+
+          {/* Stats Cards */}
+          <StatsCards
+            matchesCount={matches.length}
+            teamsCount={teams.length}
+            leaguesCount={leagues.length}
+          />
         </div>
-
-        {/* Tab Content */}
-        {loading ? (
-          <div className="text-sm text-slate-500">Loading…</div>
-        ) : (
-          <>
-            {tab === "leagues" && (
-              <LeaguesTab
-                leagues={leagues}
-                onEdit={openEditLeagueModal}
-                onDelete={openDeleteLeagueConfirm}
-                onBrowse={browseApiLeagues}
-              />
-            )}
-
-            {tab === "teams" && (
-              <TeamsTab
-                teams={teams}
-                onEdit={openEditTeamModal}
-                onDelete={openDeleteTeamConfirm}
-                onBrowse={() => {
-                  setSelectedLeagueForTeams("");
-                  browseApiTeams();
-                }}
-              />
-            )}
-
-            {tab === "matches" && (
-              <MatchesTab
-                matches={matches}
-                onEdit={openEditMatchModal}
-                onUpdateScore={handleUpdateScore}
-                onDelete={handleDeleteMatch}
-                onSetStatus={handleSetMatchStatus}
-                onBrowse={() => {
-                  setSelectedLeagueForMatches("");
-                  setSelectedDateForMatches("");
-                  setSelectedStatusForMatches("");
-                  browseApiMatches();
-                }}
-              />
-            )}
-
-            {tab === "users" && <UsersTab users={users} />}
-          </>
-        )}
-
-        {/* Stats Cards */}
-        <StatsCards
-          matchesCount={matches.length}
-          teamsCount={teams.length}
-          leaguesCount={leagues.length}
-        />
-      </div>
+      )}
     </Shell>
   );
 }

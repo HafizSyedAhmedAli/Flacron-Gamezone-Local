@@ -1,12 +1,16 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  logout as authLogout,
+  isAuthenticated as checkAuth,
+  isAdmin
+} from "@/lib/auth";
+import { cn } from "@/lib/utils";
+import { LogOut, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Menu, X, LogOut, Shield } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { getToken, clearToken } from "./api";
+import React, { useEffect, useState } from "react";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -15,30 +19,47 @@ interface ShellProps {
 export function Shell({ children }: ShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userRole, setUserRole] = useState<"user" | "admin" | null>(null);
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    // Prefer your getToken() helper, but still fall back to localStorage
-    const token = getToken?.() ?? localStorage.getItem("auth_token");
-    const role = localStorage.getItem("user_role");
-    setIsAuthenticated(!!token);
-    setUserRole((role as "user" | "admin") || null);
+    // helper to refresh auth state
+    const refreshAuth = () => {
+      setIsAuthenticated(checkAuth());
+      setUserIsAdmin(isAdmin());
+    };
+
+    // initial check
+    refreshAuth();
+
+    // Re-check when window/tab regains focus or becomes visible
+    const onFocus = () => refreshAuth();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshAuth();
+    };
+
+    // Listen for storage events to handle multi-tab sign-in/sign-out
+    const onStorage = (e: StorageEvent) => {
+      // If token or user was changed/removed in another tab, refresh
+      if (!e.key || e.key === "fgz_user" || e.key === "fgz_token") {
+        refreshAuth();
+      }
+    };
+
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("storage", onStorage);
+
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("storage", onStorage);
+    };
   }, []);
 
   const handleLogout = () => {
-    // Use your helper to clear stored token and also clear role
-    try {
-      clearToken?.();
-    } catch {
-      localStorage.removeItem("auth_token");
-    }
-    localStorage.removeItem("user_role");
-    setIsAuthenticated(false);
-    setUserRole(null);
-    // navigate to home
-    router.push("/");
+    authLogout(); // This will clear token, user data, and redirect to home
   };
 
   return (
@@ -58,31 +79,45 @@ export function Shell({ children }: ShellProps) {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center gap-1">
-            <NavLink href="/" active={pathname === "/"}>Home</NavLink>
-            <NavLink href="/live" active={pathname === "/live"}>Live</NavLink>
-            <NavLink href="/matches" active={pathname === "/matches"}>Matches</NavLink>
-            <NavLink href="/leagues" active={pathname === "/leagues"}>Leagues</NavLink>
-            <NavLink href="/teams" active={pathname === "/teams"}>Teams</NavLink>
-            <NavLink href="/pricing" active={pathname === "/pricing"}>Pricing</NavLink>
-            <NavLink href="/contact" active={pathname === "/contact"}>Support</NavLink>
+            <NavLink href="/" active={pathname === "/"}>
+              Home
+            </NavLink>
+            <NavLink href="/live" active={pathname === "/live"}>
+              Live
+            </NavLink>
+            <NavLink href="/matches" active={pathname === "/matches"}>
+              Matches
+            </NavLink>
+            <NavLink href="/leagues" active={pathname === "/leagues"}>
+              Leagues
+            </NavLink>
+            <NavLink href="/teams" active={pathname === "/teams"}>
+              Teams
+            </NavLink>
+            <NavLink href="/pricing" active={pathname === "/pricing"}>
+              Pricing
+            </NavLink>
+            <NavLink href="/contact" active={pathname === "/contact"}>
+              Support
+            </NavLink>
           </nav>
 
           {/* Right Side Actions */}
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
-                <Link href="/dashboard">
-                  <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
-                    Dashboard
-                  </Button>
-                </Link>
-                {userRole === "admin" && (
-                  <Link href="/admin">
-                    <Button variant="ghost" size="sm" className="hidden sm:inline-flex gap-2">
-                      <Shield className="w-4 h-4" />
-                      Admin
-                    </Button>
-                  </Link>
+                {userIsAdmin && (
+                  <>
+                    <Link href="/admin">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="hidden sm:inline-flex"
+                      >
+                        Dashboard
+                      </Button>
+                    </Link>
+                  </>
                 )}
                 <Button
                   variant="ghost"
@@ -97,7 +132,11 @@ export function Shell({ children }: ShellProps) {
             ) : (
               <>
                 <Link href="/login">
-                  <Button variant="ghost" size="sm" className="hidden sm:inline-flex">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hidden sm:inline-flex"
+                  >
                     Login
                   </Button>
                 </Link>
@@ -130,34 +169,54 @@ export function Shell({ children }: ShellProps) {
               <MobileNavLink href="/" onClick={() => setMobileMenuOpen(false)}>
                 Home
               </MobileNavLink>
-              <MobileNavLink href="/live" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink
+                href="/live"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Live
               </MobileNavLink>
-              <MobileNavLink href="/matches" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink
+                href="/matches"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Matches
               </MobileNavLink>
-              <MobileNavLink href="/leagues" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink
+                href="/leagues"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Leagues
               </MobileNavLink>
-              <MobileNavLink href="/teams" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink
+                href="/teams"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Teams
               </MobileNavLink>
-              <MobileNavLink href="/pricing" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink
+                href="/pricing"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Pricing
               </MobileNavLink>
-              <MobileNavLink href="/contact" onClick={() => setMobileMenuOpen(false)}>
+              <MobileNavLink
+                href="/contact"
+                onClick={() => setMobileMenuOpen(false)}
+              >
                 Support
               </MobileNavLink>
 
               {isAuthenticated ? (
                 <>
-                  <MobileNavLink href="/dashboard" onClick={() => setMobileMenuOpen(false)}>
-                    Dashboard
-                  </MobileNavLink>
-                  {userRole === "admin" && (
-                    <MobileNavLink href="/admin" onClick={() => setMobileMenuOpen(false)}>
-                      Admin Panel
-                    </MobileNavLink>
+                  {userIsAdmin && (
+                    <>
+                      <MobileNavLink
+                        href="/admin"
+                        onClick={() => setMobileMenuOpen(false)}
+                      >
+                        Dashboard
+                      </MobileNavLink>
+                    </>
                   )}
                   <button
                     onClick={() => {
@@ -171,10 +230,16 @@ export function Shell({ children }: ShellProps) {
                 </>
               ) : (
                 <>
-                  <MobileNavLink href="/login" onClick={() => setMobileMenuOpen(false)}>
+                  <MobileNavLink
+                    href="/login"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
                     Login
                   </MobileNavLink>
-                  <MobileNavLink href="/signup" onClick={() => setMobileMenuOpen(false)}>
+                  <MobileNavLink
+                    href="/signup"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
                     Sign Up
                   </MobileNavLink>
                 </>
@@ -209,22 +274,34 @@ export function Shell({ children }: ShellProps) {
               <h3 className="font-semibold mb-4 text-sm">Platform</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/live" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/live"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Live Matches
                   </Link>
                 </li>
                 <li>
-                  <Link href="/matches" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/matches"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     All Matches
                   </Link>
                 </li>
                 <li>
-                  <Link href="/leagues" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/leagues"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Leagues
                   </Link>
                 </li>
                 <li>
-                  <Link href="/teams" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/teams"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Teams
                   </Link>
                 </li>
@@ -235,17 +312,26 @@ export function Shell({ children }: ShellProps) {
               <h3 className="font-semibold mb-4 text-sm">Account</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/pricing"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Pricing
                   </Link>
                 </li>
                 <li>
-                  <Link href="/login" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/login"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Login
                   </Link>
                 </li>
                 <li>
-                  <Link href="/signup" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/signup"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Sign Up
                   </Link>
                 </li>
@@ -256,17 +342,26 @@ export function Shell({ children }: ShellProps) {
               <h3 className="font-semibold mb-4 text-sm">Legal</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/privacy"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Privacy Policy
                   </Link>
                 </li>
                 <li>
-                  <Link href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/terms"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Terms of Service
                   </Link>
                 </li>
                 <li>
-                  <Link href="/contact" className="text-muted-foreground hover:text-foreground transition-colors">
+                  <Link
+                    href="/contact"
+                    className="text-muted-foreground hover:text-foreground transition-colors"
+                  >
                     Contact
                   </Link>
                 </li>
@@ -275,7 +370,10 @@ export function Shell({ children }: ShellProps) {
           </div>
 
           <div className="border-t border-border/50 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-muted-foreground">
-            <p>&copy; {new Date().getFullYear()} Flacron GameZone. All rights reserved.</p>
+            <p>
+              &copy; {new Date().getFullYear()} Flacron GameZone. All rights
+              reserved.
+            </p>
             <p>Football Match Discovery & Live Game Platform</p>
           </div>
         </div>
@@ -285,13 +383,23 @@ export function Shell({ children }: ShellProps) {
 }
 
 /* Helper link components (same as your Layout) */
-function NavLink({ href, children, active }: { href: string; children: React.ReactNode; active?: boolean }) {
+function NavLink({
+  href,
+  children,
+  active,
+}: {
+  href: string;
+  children: React.ReactNode;
+  active?: boolean;
+}) {
   return (
     <Link
       href={href}
       className={cn(
         "px-3 py-2 text-sm font-medium transition-colors rounded-lg hover:bg-secondary/50",
-        active ? "text-blue-400 bg-secondary/30" : "text-foreground hover:text-blue-400"
+        active
+          ? "text-blue-400 bg-secondary/30"
+          : "text-foreground hover:text-blue-400",
       )}
     >
       {children}
