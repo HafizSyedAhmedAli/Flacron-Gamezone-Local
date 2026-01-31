@@ -21,13 +21,13 @@ export function getUser(): User | null {
 }
 
 export function setUser(user: User) {
+  if (typeof window === "undefined") return;
   localStorage.setItem("fgz_user", JSON.stringify(user));
 }
-
 export function clearUser() {
+  if (typeof window === "undefined") return;
   localStorage.removeItem("fgz_user");
 }
-
 export function isAuthenticated(): boolean {
   return !!getToken() && !!getUser();
 }
@@ -66,7 +66,7 @@ export function requireAdmin() {
 }
 
 /**
- * Redirect to home if user is not authenticated
+ * Redirect to login if user is not authenticated
  */
 export function requireAuth() {
   if (typeof window === "undefined") return;

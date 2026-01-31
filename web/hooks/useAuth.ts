@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   requireAdmin,
   requireAuth,
@@ -13,9 +13,17 @@ import {
  * Redirects to home page if user is not an admin
  */
 export function useRequireAdmin() {
+  const [isChecking, setIsChecking] = useState(true);
+
   useEffect(() => {
-    requireAdmin();
+    const check = async () => {
+      requireAdmin(); // verify admin
+      setIsChecking(false); // done checking
+    };
+    check();
   }, []);
+
+  return { isChecking };
 }
 
 /**
