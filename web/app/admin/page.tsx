@@ -1,24 +1,29 @@
+// File: src/app/admin/page.tsx
 "use client";
 
-import { apiDelete, apiGet, apiPost, apiPut, getToken } from "@/components/api";
-import { Shell } from "@/components/layout";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, Search } from "lucide-react";
-import { useEffect, useState } from "react";
+import { apiGet, apiPost, apiPut, apiDelete, getToken } from "@/components/api";
+import { Shell } from "@/components/layout";
 
-import { AlertMessage } from "@/components/ui/admin/AlertMessage";
-import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
+// Import all components
 import { LeagueBrowser } from "@/components/ui/admin/LeagueBrowser";
-import { LeagueEditModal } from "@/components/ui/admin/LeagueEditModal";
-import { LeaguesTab } from "@/components/ui/admin/LeaguesTab";
-import { MatchesTab } from "@/components/ui/admin/MatchesTab";
-import { StatsCards } from "@/components/ui/admin/StatsCards";
 import { TeamBrowser } from "@/components/ui/admin/TeamBrowser";
+import { MatchBrowser } from "@/components/ui/admin/MatchBrowser";
+import { LeagueEditModal } from "@/components/ui/admin/LeagueEditModal";
 import { TeamEditModal } from "@/components/ui/admin/TeamEditModal";
+import { MatchEditModal } from "@/components/ui/admin/MatchEditModal";
+import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
+import { LeaguesTab } from "@/components/ui/admin/LeaguesTab";
 import { TeamsTab } from "@/components/ui/admin/TeamsTab";
+import { MatchesTab } from "@/components/ui/admin/MatchesTab";
 import { UsersTab } from "@/components/ui/admin/UsersTab";
+import { StatsCards } from "@/components/ui/admin/StatsCards";
+import { AlertMessage } from "@/components/ui/admin/AlertMessage";
 
-export interface LeaguesResponse {
+// Types
+interface LeaguesResponse {
   success: boolean;
   leagues: Array<{
     apiLeagueId: number;
@@ -30,6 +35,7 @@ export interface LeaguesResponse {
 
 interface TeamsResponse {
   success: boolean;
+  message?: string;
   teams: Array<{
     apiTeamId: number;
     name: string;
@@ -37,6 +43,36 @@ interface TeamsResponse {
     country: string;
     founded?: number;
     venue?: string;
+  }>;
+}
+
+interface CreateTeamResponse {
+  success: boolean;
+  message: string;
+}
+
+interface MatchesResponse {
+  success: boolean;
+  matches: Array<{
+    apiFixtureId: number;
+    leagueId: number;
+    leagueName: string;
+    leagueLogo: string;
+    homeTeam: {
+      id: number;
+      name: string;
+      logo: string;
+    };
+    awayTeam: {
+      id: number;
+      name: string;
+      logo: string;
+    };
+    kickoffTime: string;
+    status: string;
+    score: string;
+    venue?: string;
+    round?: string;
   }>;
 }
 
@@ -71,6 +107,18 @@ export default function AdminPage() {
   const [selectedLeagueForTeams, setSelectedLeagueForTeams] =
     useState<string>("");
 
+  // Match browser states
+  const [showMatchBrowser, setShowMatchBrowser] = useState(false);
+  const [apiMatches, setApiMatches] = useState<any[]>([]);
+  const [matchSearchTerm, setMatchSearchTerm] = useState("");
+  const [browsingMatches, setBrowsingMatches] = useState(false);
+  const [selectedLeagueForMatches, setSelectedLeagueForMatches] =
+    useState<string>("");
+  const [selectedDateForMatches, setSelectedDateForMatches] =
+    useState<string>("");
+  const [selectedStatusForMatches, setSelectedStatusForMatches] =
+    useState<string>("");
+
   // League edit/delete states
   const [editingLeague, setEditingLeague] = useState<any | null>(null);
   const [showEditLeagueModal, setShowEditLeagueModal] = useState(false);
@@ -86,6 +134,14 @@ export default function AdminPage() {
   const [teamToDelete, setTeamToDelete] = useState<any | null>(null);
   const [deletingTeam, setDeletingTeam] = useState(false);
   const [showDeleteTeamConfirm, setShowDeleteTeamConfirm] = useState(false);
+
+  // Match edit/delete states
+  const [editingMatch, setEditingMatch] = useState<any | null>(null);
+  const [showEditMatchModal, setShowEditMatchModal] = useState(false);
+  const [savingMatch, setSavingMatch] = useState(false);
+  const [matchToDelete, setMatchToDelete] = useState<any | null>(null);
+  const [deletingMatch, setDeletingMatch] = useState(false);
+  const [showDeleteMatchConfirm, setShowDeleteMatchConfirm] = useState(false);
 
   // Check auth and load data
   useEffect(() => {
@@ -110,7 +166,7 @@ export default function AdminPage() {
       const [l, t, m] = await Promise.all([
         apiGet<any[]>("/api/admin/leagues/saved"),
         apiGet<any[]>("/api/admin/teams/saved"),
-        apiGet<any[]>("/api/matches"),
+        apiGet<any[]>("/api/admin/matches/saved"),
       ]);
       setLeagues(l || []);
       setTeams(t || []);
@@ -225,6 +281,9 @@ export default function AdminPage() {
         : "/api/admin/teams";
       const response = await apiGet<TeamsResponse>(url);
       setApiTeams(response.teams || []);
+      if (response.message) {
+        setMsg({ text: response.message, type: "info" });
+      }
       setShowTeamBrowser(true);
     } catch (err) {
       console.error(err);
@@ -237,12 +296,16 @@ export default function AdminPage() {
   async function handleTeamLeagueChange(leagueId: string) {
     setSelectedLeagueForTeams(leagueId);
     setBrowsingTeams(true);
+    console.log("leagueId from handleTeamLeagueChange:", leagueId);
     try {
       const url = leagueId
         ? `/api/admin/teams?leagueId=${leagueId}`
         : "/api/admin/teams";
       const response = await apiGet<TeamsResponse>(url);
       setApiTeams(response.teams || []);
+      if (response.message) {
+        setMsg({ text: response.message, type: "info" });
+      }
     } catch (err) {
       console.error(err);
       setMsg({ text: "Failed to load teams", type: "error" });
@@ -253,14 +316,18 @@ export default function AdminPage() {
 
   async function addTeamFromApi(team: any) {
     try {
-      await apiPost("/api/admin/team", {
+      const data = await apiPost<CreateTeamResponse>("/api/admin/team", {
         apiTeamId: team.apiTeamId,
         name: team.name,
         logo: team.logo,
         leagueId: selectedLeagueForTeams || null,
       });
-      setMsg({ text: `Added ${team.name}`, type: "success" });
-      refreshAll();
+      if (data.success) {
+        setMsg({ text: data.message, type: "success" });
+        refreshAll();
+      } else {
+        setMsg({ text: data.message, type: "error" });
+      }
     } catch (err) {
       console.error(err);
       setMsg({ text: "Failed to add team", type: "error" });
@@ -322,37 +389,207 @@ export default function AdminPage() {
 
   // ==================== MATCHES ====================
 
-  async function createMatch() {
-    if (teams.length < 2) {
-      alert("Create at least 2 teams first.");
-      return;
+  async function browseApiMatches() {
+    setBrowsingMatches(true);
+    try {
+      const params = new URLSearchParams();
+
+      // Only apply filters if they're set
+      if (selectedLeagueForMatches) {
+        params.append("leagueId", selectedLeagueForMatches);
+      }
+      if (selectedDateForMatches) {
+        params.append("date", selectedDateForMatches);
+      }
+      if (selectedStatusForMatches) {
+        params.append("status", selectedStatusForMatches);
+      }
+
+      // If no filters at all, show a message
+      if (
+        !selectedLeagueForMatches &&
+        !selectedDateForMatches &&
+        !selectedStatusForMatches
+      ) {
+        setApiMatches([]);
+        setShowMatchBrowser(true);
+        setMsg({
+          text: "Please select filters to browse matches",
+          type: "info",
+        });
+        setBrowsingMatches(false);
+        return;
+      }
+
+      const url = `/api/admin/matches${params.toString() ? `?${params.toString()}` : ""}`;
+      const response = await apiGet<MatchesResponse>(url);
+      setApiMatches(response.matches || []);
+      setShowMatchBrowser(true);
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: "Failed to load matches from API", type: "error" });
+    } finally {
+      setBrowsingMatches(false);
     }
-    const homeTeamId = teams[0].id;
-    const awayTeamId = teams[1].id;
-    const kickoffTime = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
-    await apiPost("/api/admin/match", {
-      homeTeamId,
-      awayTeamId,
-      kickoffTime,
-      status: "UPCOMING",
-      score: "0-0",
-      venue: "",
-    });
-    setMsg({ text: "Match created", type: "success" });
-    refreshAll();
   }
 
-  async function handleUpdateScore(matchId: string, currentScore: string) {
-    const score = prompt("New score?", currentScore);
-    if (score) {
-      try {
-        await apiPut(`/api/admin/match/${matchId}`, { score });
-        setMsg({ text: "Score updated", type: "success" });
-        refreshAll();
-      } catch (err) {
-        console.error(err);
-        setMsg({ text: "Failed to update score", type: "error" });
+  async function handleMatchLeagueChange(leagueId: string) {
+    setSelectedLeagueForMatches(leagueId);
+    console.log("setSelectedLeagueForMatches:", leagueId);
+    await refreshMatchesFromApi(
+      leagueId,
+      selectedDateForMatches,
+      selectedStatusForMatches,
+    );
+  }
+
+  async function handleMatchDateChange(date: string) {
+    setSelectedDateForMatches(date);
+    await refreshMatchesFromApi(
+      selectedLeagueForMatches,
+      date,
+      selectedStatusForMatches,
+    );
+  }
+
+  async function handleMatchStatusChange(status: string) {
+    setSelectedStatusForMatches(status);
+    await refreshMatchesFromApi(
+      selectedLeagueForMatches,
+      selectedDateForMatches,
+      status,
+    );
+  }
+
+  async function refreshMatchesFromApi(
+    leagueId: string,
+    date: string,
+    status: string,
+  ) {
+    setBrowsingMatches(true);
+    try {
+      const params = new URLSearchParams();
+      if (leagueId) params.append("leagueId", leagueId);
+      if (date) params.append("date", date);
+      if (status) params.append("status", status);
+
+      const url = `/api/admin/matches${params.toString() ? `?${params.toString()}` : ""}`;
+      const response = await apiGet<MatchesResponse>(url);
+      setApiMatches(response.matches || []);
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: "Failed to load matches", type: "error" });
+    } finally {
+      setBrowsingMatches(false);
+    }
+  }
+
+  async function addMatchFromApi(match: any) {
+    try {
+      // Find team IDs from saved teams by matching API IDs
+      const homeTeam = teams.find((t) => t.apiTeamId === match.homeTeam.id);
+      const awayTeam = teams.find((t) => t.apiTeamId === match.awayTeam.id);
+      const league = leagues.find((l) => l.apiLeagueId === match.leagueId);
+
+      if (!homeTeam || !awayTeam) {
+        setMsg({
+          text: "Please add both teams to your database first",
+          type: "error",
+        });
+        return;
       }
+
+      await apiPost("/api/admin/match", {
+        apiFixtureId: match.apiFixtureId,
+        leagueId: league?.id || null,
+        homeTeamId: homeTeam.id,
+        awayTeamId: awayTeam.id,
+        kickoffTime: match.kickoffTime,
+        status:
+          match.status === "NS"
+            ? "UPCOMING"
+            : match.status === "LIVE"
+              ? "LIVE"
+              : "FINISHED",
+        score: match.score,
+        venue: match.venue,
+      });
+      setMsg({ text: `Added match to your database`, type: "success" });
+      refreshAll();
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: "Failed to add match", type: "error" });
+    }
+  }
+
+  function openEditMatchModal(match: any) {
+    setEditingMatch({
+      id: match.id,
+      homeTeamId: match.homeTeamId || "",
+      awayTeamId: match.awayTeamId || "",
+      leagueId: match.leagueId || "",
+      kickoffTime: match.kickoffTime
+        ? new Date(match.kickoffTime).toISOString().slice(0, 16)
+        : "",
+      status: match.status || "UPCOMING",
+      score: match.score || "",
+      venue: match.venue || "",
+    });
+    setShowEditMatchModal(true);
+  }
+
+  async function saveEditingMatch() {
+    if (!editingMatch) return;
+    setSavingMatch(true);
+    try {
+      await apiPut(`/api/admin/match/${editingMatch.id}`, {
+        homeTeamId: editingMatch.homeTeamId,
+        awayTeamId: editingMatch.awayTeamId,
+        leagueId: editingMatch.leagueId === "" ? null : editingMatch.leagueId,
+        kickoffTime: editingMatch.kickoffTime,
+        status: editingMatch.status,
+        score: editingMatch.score,
+        venue: editingMatch.venue,
+      });
+      setMsg({ text: "Match saved", type: "success" });
+      setShowEditMatchModal(false);
+      setEditingMatch(null);
+      refreshAll();
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: "Failed to save match", type: "error" });
+    } finally {
+      setSavingMatch(false);
+    }
+  }
+
+  function openDeleteMatchConfirm(match: any) {
+    setMatchToDelete(match);
+    setShowDeleteMatchConfirm(true);
+  }
+
+  async function confirmDeleteMatch() {
+    if (!matchToDelete) return;
+    setDeletingMatch(true);
+    try {
+      await apiDelete(`/api/admin/match/${matchToDelete.id}`);
+      setMsg({ text: "Match deleted", type: "success" });
+      setShowDeleteMatchConfirm(false);
+      setMatchToDelete(null);
+      refreshAll();
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: "Failed to delete match", type: "error" });
+    } finally {
+      setDeletingMatch(false);
+    }
+  }
+
+  // Legacy methods kept for backward compatibility
+  async function handleUpdateScore(matchId: string, currentScore: string) {
+    const match = matches.find((m) => m.id === matchId);
+    if (match) {
+      openEditMatchModal(match);
     }
   }
 
@@ -368,14 +605,9 @@ export default function AdminPage() {
   }
 
   async function handleDeleteMatch(matchId: string) {
-    if (!confirm("Confirm delete?")) return;
-    try {
-      await apiDelete(`/api/admin/match/${matchId}`);
-      setMsg({ text: "Match deleted", type: "success" });
-      refreshAll();
-    } catch (err) {
-      console.error(err);
-      setMsg({ text: "Failed to delete match", type: "error" });
+    const match = matches.find((m) => m.id === matchId);
+    if (match) {
+      openDeleteMatchConfirm(match);
     }
   }
 
@@ -402,9 +634,18 @@ export default function AdminPage() {
 
         {/* Action Buttons */}
         <div className="flex gap-4 flex-wrap">
-          <Button onClick={createMatch} className="gap-2">
-            <Plus className="w-4 h-4" />
-            Add Match
+          <Button
+            onClick={() => {
+              setSelectedLeagueForMatches("");
+              setSelectedDateForMatches("");
+              setSelectedStatusForMatches("");
+              browseApiMatches();
+            }}
+            className="gap-2"
+            disabled={browsingMatches}
+          >
+            <Search className="w-4 h-4" />
+            {browsingMatches ? "Loading..." : "Browse Matches"}
           </Button>
           <Button
             onClick={() => {
@@ -453,6 +694,24 @@ export default function AdminPage() {
           isLoading={browsingTeams}
         />
 
+        <MatchBrowser
+          isOpen={showMatchBrowser}
+          onClose={() => setShowMatchBrowser(false)}
+          matches={apiMatches}
+          savedMatches={matches}
+          searchTerm={matchSearchTerm}
+          onSearchChange={setMatchSearchTerm}
+          onAddMatch={addMatchFromApi}
+          leagues={leagues}
+          selectedLeague={selectedLeagueForMatches}
+          onLeagueChange={handleMatchLeagueChange}
+          selectedDate={selectedDateForMatches}
+          onDateChange={handleMatchDateChange}
+          selectedStatus={selectedStatusForMatches}
+          onStatusChange={handleMatchStatusChange}
+          isLoading={browsingMatches}
+        />
+
         <LeagueEditModal
           isOpen={showEditLeagueModal}
           league={editingLeague}
@@ -482,6 +741,22 @@ export default function AdminPage() {
           leagues={leagues}
         />
 
+        <MatchEditModal
+          isOpen={showEditMatchModal}
+          match={editingMatch}
+          onClose={() => {
+            setShowEditMatchModal(false);
+            setEditingMatch(null);
+          }}
+          onSave={saveEditingMatch}
+          onChange={(field, value) =>
+            setEditingMatch((s: any) => ({ ...s, [field]: value }))
+          }
+          isSaving={savingMatch}
+          leagues={leagues}
+          teams={teams}
+        />
+
         <DeleteConfirmModal
           isOpen={showDeleteLeagueConfirm}
           title="Confirm delete"
@@ -504,6 +779,18 @@ export default function AdminPage() {
             setTeamToDelete(null);
           }}
           isDeleting={deletingTeam}
+        />
+
+        <DeleteConfirmModal
+          isOpen={showDeleteMatchConfirm}
+          title="Confirm delete"
+          message={`Are you sure you want to delete this match? This action cannot be undone.`}
+          onConfirm={confirmDeleteMatch}
+          onCancel={() => {
+            setShowDeleteMatchConfirm(false);
+            setMatchToDelete(null);
+          }}
+          isDeleting={deletingMatch}
         />
 
         {/* Tab Selector */}
@@ -548,9 +835,16 @@ export default function AdminPage() {
             {tab === "matches" && (
               <MatchesTab
                 matches={matches}
+                onEdit={openEditMatchModal}
                 onUpdateScore={handleUpdateScore}
                 onDelete={handleDeleteMatch}
                 onSetStatus={handleSetMatchStatus}
+                onBrowse={() => {
+                  setSelectedLeagueForMatches("");
+                  setSelectedDateForMatches("");
+                  setSelectedStatusForMatches("");
+                  browseApiMatches();
+                }}
               />
             )}
 

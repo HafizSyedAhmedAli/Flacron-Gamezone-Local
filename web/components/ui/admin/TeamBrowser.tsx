@@ -44,8 +44,8 @@ export function TeamBrowser({
 
   const filteredTeams = teams.filter(
     (t) =>
-      t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.country.toLowerCase().includes(searchTerm.toLowerCase()),
+      t.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.country?.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
   return (
