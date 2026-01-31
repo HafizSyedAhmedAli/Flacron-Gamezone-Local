@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Mail, Lock, Eye, EyeOff, Gamepad2, ArrowRight, AlertCircle } from "lucide-react";
+import {
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Gamepad2,
+  ArrowRight,
+  AlertCircle,
+} from "lucide-react";
+import { apiAuthPost, setToken } from "@/components/api";
 
 type FormErrors = {
   email?: string;
@@ -70,16 +79,40 @@ export default function LoginPage() {
 
     try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      const data = {
-        token: "mock-jwt-token",
-        user: { id: 1, email },
-      };
+      const data = await apiAuthPost<{
+        token: string;
+        user: {
+          id: number;
+          email: string;
+          role: string;
+          subscription?: any;
+        };
+      }>("/api/auth/login", { email, password });
 
-      // Redirect: window.location.href = "/dashboard";
+      // Store token using utility function
+      setToken(data.token);
+
+      // Store user data
+      localStorage.setItem("fgz_user", JSON.stringify(data.user));
+
+      // Redirect to dashboard
+      window.location.href = "/";
     } catch (err) {
-      setError({ general: "Invalid email or password." });
+      console.error("Login error:", err);
+
+      // Parse error message
+      let errorMessage = "An error occurred. Please try again.";
+      if (err instanceof Error) {
+        try {
+          const errorData = JSON.parse(err.message);
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = err.message || errorMessage;
+        }
+      }
+
+      setError({ general: errorMessage });
     } finally {
       setLoading(false);
     }
@@ -93,9 +126,18 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
+        <div
+          className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "4s" }}
+        ></div>
+        <div
+          className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "6s", animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "8s", animationDelay: "2s" }}
+        ></div>
       </div>
 
       {/* Floating particles */}
@@ -108,18 +150,20 @@ export default function LoginPage() {
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
+              animationDelay: `${Math.random() * 5}s`,
             }}
           />
         ))}
       </div>
 
-      <div className={`w-full max-w-md relative z-10 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+      <div
+        className={`w-full max-w-md relative z-10 transition-all duration-1000 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+      >
         {/* Premium card with enhanced aesthetics */}
         <div className="relative group">
           {/* Glow effect on hover */}
           <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500"></div>
-          
+
           <div className="relative bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
             {/* Logo section with animation */}
             <div className="text-center mb-8">
@@ -137,7 +181,7 @@ export default function LoginPage() {
 
             {/* Error message with animation */}
             {error.general && (
-              <div 
+              <div
                 className="mb-6 bg-red-500/10 border border-red-500/50 text-red-400 text-sm p-4 rounded-xl backdrop-blur-sm animate-shake"
                 role="alert"
               >
@@ -151,7 +195,10 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email field with enhanced styling */}
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-slate-300"
+                >
                   Email Address
                 </label>
                 <div className="relative group">
@@ -162,6 +209,7 @@ export default function LoginPage() {
                     id="email"
                     name="email"
                     type="email"
+                    autoComplete="email"
                     inputMode="email"
                     placeholder="you@example.com"
                     value={email}
@@ -173,7 +221,11 @@ export default function LoginPage() {
                   />
                 </div>
                 {error.email && (
-                  <p id="email-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                  <p
+                    id="email-error"
+                    className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                    role="alert"
+                  >
                     <AlertCircle className="w-4 h-4" />
                     {error.email}
                   </p>
@@ -182,7 +234,10 @@ export default function LoginPage() {
 
               {/* Password field with enhanced styling */}
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-slate-300"
+                >
                   Password
                 </label>
                 <div className="relative group">
@@ -193,18 +248,23 @@ export default function LoginPage() {
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
+                    autoComplete="current-password"
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
                     aria-invalid={Boolean(error.password)}
-                    aria-describedby={error.password ? "password-error" : undefined}
+                    aria-describedby={
+                      error.password ? "password-error" : undefined
+                    }
                     className="w-full pl-10 pr-12 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 hover:border-slate-600/50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-400 transition-all duration-300 hover:scale-110"
                   >
                     {showPassword ? (
@@ -215,7 +275,11 @@ export default function LoginPage() {
                   </button>
                 </div>
                 {error.password && (
-                  <p id="password-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                  <p
+                    id="password-error"
+                    className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                    role="alert"
+                  >
                     <AlertCircle className="w-4 h-4" />
                     {error.password}
                   </p>
@@ -224,9 +288,13 @@ export default function LoginPage() {
 
               {/* Remember me & Forgot password */}
               <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 cursor-pointer group">
+                <label
+                  htmlFor="remember-me"
+                  className="flex items-center gap-2 cursor-pointer group"
+                >
                   <div className="relative">
                     <input
+                      id="remember-me"
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
@@ -240,7 +308,7 @@ export default function LoginPage() {
 
                 <button
                   type="button"
-                  onClick={() => handleNavigation('/forgot-password')}
+                  onClick={() => handleNavigation("/forgot-password")}
                   className="text-sm text-blue-400 hover:text-blue-300 transition-all duration-300 hover:underline underline-offset-2"
                   aria-label="Forgot password"
                 >
@@ -259,9 +327,24 @@ export default function LoginPage() {
                 <div className="relative flex items-center justify-center gap-2 py-3 text-white font-semibold">
                   {loading ? (
                     <>
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
                       </svg>
                       <span>Signing in...</span>
                     </>
@@ -290,7 +373,7 @@ export default function LoginPage() {
             <div className="text-center">
               <button
                 type="button"
-                onClick={() => handleNavigation('/signup')}
+                onClick={() => handleNavigation("/signup")}
                 className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-blue-400 transition-all duration-300 group"
               >
                 <span>Create your account</span>
@@ -303,24 +386,40 @@ export default function LoginPage() {
         {/* Footer text */}
         <p className="text-center text-xs text-slate-500 mt-6 animate-fadeIn">
           By signing in, you agree to our{" "}
-          <button className="text-blue-400 hover:text-blue-300 transition-colors">Terms of Service</button>
-          {" "}and{" "}
-          <button className="text-blue-400 hover:text-blue-300 transition-colors">Privacy Policy</button>
+          <button className="text-blue-400 hover:text-blue-300 transition-colors">
+            Terms of Service
+          </button>{" "}
+          and{" "}
+          <button className="text-blue-400 hover:text-blue-300 transition-colors">
+            Privacy Policy
+          </button>
         </p>
       </div>
 
       <style jsx>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-20px) translateX(10px); }
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-20px) translateX(10px);
+          }
         }
-        
+
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          25% {
+            transform: translateX(-5px);
+          }
+          75% {
+            transform: translateX(5px);
+          }
         }
-        
+
         @keyframes slideIn {
           from {
             opacity: 0;
@@ -331,29 +430,38 @@ export default function LoginPage() {
             transform: translateY(0);
           }
         }
-        
+
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
-        
+
         @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+          0%,
+          100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
         }
-        
+
         .animate-shake {
           animation: shake 0.4s ease-in-out;
         }
-        
+
         .animate-slideIn {
           animation: slideIn 0.3s ease-out;
         }
-        
+
         .animate-fadeIn {
           animation: fadeIn 1s ease-out 0.5s both;
         }
-        
+
         .animate-gradient {
           background-size: 200% auto;
           animation: gradient 3s ease infinite;

@@ -1,7 +1,7 @@
 // File: src/app/admin/page.tsx
 "use client";
 
-import { apiDelete, apiGet, apiPost, apiPut, getToken } from "@/components/api";
+import { apiDelete, apiGet, apiPost, apiPut } from "@/components/api";
 import { Shell } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Search } from "lucide-react";
@@ -21,6 +21,7 @@ import { TeamBrowser } from "@/components/ui/admin/TeamBrowser";
 import { TeamEditModal } from "@/components/ui/admin/TeamEditModal";
 import { TeamsTab } from "@/components/ui/admin/TeamsTab";
 import { UsersTab } from "@/components/ui/admin/UsersTab";
+import { useRequireAdmin } from "@/hooks/useAuth";
 
 // Types
 interface LeaguesResponse {
@@ -79,6 +80,9 @@ interface MatchesResponse {
 type TabType = "leagues" | "teams" | "matches" | "users";
 
 export default function AdminPage() {
+  // Protect admin route - automatically redirects non-admin users
+  useRequireAdmin();
+
   // Tab state
   const [tab, setTab] = useState<TabType>("leagues");
 
@@ -143,12 +147,8 @@ export default function AdminPage() {
   const [deletingMatch, setDeletingMatch] = useState(false);
   const [showDeleteMatchConfirm, setShowDeleteMatchConfirm] = useState(false);
 
-  // Check auth and load data
+  // Load data on mount
   useEffect(() => {
-    if (!getToken()) {
-      location.href = "/login";
-      return;
-    }
     refreshAll();
   }, []);
 
@@ -865,7 +865,6 @@ export default function AdminPage() {
               <MatchesTab
                 matches={matches}
                 onEdit={openEditMatchModal}
-                onUpdateScore={handleUpdateScore}
                 onDelete={handleDeleteMatch}
                 onSetStatus={handleSetMatchStatus}
                 onBrowse={() => {
