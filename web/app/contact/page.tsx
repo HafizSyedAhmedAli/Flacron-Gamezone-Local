@@ -73,7 +73,6 @@ export default function ContactPage() {
       setLoading(true);
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      console.log("Contact form submitted:", formData);
       setSuccess(true);
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {

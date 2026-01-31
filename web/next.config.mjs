@@ -6,6 +6,10 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "media.api-sports.io"
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.sportmonks.com"
       }
     ]
   }

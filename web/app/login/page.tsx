@@ -77,7 +77,6 @@ export default function LoginPage() {
         user: { id: 1, email },
       };
 
-      console.log("Login success:", data);
       // Redirect: window.location.href = "/dashboard";
     } catch (err) {
       setError({ general: "Invalid email or password." });
