@@ -191,12 +191,73 @@ publicRouter.get("/leagues/:id", async (req, res) => {
 
 publicRouter.get("/teams", async (req, res) => {
   const q = String(req.query.q || "").trim();
+  
+  // Fetch teams with their matches
   const teams = await prisma.team.findMany({
     where: q ? { name: { contains: q, mode: "insensitive" } } : undefined,
-    include: { league: true },
+    include: { 
+      league: true,
+      homeMatches: {
+        where: { status: "FINISHED" },
+        select: {
+          score: true,
+          homeTeamId: true,
+          awayTeamId: true,
+        }
+      },
+      awayMatches: {
+        where: { status: "FINISHED" },
+        select: {
+          score: true,
+          homeTeamId: true,
+          awayTeamId: true,
+        }
+      }
+    },
     orderBy: { name: "asc" },
   });
-  res.json(teams);
+
+  // Calculate statistics for each team
+  const teamsWithStats = teams.map(team => {
+    let matches = 0;
+    let wins = 0;
+
+    // Process home matches
+    team.homeMatches.forEach(match => {
+      if (match.score) {
+        const [homeScore, awayScore] = match.score.split("-").map(Number);
+        if (!isNaN(homeScore) && !isNaN(awayScore)) {
+          matches++;
+          if (homeScore > awayScore) {
+            wins++;
+          }
+        }
+      }
+    });
+
+    // Process away matches
+    team.awayMatches.forEach(match => {
+      if (match.score) {
+        const [homeScore, awayScore] = match.score.split("-").map(Number);
+        if (!isNaN(homeScore) && !isNaN(awayScore)) {
+          matches++;
+          if (awayScore > homeScore) {
+            wins++;
+          }
+        }
+      }
+    });
+
+    // Return team with calculated stats, excluding the match arrays
+    const { homeMatches, awayMatches, ...teamData } = team;
+    return {
+      ...teamData,
+      matches,
+      wins,
+    };
+  });
+
+  res.json(teamsWithStats);
 });
 
 publicRouter.get("/teams/:id", async (req, res) => {

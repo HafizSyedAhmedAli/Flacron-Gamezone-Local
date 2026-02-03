@@ -31,7 +31,6 @@ export default function TeamsPage() {
       const qs = new URLSearchParams();
       if (q) qs.set("q", q);
       const data = await apiGet<any[]>(`/api/teams?${qs.toString()}`);
-
       setTeams(data);
     } catch (error) {
       console.error("Failed to load teams:", error);
@@ -67,7 +66,9 @@ export default function TeamsPage() {
     if (page < totalPages - 1) setPage(page + 1);
   };
 
-  const totalMatches = teams.reduce((acc, t) => acc + (t.matches || 0), 0);
+  const totalMatches = Math.floor(
+    teams.reduce((acc, t) => acc + (t.matches || 0), 0) / 2,
+  );
   const totalWins = teams.reduce((acc, t) => acc + (t.wins || 0), 0);
 
   return (
