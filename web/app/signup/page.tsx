@@ -68,10 +68,6 @@ export default function SignupPage() {
   const validate = (): FormErrors => {
     const errs: FormErrors = {};
 
-    if (!formData.name || formData.name.trim().length < 2) {
-      errs.name = "Name must be at least 2 characters long.";
-    }
-
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) {
       errs.email = "Please enter a valid email address.";

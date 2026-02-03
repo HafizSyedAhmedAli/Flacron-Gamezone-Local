@@ -28,7 +28,7 @@ export default function LoadingSpinner({
   fullScreen = false,
   className = "",
 }: LoadingSpinnerProps) {
-  const spinnerCls = `${SIZE_MAP[size]} rounded-full border-t-transparent border-slate-600/30 animate-spin`;
+  const spinnerCls = `${SIZE_MAP[size]} rounded-full border-t-transparent border-slate-200/80 animate-spin`;
 
   // wrapper classes (fullScreen shows a subtle backdrop)
   const wrapperCls = fullScreen
