@@ -14,6 +14,34 @@ export function clearToken() {
   localStorage.removeItem("fgz_token");
 }
 
+// Helper function for consistent error handling
+async function handleResponse<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get("content-type");
+  const isJson = contentType?.includes("application/json");
+
+  if (!response.ok) {
+    let errorMessage: string;
+
+    if (isJson) {
+      try {
+        const errorData = await response.json();
+        errorMessage =
+          errorData.error || errorData.message || response.statusText;
+      } catch {
+        errorMessage = response.statusText;
+      }
+    } else {
+      try {
+        errorMessage = await response.text();
+      } catch {
+        errorMessage = response.statusText;
+      }
+    }
+    throw new Error(errorMessage);
+  }
+  return response.json();
+}
+
 export async function apiGet<T>(url: string): Promise<T> {
   const token = getToken();
 
@@ -21,61 +49,62 @@ export async function apiGet<T>(url: string): Promise<T> {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }), 
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
   });
-
-  if (!response.ok) {
-    throw new Error(JSON.stringify(await response.json()));
-  }
-
-  return response.json();
+  return handleResponse<T>(response);
 }
 
 export async function apiAuthPost<T>(path: string, body: any): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+  const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+
+  return handleResponse<T>(response);
 }
 
 export async function apiPost<T>(path: string, body: any): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+
+  const response = await fetch(`${API_BASE}${path}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: JSON.stringify(body),
   });
-  // if (!res.ok) throw new Error(await res.text());
-  return res.json();
+
+  return handleResponse<T>(response);
 }
 
 export async function apiPut<T>(path: string, body: any): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+
+  const response = await fetch(`${API_BASE}${path}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(token && { Authorization: `Bearer ${token}` }),
     },
     body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+
+  return handleResponse<T>(response);
 }
 
 export async function apiDelete<T>(path: string): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+
+  const response = await fetch(`${API_BASE}${path}`, {
     method: "DELETE",
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
+    headers: {
+      "Content-Type": "application/json",
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
   });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+
+  return handleResponse<T>(response);
 }
