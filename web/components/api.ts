@@ -14,7 +14,6 @@ export function clearToken() {
   localStorage.removeItem("fgz_token");
 }
 
-// Helper function for consistent error handling
 async function handleResponse<T>(response: Response): Promise<T> {
   const contentType = response.headers.get("content-type");
   const isJson = contentType?.includes("application/json");
@@ -39,6 +38,20 @@ async function handleResponse<T>(response: Response): Promise<T> {
     }
     throw new Error(errorMessage);
   }
+
+  // 🆕 SUCCESS PATH FIXES
+  if (
+    response.status === 204 ||
+    response.headers.get("content-length") === "0"
+  ) {
+    return undefined as T;
+  }
+
+  if (!isJson) {
+    const text = await response.text();
+    return text as unknown as T;
+  }
+
   return response.json();
 }
 

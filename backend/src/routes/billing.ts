@@ -37,19 +37,15 @@ billingRouter.post("/checkout", requireAuth, async (req: AuthRequest, res) => {
 
     const user = req.user!;
 
-    // Get or create subscription record
-    let subscription = await prisma.subscription.findUnique({
+    // Get or create subscription record atomically
+    let subscription = await prisma.subscription.upsert({
       where: { userId: user.id },
+      create: {
+        userId: user.id,
+        status: "inactive",
+      },
+      update: {},
     });
-
-    if (!subscription) {
-      subscription = await prisma.subscription.create({
-        data: {
-          userId: user.id,
-          status: "inactive",
-        },
-      });
-    }
 
     // Get or create Stripe customer
     let customerId = subscription.stripeCustomerId;
@@ -415,6 +411,8 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
 }
 
 async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
+  if (!invoice.subscription) return;
+
   const customerId = String(invoice.customer);
 
   const record = await prisma.subscription.findFirst({
@@ -436,6 +434,10 @@ async function handlePaymentSucceeded(invoice: Stripe.Invoice) {
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {
+  if (!invoice.subscription) {
+    return;
+  }
+
   const customerId = String(invoice.customer);
 
   const record = await prisma.subscription.findFirst({

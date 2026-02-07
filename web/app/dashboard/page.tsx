@@ -18,7 +18,6 @@ import {
   createPortalSession,
 } from "@/components/billingApi";
 import { useRouter } from "next/navigation";
-import { isAuthenticated } from "@/lib/auth";
 import { Shell } from "@/components/layout";
 
 interface Subscription {
@@ -96,13 +95,16 @@ export default function DashboardPage() {
     try {
       setActionLoading("portal");
       const { url } = await createPortalSession();
+      if (!url) {
+        throw new Error("Invalid billing portal URL");
+      }
       window.location.href = url;
     } catch (err: any) {
       setError(err.message || "Failed to open billing portal");
       setActionLoading(null);
     }
   };
-
+  
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":

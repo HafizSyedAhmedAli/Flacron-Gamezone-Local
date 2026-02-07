@@ -43,7 +43,7 @@ export async function requireAuth(
     return next();
   } catch (err: any) {
     console.log("JWT ERROR:", err.message);
-    return res.status(401).json({ error: err.message });
+    return res.status(401).json({ error: "Unauthorized" });
   }
 }
 

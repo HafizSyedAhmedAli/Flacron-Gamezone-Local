@@ -49,6 +49,10 @@ export default function PricingPage() {
 
       const { url } = await createCheckoutSession(billingCycle);
 
+      if (!url) {
+        throw new Error("Invalid checkout URL received");
+      }
+
       // Redirect to Stripe Checkout
       window.location.href = url;
     } catch (error: any) {
@@ -381,7 +385,7 @@ export default function PricingPage() {
           className={`mt-16 text-center transition-all duration-1000 delay-700 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
         >
           <p className="text-slate-500 text-sm mb-6">
-            Trusted by over 50,000+ gamers worldwide
+            Trusted by over 50,000 gamers worldwide
           </p>
           <div className="flex justify-center gap-8 items-center flex-wrap">
             <div className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors group">
