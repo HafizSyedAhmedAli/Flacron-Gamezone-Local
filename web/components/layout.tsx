@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   logout as authLogout,
   isAuthenticated as checkAuth,
-  isAdmin
+  isAdmin,
 } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 import { LogOut, Menu, X } from "lucide-react";
@@ -14,9 +14,10 @@ import React, { useEffect, useState } from "react";
 
 interface ShellProps {
   children: React.ReactNode;
+  className?: string;
 }
 
-export function Shell({ children }: ShellProps) {
+export function Shell({ children, className }: ShellProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userIsAdmin, setUserIsAdmin] = useState(false);
@@ -63,7 +64,12 @@ export function Shell({ children }: ShellProps) {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-background text-foreground">
+    <div
+      className={cn(
+        "min-h-screen flex flex-col bg-background text-foreground",
+        className,
+      )}
+    >
       {/* Header */}
       <header className="sticky top-0 z-50 bg-card border-b border-border/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -106,19 +112,15 @@ export function Shell({ children }: ShellProps) {
           <div className="flex items-center gap-2">
             {isAuthenticated ? (
               <>
-                {userIsAdmin && (
-                  <>
-                    <Link href="/admin">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="hidden sm:inline-flex"
-                      >
-                        Dashboard
-                      </Button>
-                    </Link>
-                  </>
-                )}
+                <Link href={userIsAdmin ? "/admin" : "/dashboard"}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="hidden sm:inline-flex"
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -211,7 +213,7 @@ export function Shell({ children }: ShellProps) {
                   {userIsAdmin && (
                     <>
                       <MobileNavLink
-                        href="/admin"
+                        href={userIsAdmin ? "/admin" : "/dashboard"}
                         onClick={() => setMobileMenuOpen(false)}
                       >
                         Dashboard

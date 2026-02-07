@@ -29,19 +29,24 @@ model User {
   password  String
   role      Role     @default(USER)
   createdAt DateTime @default(now())
-
+  
   subscription Subscription?
 }
 
 model Subscription {
-  id                   String   @id @default(cuid())
-  userId               String   @unique
-  stripeCustomerId     String?
-  stripeSubscriptionId String?
-  status               String   @default("inactive")
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  stripeCustomerId     String?   @unique
+  stripeSubscriptionId String?   @unique
+  status               String    @default("inactive") // inactive, active, canceled, past_due
+  plan                 String?   // monthly, yearly
+  currentPeriodStart   DateTime?
   currentPeriodEnd     DateTime?
-
-  user User @relation(fields: [userId], references: [id])
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model League {
@@ -51,7 +56,7 @@ model League {
   logo        String?
   apiLeagueId Int?     @unique
   createdAt   DateTime @default(now())
-
+  
   teams   Team[]
   matches Match[]
 }
@@ -63,9 +68,9 @@ model Team {
   apiTeamId Int?     @unique
   leagueId  String?
   createdAt DateTime @default(now())
-
+  
   league League? @relation(fields: [leagueId], references: [id])
-
+  
   homeMatches Match[] @relation("HomeTeam")
   awayMatches Match[] @relation("AwayTeam")
 }
@@ -78,17 +83,17 @@ model Match {
   awayTeamId   String
   kickoffTime  DateTime
   status       MatchStatus @default(UPCOMING)
-  score        String?     // e.g. "2-1" or "0-0"
+  score        String?
   venue        String?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
-
-  league    League? @relation(fields: [leagueId], references: [id])
-  homeTeam  Team    @relation("HomeTeam", fields: [homeTeamId], references: [id])
-  awayTeam  Team    @relation("AwayTeam", fields: [awayTeamId], references: [id])
-
-  stream    Stream?
-  aiTexts   AISummary[]
+  
+  league   League? @relation(fields: [leagueId], references: [id])
+  homeTeam Team    @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeam Team    @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  
+  stream   Stream?
+  aiTexts  AISummary[]
 }
 
 model Stream {
@@ -98,8 +103,8 @@ model Stream {
   provider  String?
   url       String?
   isActive  Boolean    @default(false)
-
-  match Match @relation(fields: [matchId], references: [id])
+  
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
 }
 
 model AISummary {
@@ -108,10 +113,10 @@ model AISummary {
   provider  String
   language  String
   kind      String   // "preview" | "summary"
-  content   String
+  content   String   @db.Text
   createdAt DateTime @default(now())
-
-  match Match @relation(fields: [matchId], references: [id])
-
+  
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  
   @@index([matchId, language, kind])
 }

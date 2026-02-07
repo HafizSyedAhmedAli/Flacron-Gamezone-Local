@@ -2,6 +2,14 @@ import jwt from "jsonwebtoken";
 import type { Request, Response, NextFunction } from "express";
 import { prisma } from "./prisma.js";
 
+export interface AuthRequest extends Request {
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}
+
 export type JwtPayload = { userId: string; role: "USER" | "ADMIN" };
 
 export function signToken(payload: JwtPayload) {
@@ -10,9 +18,9 @@ export function signToken(payload: JwtPayload) {
 }
 
 export async function requireAuth(
-  req: Request,
+  req: AuthRequest,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) {
   const hdr = req.headers.authorization;
   if (!hdr?.startsWith("Bearer "))
@@ -33,12 +41,17 @@ export async function requireAuth(
       subscription: user.subscription,
     };
     return next();
-  } catch {
+  } catch (err: any) {
+    console.log("JWT ERROR:", err.message);
     return res.status(401).json({ error: "Unauthorized" });
   }
 }
 
-export function requireAdmin(req: Request, res: Response, next: NextFunction) {
+export function requireAdmin(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
   const u = (req as any).user;
   if (!u) return res.status(401).json({ error: "Unauthorized" });
   if (u.role !== "ADMIN") return res.status(403).json({ error: "Forbidden" });

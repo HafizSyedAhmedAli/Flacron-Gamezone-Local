@@ -1,7 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Mail, Clock, MessageCircle, User, Send, AlertCircle, CheckCircle2, MapPin, Phone, Headphones } from "lucide-react";
+import {
+  Mail,
+  Clock,
+  MessageCircle,
+  User,
+  Send,
+  AlertCircle,
+  CheckCircle2,
+  MapPin,
+  Phone,
+  Headphones,
+} from "lucide-react";
+import { Shell } from "@/components/layout";
 
 type FormErrors = {
   name?: string;
@@ -27,7 +39,9 @@ export default function ContactPage() {
     setMounted(true);
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (error[name as keyof FormErrors]) {
@@ -83,12 +97,21 @@ export default function ContactPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+    <Shell className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
+        <div
+          className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "4s" }}
+        ></div>
+        <div
+          className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "6s", animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "8s", animationDelay: "2s" }}
+        ></div>
       </div>
 
       {/* Floating particles */}
@@ -101,7 +124,7 @@ export default function ContactPage() {
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
+              animationDelay: `${Math.random() * 5}s`,
             }}
           />
         ))}
@@ -109,7 +132,9 @@ export default function ContactPage() {
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-16">
         {/* Header */}
-        <div className={`text-center mb-12 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div
+          className={`text-center mb-12 transition-all duration-1000 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+        >
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-purple-600 mb-6 shadow-lg shadow-blue-500/50 relative group">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-400 to-purple-500 blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
             <Mail className="w-10 h-10 text-white relative z-10" />
@@ -118,12 +143,15 @@ export default function ContactPage() {
             Get in Touch
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-            Need help with Flacrom Gamezone? Our support team is here to assist you with any questions or issues.
+            Need help with Flacrom Gamezone? Our support team is here to assist
+            you with any questions or issues.
           </p>
         </div>
 
         {/* Contact Info Cards */}
-        <div className={`grid md:grid-cols-4 gap-6 mb-12 transition-all duration-1000 delay-150 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div
+          className={`grid md:grid-cols-4 gap-6 mb-12 transition-all duration-1000 delay-150 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+        >
           <div className="relative group">
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500"></div>
             <div className="relative bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 text-center hover:border-blue-500/50 transition-all duration-300 hover:transform hover:-translate-y-2">
@@ -131,7 +159,9 @@ export default function ContactPage() {
                 <Mail className="w-6 h-6 text-white" />
               </div>
               <h3 className="font-semibold text-white mb-2">Email Support</h3>
-              <p className="text-sm text-slate-400 mb-1">support@flacromgamezone.com</p>
+              <p className="text-sm text-slate-400 mb-1">
+                support@flacromgamezone.com
+              </p>
               <p className="text-xs text-slate-500">General inquiries</p>
             </div>
           </div>
@@ -175,41 +205,52 @@ export default function ContactPage() {
 
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Contact Form */}
-          <div className={`lg:col-span-2 transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <div
+            className={`lg:col-span-2 transition-all duration-1000 delay-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+          >
             <div className="relative group">
               <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500"></div>
-              
+
               <div className="relative bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                   <MessageCircle className="w-6 h-6 text-blue-400" />
                   Send us a Message
                 </h2>
-
                 {/* Success Message */}
                 {success && (
-                  <div className="mb-6 bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-xl backdrop-blur-sm animate-slideIn" role="alert">
+                  <div
+                    className="mb-6 bg-green-500/10 border border-green-500/50 text-green-400 p-4 rounded-xl backdrop-blur-sm animate-slideIn"
+                    role="alert"
+                  >
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
-                      <span>Message sent successfully! We'll get back to you within 24 hours.</span>
+                      <span>
+                        Message sent successfully! We'll get back to you within
+                        24 hours.
+                      </span>
                     </div>
                   </div>
                 )}
-
                 {/* Error Message */}
                 {error.general && (
-                  <div className="mb-6 bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl backdrop-blur-sm animate-shake" role="alert">
+                  <div
+                    className="mb-6 bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-xl backdrop-blur-sm animate-shake"
+                    role="alert"
+                  >
                     <div className="flex items-center gap-2">
                       <AlertCircle className="w-5 h-5 flex-shrink-0" />
                       <span>{error.general}</span>
                     </div>
                   </div>
                 )}
-
                 <form onSubmit={handleSubmit} className="space-y-5" noValidate>
                   <div className="grid md:grid-cols-2 gap-5">
                     {/* Name field */}
                     <div className="space-y-2">
-                      <label htmlFor="name" className="block text-sm font-medium text-slate-300">
+                      <label
+                        htmlFor="name"
+                        className="block text-sm font-medium text-slate-300"
+                      >
                         Your Name
                       </label>
                       <div className="relative group/input">
@@ -225,12 +266,18 @@ export default function ContactPage() {
                           onChange={handleChange}
                           required
                           aria-invalid={Boolean(error.name)}
-                          aria-describedby={error.name ? "name-error" : undefined}
+                          aria-describedby={
+                            error.name ? "name-error" : undefined
+                          }
                           className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 hover:border-slate-600/50"
                         />
                       </div>
                       {error.name && (
-                        <p id="name-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                        <p
+                          id="name-error"
+                          className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                          role="alert"
+                        >
                           <AlertCircle className="w-4 h-4" />
                           {error.name}
                         </p>
@@ -239,7 +286,10 @@ export default function ContactPage() {
 
                     {/* Email field */}
                     <div className="space-y-2">
-                      <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+                      <label
+                        htmlFor="email"
+                        className="block text-sm font-medium text-slate-300"
+                      >
                         Email Address
                       </label>
                       <div className="relative group/input">
@@ -256,12 +306,18 @@ export default function ContactPage() {
                           onChange={handleChange}
                           required
                           aria-invalid={Boolean(error.email)}
-                          aria-describedby={error.email ? "email-error" : undefined}
+                          aria-describedby={
+                            error.email ? "email-error" : undefined
+                          }
                           className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 hover:border-slate-600/50"
                         />
                       </div>
                       {error.email && (
-                        <p id="email-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                        <p
+                          id="email-error"
+                          className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                          role="alert"
+                        >
                           <AlertCircle className="w-4 h-4" />
                           {error.email}
                         </p>
@@ -271,7 +327,10 @@ export default function ContactPage() {
 
                   {/* Subject field */}
                   <div className="space-y-2">
-                    <label htmlFor="subject" className="block text-sm font-medium text-slate-300">
+                    <label
+                      htmlFor="subject"
+                      className="block text-sm font-medium text-slate-300"
+                    >
                       Subject
                     </label>
                     <div className="relative group/input">
@@ -287,12 +346,18 @@ export default function ContactPage() {
                         onChange={handleChange}
                         required
                         aria-invalid={Boolean(error.subject)}
-                        aria-describedby={error.subject ? "subject-error" : undefined}
+                        aria-describedby={
+                          error.subject ? "subject-error" : undefined
+                        }
                         className="w-full pl-10 pr-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 hover:border-slate-600/50"
                       />
                     </div>
                     {error.subject && (
-                      <p id="subject-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                      <p
+                        id="subject-error"
+                        className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                        role="alert"
+                      >
                         <AlertCircle className="w-4 h-4" />
                         {error.subject}
                       </p>
@@ -301,7 +366,10 @@ export default function ContactPage() {
 
                   {/* Message field */}
                   <div className="space-y-2">
-                    <label htmlFor="message" className="block text-sm font-medium text-slate-300">
+                    <label
+                      htmlFor="message"
+                      className="block text-sm font-medium text-slate-300"
+                    >
                       Message
                     </label>
                     <div className="relative">
@@ -314,12 +382,18 @@ export default function ContactPage() {
                         required
                         rows={6}
                         aria-invalid={Boolean(error.message)}
-                        aria-describedby={error.message ? "message-error" : undefined}
+                        aria-describedby={
+                          error.message ? "message-error" : undefined
+                        }
                         className="w-full px-4 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300 resize-none hover:border-slate-600/50"
                       />
                     </div>
                     {error.message && (
-                      <p id="message-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                      <p
+                        id="message-error"
+                        className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                        role="alert"
+                      >
                         <AlertCircle className="w-4 h-4" />
                         {error.message}
                       </p>
@@ -337,9 +411,24 @@ export default function ContactPage() {
                     <div className="relative flex items-center justify-center gap-2 py-3 text-white font-semibold">
                       {loading ? (
                         <>
-                          <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          <svg
+                            className="animate-spin h-5 w-5"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                            ></path>
                           </svg>
                           <span>Sending...</span>
                         </>
@@ -351,12 +440,15 @@ export default function ContactPage() {
                       )}
                     </div>
                   </button>
-                </form>              </div>
+                </form>{" "}
+              </div>
             </div>
           </div>
 
           {/* Additional Info Sidebar */}
-          <div className={`space-y-6 transition-all duration-1000 delay-400 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+          <div
+            className={`space-y-6 transition-all duration-1000 delay-400 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+          >
             {/* Office Hours */}
             <div className="bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
               <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
@@ -391,10 +483,14 @@ export default function ContactPage() {
                 Headquarters
               </h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                Flacrom Gamezone Inc.<br />
-                123 Gaming Boulevard<br />
-                Suite 456<br />
-                San Francisco, CA 94102<br />
+                Flacrom Gamezone Inc.
+                <br />
+                123 Gaming Boulevard
+                <br />
+                Suite 456
+                <br />
+                San Francisco, CA 94102
+                <br />
                 United States
               </p>
             </div>
@@ -403,16 +499,28 @@ export default function ContactPage() {
             <div className="bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
               <h3 className="font-semibold text-white mb-4">Quick Links</h3>
               <div className="space-y-2">
-                <a href="/faq" className="block text-sm text-slate-400 hover:text-blue-400 transition-colors">
+                <a
+                  href="/faq"
+                  className="block text-sm text-slate-400 hover:text-blue-400 transition-colors"
+                >
                   → FAQ & Help Center
                 </a>
-                <a href="/terms" className="block text-sm text-slate-400 hover:text-blue-400 transition-colors">
+                <a
+                  href="/terms"
+                  className="block text-sm text-slate-400 hover:text-blue-400 transition-colors"
+                >
                   → Terms & Conditions
                 </a>
-                <a href="/privacy" className="block text-sm text-slate-400 hover:text-blue-400 transition-colors">
+                <a
+                  href="/privacy"
+                  className="block text-sm text-slate-400 hover:text-blue-400 transition-colors"
+                >
                   → Privacy Policy
                 </a>
-                <a href="/pricing" className="block text-sm text-slate-400 hover:text-blue-400 transition-colors">
+                <a
+                  href="/pricing"
+                  className="block text-sm text-slate-400 hover:text-blue-400 transition-colors"
+                >
                   → Pricing Plans
                 </a>
               </div>
@@ -421,27 +529,46 @@ export default function ContactPage() {
         </div>
 
         {/* Additional Info */}
-        <div className={`mt-12 text-center transition-all duration-1000 delay-500 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div
+          className={`mt-12 text-center transition-all duration-1000 delay-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+        >
           <p className="text-slate-500 text-sm">
             For urgent technical issues, please use our{" "}
-            <a href="/support" className="text-blue-400 hover:text-blue-300 transition-colors underline">live chat support</a>
-            {" "}for immediate assistance
+            <a
+              href="/support"
+              className="text-blue-400 hover:text-blue-300 transition-colors underline"
+            >
+              live chat support
+            </a>{" "}
+            for immediate assistance
           </p>
         </div>
       </div>
 
       <style jsx>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-20px) translateX(10px); }
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-20px) translateX(10px);
+          }
         }
-        
+
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          25% {
+            transform: translateX(-5px);
+          }
+          75% {
+            transform: translateX(5px);
+          }
         }
-        
+
         @keyframes slideIn {
           from {
             opacity: 0;
@@ -452,25 +579,30 @@ export default function ContactPage() {
             transform: translateY(0);
           }
         }
-        
+
         @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+          0%,
+          100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
         }
-        
+
         .animate-shake {
           animation: shake 0.4s ease-in-out;
         }
-        
+
         .animate-slideIn {
           animation: slideIn 0.3s ease-out;
         }
-        
+
         .animate-gradient {
           background-size: 200% auto;
           animation: gradient 3s ease infinite;
         }
       `}</style>
-    </div>
+    </Shell>
   );
 }
