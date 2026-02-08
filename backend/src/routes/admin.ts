@@ -4,6 +4,7 @@ import { prisma } from "../lib/prisma.js";
 import { validateBody } from "../lib/validate.js";
 import axios from "axios";
 import { cacheGet, cacheSet } from "../lib/redis.js";
+import { clearAICache, generateMatchPreview, generateMatchSummary } from "../services/ai-service.js";
 
 const LEAGUES_CACHE_KEY = "football:leagues";
 const TEAMS_CACHE_KEY = "football:teams";
@@ -276,7 +277,10 @@ adminRouter.get("/teams", async (req, res) => {
               venueMap[v.id] = v.name;
             });
           } else {
-            console.error("Invalid response when fetching venues:", venuesRes?.data);
+            console.error(
+              "Invalid response when fetching venues:",
+              venuesRes?.data,
+            );
             venueMap = {};
           }
         } catch (err) {
@@ -757,4 +761,416 @@ adminRouter.get("/users", async (_req, res) => {
       subscription: u.subscription,
     })),
   );
+});
+
+// ==================== USERS & SUBSCRIPTIONS ====================
+
+/**
+ * GET /api/admin/users
+ * Get all users with their subscription details
+ */
+adminRouter.get("/users", async (_req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      include: {
+        subscription: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    // Format user data for admin view
+    const formattedUsers = users.map((user) => ({
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      createdAt: user.createdAt,
+      subscription: user.subscription
+        ? {
+            id: user.subscription.id,
+            status: user.subscription.status,
+            plan: user.subscription.plan,
+            stripeCustomerId: user.subscription.stripeCustomerId,
+            stripeSubscriptionId: user.subscription.stripeSubscriptionId,
+            currentPeriodStart: user.subscription.currentPeriodStart,
+            currentPeriodEnd: user.subscription.currentPeriodEnd,
+            cancelAtPeriodEnd: user.subscription.cancelAtPeriodEnd,
+          }
+        : null,
+    }));
+
+    res.json({
+      success: true,
+      users: formattedUsers,
+      total: formattedUsers.length,
+      stats: {
+        totalUsers: users.length,
+        activeSubscriptions: users.filter(
+          (u) => u.subscription?.status === "active",
+        ).length,
+        canceledSubscriptions: users.filter(
+          (u) => u.subscription?.status === "canceled",
+        ).length,
+        inactiveUsers: users.filter(
+          (u) => !u.subscription || u.subscription.status === "inactive",
+        ).length,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch users",
+    });
+  }
+});
+
+/**
+ * GET /api/admin/users/:userId
+ * Get detailed user information
+ */
+adminRouter.get("/users/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        subscription: true,
+      },
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+        subscription: user.subscription,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch user",
+    });
+  }
+});
+
+// ==================== AI MANAGEMENT ====================
+
+/**
+ * POST /api/admin/ai/generate-preview
+ * Manually trigger AI preview generation for a match
+ */
+adminRouter.post("/ai/generate-preview", async (req, res) => {
+  try {
+    const { matchId, language = "en", regenerate = false } = req.body;
+
+    if (!matchId) {
+      return res.status(400).json({
+        success: false,
+        error: "matchId is required",
+      });
+    }
+
+    // Check if match exists
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        error: "Match not found",
+      });
+    }
+
+    if (match.status === "FINISHED") {
+      return res.status(400).json({
+        success: false,
+        error: "Cannot generate preview for finished match",
+      });
+    }
+
+    // Clear cache if regenerating
+    if (regenerate) {
+      await clearAICache(matchId);
+      await prisma.aISummary.deleteMany({
+        where: {
+          matchId,
+          kind: "preview",
+          language,
+        },
+      });
+    }
+
+    // Generate preview
+    const preview = await generateMatchPreview(matchId, language);
+
+    res.json({
+      success: true,
+      preview,
+      match: {
+        id: match.id,
+        homeTeam: match.homeTeam.name,
+        awayTeam: match.awayTeam.name,
+        kickoffTime: match.kickoffTime,
+      },
+    });
+  } catch (error) {
+    console.error("Error generating preview:", error);
+    res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to generate preview",
+    });
+  }
+});
+
+/**
+ * POST /api/admin/ai/generate-summary
+ * Manually trigger AI summary generation for a match
+ */
+adminRouter.post("/ai/generate-summary", async (req, res) => {
+  try {
+    const { matchId, language = "en", regenerate = false } = req.body;
+
+    if (!matchId) {
+      return res.status(400).json({
+        success: false,
+        error: "matchId is required",
+      });
+    }
+
+    // Check if match exists
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+      },
+    });
+
+    if (!match) {
+      return res.status(404).json({
+        success: false,
+        error: "Match not found",
+      });
+    }
+
+    if (match.status !== "FINISHED") {
+      return res.status(400).json({
+        success: false,
+        error: "Cannot generate summary for unfinished match",
+      });
+    }
+
+    // Clear cache if regenerating
+    if (regenerate) {
+      await clearAICache(matchId);
+      await prisma.aISummary.deleteMany({
+        where: {
+          matchId,
+          kind: "summary",
+          language,
+        },
+      });
+    }
+
+    // Generate summary
+    const summary = await generateMatchSummary(matchId, language);
+
+    res.json({
+      success: true,
+      summary,
+      match: {
+        id: match.id,
+        homeTeam: match.homeTeam.name,
+        awayTeam: match.awayTeam.name,
+        score: match.score,
+        kickoffTime: match.kickoffTime,
+      },
+    });
+  } catch (error) {
+    console.error("Error generating summary:", error);
+    res.status(500).json({
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to generate summary",
+    });
+  }
+});
+
+/**
+ * GET /api/admin/ai/match/:matchId
+ * Get AI content for a match (admin view)
+ */
+adminRouter.get("/ai/match/:matchId", async (req, res) => {
+  try {
+    const { matchId } = req.params;
+
+    const aiContent = await prisma.aISummary.findMany({
+      where: { matchId },
+      orderBy: { createdAt: "desc" },
+    });
+
+    const match = await prisma.match.findUnique({
+      where: { id: matchId },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+        league: true,
+      },
+    });
+
+    res.json({
+      success: true,
+      match: match
+        ? {
+            id: match.id,
+            homeTeam: match.homeTeam.name,
+            awayTeam: match.awayTeam.name,
+            status: match.status,
+            score: match.score,
+            kickoffTime: match.kickoffTime,
+            league: match.league?.name,
+          }
+        : null,
+      aiContent: aiContent.map((ai) => ({
+        id: ai.id,
+        kind: ai.kind,
+        language: ai.language,
+        provider: ai.provider,
+        content: ai.content,
+        createdAt: ai.createdAt,
+      })),
+    });
+  } catch (error) {
+    console.error("Error fetching AI content:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch AI content",
+    });
+  }
+});
+
+/**
+ * DELETE /api/admin/ai/match/:matchId
+ * Delete AI content for a match
+ */
+adminRouter.delete("/ai/match/:matchId", async (req, res) => {
+  try {
+    const { matchId } = req.params;
+
+    // Clear cache
+    await clearAICache(matchId);
+
+    // Delete AI content
+    const deleted = await prisma.aISummary.deleteMany({
+      where: { matchId },
+    });
+
+    res.json({
+      success: true,
+      message: `Deleted ${deleted.count} AI content entries`,
+    });
+  } catch (error) {
+    console.error("Error deleting AI content:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to delete AI content",
+    });
+  }
+});
+
+/**
+ * POST /api/admin/ai/bulk-generate
+ * Bulk generate AI content for multiple matches
+ */
+adminRouter.post("/ai/bulk-generate", async (req, res) => {
+  try {
+    const { matchIds, type, language = "en" } = req.body;
+
+    if (!matchIds || !Array.isArray(matchIds) || matchIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: "matchIds array is required",
+      });
+    }
+
+    if (type !== "preview" && type !== "summary") {
+      return res.status(400).json({
+        success: false,
+        error: "type must be either 'preview' or 'summary'",
+      });
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const matchId of matchIds) {
+      try {
+        const match = await prisma.match.findUnique({
+          where: { id: matchId },
+        });
+
+        if (!match) {
+          errors.push({ matchId, error: "Match not found" });
+          continue;
+        }
+
+        if (type === "preview" && match.status === "FINISHED") {
+          errors.push({ matchId, error: "Match already finished" });
+          continue;
+        }
+
+        if (type === "summary" && match.status !== "FINISHED") {
+          errors.push({ matchId, error: "Match not finished yet" });
+          continue;
+        }
+
+        const content =
+          type === "preview"
+            ? await generateMatchPreview(matchId, language)
+            : await generateMatchSummary(matchId, language);
+
+        results.push({ matchId, success: true });
+      } catch (error) {
+        errors.push({
+          matchId,
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
+      }
+    }
+
+    res.json({
+      success: true,
+      results,
+      errors,
+      stats: {
+        total: matchIds.length,
+        successful: results.length,
+        failed: errors.length,
+      },
+    });
+  } catch (error) {
+    console.error("Error in bulk generation:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to process bulk generation",
+    });
+  }
 });
