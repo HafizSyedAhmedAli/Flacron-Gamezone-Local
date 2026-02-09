@@ -12,7 +12,7 @@ import { billingRouter } from "./routes/billing.js";
 import { adminRouter } from "./routes/admin.js";
 import { aiRouter } from "./routes/ai.js";
 import { requireAuth, requireAdmin } from "./lib/auth.js";
-import { startCrons } from "./cron/sync.js";
+import { setupAICronJobs, startCrons } from "./cron/sync.js";
 
 const app = express();
 
@@ -53,5 +53,11 @@ app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
 const port = Number(process.env.PORT || 4000);
 app.listen(port, () => {
   console.log(`Backend listening on http://localhost:${port}`);
-  startCrons();
+  if (process.env.NODE_ENV === "production") {
+    console.log("🤖 Setting up cron jobs...");
+    startCrons();
+    setupAICronJobs();
+  } else {
+    console.log("⏭️  Skipping cron jobs in development mode");
+  }
 });

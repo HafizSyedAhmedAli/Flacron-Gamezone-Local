@@ -39,7 +39,7 @@ export function SimpleMatchCard({
 
   return (
     <Link
-      href={`/matches/${id}`}
+      href={`/match/${id}`}
       className="block bg-card border border-slate-700/50 rounded-xl p-4 hover:border-blue-500/50 transition-all duration-300 group"
     >
       <div className="flex items-center justify-between">
