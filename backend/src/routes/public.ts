@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { prisma } from "../lib/prisma.js";
+import { getLiveFixturesCached } from "../services/footballApi.js";
 
 export const publicRouter = Router();
 
@@ -191,11 +192,11 @@ publicRouter.get("/leagues/:id", async (req, res) => {
 
 publicRouter.get("/teams", async (req, res) => {
   const q = String(req.query.q || "").trim();
-  
+
   // Fetch teams with their matches
   const teams = await prisma.team.findMany({
     where: q ? { name: { contains: q, mode: "insensitive" } } : undefined,
-    include: { 
+    include: {
       league: true,
       homeMatches: {
         where: { status: "FINISHED" },
@@ -203,7 +204,7 @@ publicRouter.get("/teams", async (req, res) => {
           score: true,
           homeTeamId: true,
           awayTeamId: true,
-        }
+        },
       },
       awayMatches: {
         where: { status: "FINISHED" },
@@ -211,19 +212,19 @@ publicRouter.get("/teams", async (req, res) => {
           score: true,
           homeTeamId: true,
           awayTeamId: true,
-        }
-      }
+        },
+      },
     },
     orderBy: { name: "asc" },
   });
 
   // Calculate statistics for each team
-  const teamsWithStats = teams.map(team => {
+  const teamsWithStats = teams.map((team) => {
     let matches = 0;
     let wins = 0;
 
     // Process home matches
-    team.homeMatches.forEach(match => {
+    team.homeMatches.forEach((match) => {
       if (match.score) {
         const [homeScore, awayScore] = match.score.split("-").map(Number);
         if (!isNaN(homeScore) && !isNaN(awayScore)) {
@@ -236,7 +237,7 @@ publicRouter.get("/teams", async (req, res) => {
     });
 
     // Process away matches
-    team.awayMatches.forEach(match => {
+    team.awayMatches.forEach((match) => {
       if (match.score) {
         const [homeScore, awayScore] = match.score.split("-").map(Number);
         if (!isNaN(homeScore) && !isNaN(awayScore)) {
@@ -380,19 +381,136 @@ publicRouter.get("/matches", async (req, res) => {
       league: true,
       homeTeam: true,
       awayTeam: true,
+      stream: true, // Include stream data
     },
     orderBy: { kickoffTime: "asc" },
   });
   res.json(matches);
 });
 
+/**
+ * GET /api/matches/live
+ * Returns all live matches and syncs with API-Football
+ * Auto-refreshes from API-Football (cached for 30 seconds)
+ */
 publicRouter.get("/matches/live", async (_req, res) => {
-  const matches = await prisma.match.findMany({
-    where: { status: "LIVE" },
-    include: { league: true, homeTeam: true, awayTeam: true },
-    orderBy: { kickoffTime: "asc" },
-  });
-  res.json(matches);
+  try {
+    const apiData = await getLiveFixturesCached();
+    const apiFixtures = apiData?.response || [];
+    const liveMatchIds: string[] = [];
+
+    for (const fixture of apiFixtures) {
+      try {
+        const fixtureId = fixture.fixture?.id;
+        if (!fixtureId) continue;
+
+        // Upsert league
+        const leagueData = fixture.league;
+        const league = leagueData?.id
+          ? await prisma.league.upsert({
+              where: { apiLeagueId: leagueData.id },
+              update: {}, // No changes needed if it exists
+              create: {
+                name: leagueData.name || "Unknown League",
+                country: leagueData.country,
+                logo: leagueData.logo,
+                apiLeagueId: leagueData.id,
+              },
+            })
+          : null;
+
+        // Upsert home team
+        const homeTeamData = fixture.teams?.home;
+        const homeTeam = homeTeamData?.id
+          ? await prisma.team.upsert({
+              where: { apiTeamId: homeTeamData.id },
+              update: { leagueId: league?.id }, // ensure league assigned
+              create: {
+                name: homeTeamData.name || "Unknown Home",
+                logo: homeTeamData.logo,
+                apiTeamId: homeTeamData.id,
+                leagueId: league?.id || null,
+              },
+            })
+          : null;
+
+        // Upsert away team
+        const awayTeamData = fixture.teams?.away;
+        const awayTeam = awayTeamData?.id
+          ? await prisma.team.upsert({
+              where: { apiTeamId: awayTeamData.id },
+              update: { leagueId: league?.id }, // ensure league assigned
+              create: {
+                name: awayTeamData.name || "Unknown Away",
+                logo: awayTeamData.logo,
+                apiTeamId: awayTeamData.id,
+                leagueId: league?.id || null,
+              },
+            })
+          : null;
+
+        // Upsert match
+        if (homeTeam && awayTeam) {
+          const match = await prisma.match.upsert({
+            where: { apiFixtureId: fixtureId },
+            update: {
+              status: "LIVE",
+              score: `${fixture.goals?.home || 0}-${fixture.goals?.away || 0}`,
+            },
+            create: {
+              apiFixtureId: fixtureId,
+              leagueId: league?.id || null,
+              homeTeamId: homeTeam.id,
+              awayTeamId: awayTeam.id,
+              kickoffTime: new Date(fixture.fixture.date),
+              status: "LIVE",
+              score: `${fixture.goals?.home || 0}-${fixture.goals?.away || 0}`,
+              venue: fixture.fixture?.venue?.name,
+            },
+          });
+
+          liveMatchIds.push(match.id);
+        }
+      } catch (error) {
+        console.error(`Error syncing fixture ${fixture.fixture?.id}:`, error);
+      }
+    }
+
+    // Mark matches as FINISHED if they're no longer live
+    await prisma.match.updateMany({
+      where: {
+        status: "LIVE",
+        id: { notIn: liveMatchIds }, // any LIVE match not in API response
+      },
+      data: { status: "FINISHED" },
+    });
+
+    // Fetch live matches with relations
+    const liveMatches = await prisma.match.findMany({
+      where: {
+        OR: [{ status: "LIVE" }, { id: { in: liveMatchIds } }],
+      },
+      include: {
+        league: true,
+        homeTeam: true,
+        awayTeam: true,
+        stream: true,
+      },
+      orderBy: { kickoffTime: "asc" },
+    });
+
+    res.json(liveMatches);
+  } catch (error: any) {
+    console.error("Error fetching live matches:", error);
+
+    const liveMatches = await prisma.match.findMany({
+      where: { status: "LIVE" },
+      include: { league: true, homeTeam: true, awayTeam: true, stream: true },
+      orderBy: { kickoffTime: "asc" },
+    });
+
+    res.json(liveMatches);
+  }
 });
 
 publicRouter.get("/match/:id", async (req, res) => {
@@ -403,7 +521,7 @@ publicRouter.get("/match/:id", async (req, res) => {
       league: true,
       homeTeam: true,
       awayTeam: true,
-      stream: true,
+      stream: true, // ✅ INCLUDE STREAM DATA
       aiTexts: true,
     },
   });
@@ -422,6 +540,7 @@ publicRouter.get("/search", async (req, res) => {
     }),
     prisma.team.findMany({
       where: { name: { contains: q, mode: "insensitive" } },
+      include: { league: true }, // ✅ INCLUDE LEAGUE DATA
       take: 10,
     }),
     prisma.match.findMany({
@@ -431,7 +550,12 @@ publicRouter.get("/search", async (req, res) => {
           { awayTeam: { name: { contains: q, mode: "insensitive" } } },
         ],
       },
-      include: { homeTeam: true, awayTeam: true, league: true },
+      include: {
+        homeTeam: true,
+        awayTeam: true,
+        league: true,
+        stream: true, // ✅ INCLUDE STREAM DATA
+      },
       take: 10,
       orderBy: { kickoffTime: "desc" },
     }),

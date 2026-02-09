@@ -19,33 +19,26 @@ export async function getLiveFixturesCached() {
   if (cached) return cached;
 
   if (!KEY) {
-    // Safe fallback so you can run immediately without keys
-    const mock = {
-      source: "mock",
-      fixtures: [
-        {
-          fixture: {
-            id: 1001,
-            date: new Date().toISOString(),
-            status: { short: "LIVE" },
-            venue: { name: "Demo Stadium" },
-          },
-          league: { name: "Demo League", country: "Demo", logo: "" },
-          teams: {
-            home: { name: "Flacron FC", logo: "" },
-            away: { name: "GameZone United", logo: "" },
-          },
-          goals: { home: 1, away: 0 },
-        },
-      ],
-    };
-    await cacheSet(cacheKey, mock, 30);
-    return mock;
+    console.warn("⚠️ API_FOOTBALL_KEY not set - live fixtures unavailable");
+    return { response: [] };
   }
 
-  const { data } = await client.get("/fixtures", { params: { live: "all" } });
-  await cacheSet(cacheKey, data, 30);
-  return data;
+  try {
+    const { data } = await client.get("/fixtures", { params: { live: "all" } });
+
+    // Handle cache failure separately, without affecting return value
+    cacheSet(cacheKey, data, 30).catch((err) =>
+      console.error("Failed to cache live fixtures:", err.message),
+    );
+
+    return data;
+  } catch (error: any) {
+    console.error(
+      "Error fetching live fixtures from API-Football:",
+      error.message,
+    );
+    return { response: [] };
+  }
 }
 
 export async function getFixturesByDateCached(yyyy_mm_dd: string) {
@@ -54,17 +47,22 @@ export async function getFixturesByDateCached(yyyy_mm_dd: string) {
   if (cached) return cached;
 
   if (!KEY) {
-    const mock = {
-      source: "mock",
-      fixtures: [],
-    };
-    await cacheSet(cacheKey, mock, 3600);
-    return mock;
+    console.warn("⚠️ API_FOOTBALL_KEY not set - date fixtures unavailable");
+    return { response: [] };
   }
 
-  const { data } = await client.get("/fixtures", {
-    params: { date: yyyy_mm_dd },
-  });
-  await cacheSet(cacheKey, data, 3600);
-  return data;
+  try {
+    const { data } = await client.get("/fixtures", {
+      params: { date: yyyy_mm_dd },
+    });
+
+    cacheSet(cacheKey, data, 3600).catch((err) =>
+      console.error("Failed to cache live fixtures by date:", err.message),
+    );
+    
+    return data;
+  } catch (error: any) {
+    console.error(`Error fetching fixtures for ${yyyy_mm_dd}:`, error.message);
+    return { response: [] };
+  }
 }
