@@ -1,12 +1,30 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Edit, Trash2, Search, Play, CheckCircle } from "lucide-react";
+import { Edit, Trash2, Search, Play, CheckCircle, Sparkles } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { AIManagement } from "./AIManagement";
+
+interface Match {
+  id: string;
+  homeTeam: { name: string; logo: string | null };
+  awayTeam: { name: string; logo: string | null };
+  league: { name: string; logo?: string } | null;
+  kickoffTime: string;
+  status: string;
+  score: string | null;
+  venue: string | null;
+}
 
 interface MatchesTabProps {
-  matches: any[];
-  onEdit: (match: any) => void;
+  matches: Match[];
+  onEdit: (match: Match) => void;
   onDelete: (matchId: string) => void;
   onSetStatus: (matchId: string, status: string) => void;
   onBrowse: () => void;
@@ -19,23 +37,13 @@ export function MatchesTab({
   onSetStatus,
   onBrowse,
 }: MatchesTabProps) {
-  if (matches.length === 0) {
-    return (
-      <div className="text-center py-16">
-        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20">
-          <Play className="w-10 h-10 text-white" />
-        </div>
-        <p className="text-slate-400 mb-6 text-lg">No matches yet</p>
-        <button
-          onClick={onBrowse}
-          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-medium transition-all duration-300 hover:scale-105 shadow-xl shadow-blue-500/20 inline-flex items-center gap-2"
-        >
-          <Search className="w-5 h-5" />
-          Browse Matches
-        </button>
-      </div>
-    );
-  }
+  const [aiModalOpen, setAiModalOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+
+  const handleOpenAI = (match: Match) => {
+    setSelectedMatch(match);
+    setAiModalOpen(true);
+  };
 
   const getStatusBadge = (status: string) => {
     const badges = {
@@ -58,6 +66,24 @@ export function MatchesTab({
     };
     return badges[status as keyof typeof badges] || badges.UPCOMING;
   };
+
+  if (matches.length === 0) {
+    return (
+      <div className="text-center py-16">
+        <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-500/20">
+          <Play className="w-10 h-10 text-white" />
+        </div>
+        <p className="text-slate-400 mb-6 text-lg">No matches yet</p>
+        <button
+          onClick={onBrowse}
+          className="px-6 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 rounded-lg font-medium transition-all duration-300 hover:scale-105 shadow-xl shadow-blue-500/20 inline-flex items-center gap-2"
+        >
+          <Search className="w-5 h-5" />
+          Browse Matches
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -132,8 +158,19 @@ export function MatchesTab({
             {/* Actions */}
             <div className="flex gap-2 flex-wrap">
               <button
+                onClick={() => handleOpenAI(match)}
+                className="px-4 py-2 bg-gradient-to-r from-purple-800 to-purple-700 hover:from-purple-600 hover:to-purple-500 border border-purple-600/50 hover:border-purple-500/50 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                title="AI Content"
+                aria-label={`ai-${match.id}`}
+              >
+                <Sparkles className="w-4 h-4" />
+                AI Content
+              </button>
+
+              <button
                 onClick={() => onEdit(match)}
                 className="px-4 py-2 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-blue-600 hover:to-blue-500 border border-slate-600/50 hover:border-blue-500/50 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                aria-label={`edit-${match.id}`}
               >
                 <Edit className="w-4 h-4" />
                 Edit
@@ -166,6 +203,7 @@ export function MatchesTab({
               <button
                 onClick={() => onDelete(match.id)}
                 className="px-4 py-2 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-red-600 hover:to-red-500 border border-slate-600/50 hover:border-red-500/50 rounded-lg text-sm font-medium transition-all duration-300 hover:scale-105 flex items-center gap-2"
+                aria-label={`delete-${match.id}`}
               >
                 <Trash2 className="w-4 h-4" />
                 Delete
@@ -174,6 +212,23 @@ export function MatchesTab({
           </div>
         ))}
       </div>
+
+      {/* AI Management Modal */}
+      <Dialog open={aiModalOpen} onOpenChange={setAiModalOpen}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>AI Content Management</DialogTitle>
+          </DialogHeader>
+          {selectedMatch && (
+            <AIManagement
+              match={selectedMatch}
+              onSuccess={() => {
+                // Optionally refresh match data here
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

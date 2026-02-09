@@ -1,26 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
   Trophy,
   Clock,
   MapPin,
-  Play,
   Sparkles,
   Globe,
   FileText,
   TrendingUp,
-  Activity,
+  AlertCircle,
   Shield,
-  Award,
   Target,
   Flame,
   Crosshair,
-  AlertCircle,
-  Tv,
 } from "lucide-react";
-import { apiGet } from "@/components/api";
+import { apiGet, apiPost } from "@/components/api";
+import { Shell } from "@/components/layout";
+import StreamEmbed from "@/components/ui/StreamEmbed";
 
 interface Team {
   id: string;
@@ -73,33 +72,17 @@ interface Match {
   aiTexts: AISummary[];
 }
 
-const generateDummyAIContent = (
-  kind: string,
-  language: string,
-  matchId: string,
-) => {
-  const previews = {
-    en: "⚡ GAME ZONE PREVIEW ⚡\n\nGet ready for an epic showdown! Both teams are in stellar form and hungry for victory.\n\n🎯 KEY FACTORS:\n• Home advantage could be decisive\n• Star players in red-hot form\n• Tactical masterclass expected\n\n💥 This match has all the ingredients for a classic encounter. Buckle up, football fans!",
-    fr: "⚡ APERÇU GAME ZONE ⚡\n\nPréparez-vous pour un affrontement épique ! Les deux équipes sont en grande forme et affamées de victoire.\n\n🎯 FACTEURS CLÉS:\n• L'avantage à domicile pourrait être décisif\n• Les joueurs vedettes en pleine forme\n• Chef-d'œuvre tactique attendu\n\n💥 Ce match a tous les ingrédients pour une rencontre classique !",
-  };
-
-  const summaries = {
-    en: "🔥 GAME ZONE MATCH REPORT 🔥\n\nWhat an incredible match! Both teams delivered an absolute spectacle!\n\n⚽ KEY MOMENTS:\n• Brilliant tactical adjustments\n• World-class saves from both keepers\n• Individual moments of magic decided the outcome\n\n🏆 This match showcased elite-level football at its finest. Both teams can hold their heads high after this epic battle!",
-    fr: "🔥 RAPPORT DE MATCH GAME ZONE 🔥\n\nQuel match incroyable ! Les deux équipes ont livré un spectacle absolu !\n\n⚽ MOMENTS CLÉS:\n• Ajustements tactiques brillants\n• Arrêts de classe mondiale des deux gardiens\n• Des moments de magie individuelle ont décidé du résultat\n\n🏆 Ce match a présenté le football d'élite à son meilleur !",
-  };
-
-  return kind === "match-preview"
-    ? previews[language as keyof typeof previews]
-    : summaries[language as keyof typeof summaries];
-};
-
 export default function MatchDetail({ params }: { params: { id: string } }) {
   const [match, setMatch] = useState<Match | null>(null);
   const [err, setErr] = useState("");
   const [lang, setLang] = useState<"en" | "fr">("en");
   const [generating, setGenerating] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState("");
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  async function load() {
+  const router = useRouter();
+
+  async function loadMatch() {
     try {
       setErr("");
       const data = await apiGet<Match>(`/api/match/${params.id}`);
@@ -110,39 +93,117 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
     }
   }
 
+  async function loadAIContent() {
+    try {
+      const data = await apiGet<AISummary[]>(
+        `/api/ai/match/${params.id}?language=${lang}`,
+      );
+
+      if (data && match) {
+        setMatch((prev) => {
+          if (!prev) return prev;
+          return {
+            ...prev,
+            aiTexts: data,
+          };
+        });
+      }
+    } catch (e: any) {
+      console.log("No AI content found:", e?.message);
+    }
+  }
+
   useEffect(() => {
-    load();
+    loadMatch();
   }, [params.id]);
 
-  async function gen(kind: "match-preview" | "match-summary") {
+  useEffect(() => {
+    if (match) {
+      loadAIContent();
+    }
+  }, [lang, match?.id]);
+
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  async function generatePreview() {
+    const previewExists = match?.aiTexts?.some(
+      (t) => t.kind === "preview" && t.language === lang,
+    );
+    if (previewExists) return;
+
     try {
-      setGenerating(kind);
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const newContent = generateDummyAIContent(kind, lang, params.id);
-      const contentKind = kind === "match-preview" ? "preview" : "summary";
+      setGenerating("match-preview");
+      setErr("");
+      setSuccessMsg("");
+
+      const response = await apiPost<AISummary>("/api/ai/match-preview", {
+        matchId: params.id,
+        language: lang,
+      });
 
       setMatch((prev) => {
         if (!prev) return prev;
         return {
           ...prev,
-          aiTexts: [
-            ...prev.aiTexts.filter(
-              (t) => !(t.kind === contentKind && t.language === lang),
-            ),
-            {
-              id: `ai_${Date.now()}`,
-              matchId: prev.id,
-              kind: contentKind,
-              language: lang,
-              content: newContent,
-              provider: "Claude AI",
-              createdAt: new Date().toISOString(),
-            },
-          ],
+          aiTexts: [...prev.aiTexts, response],
         };
       });
+
+      setSuccessMsg("✅ Preview generated successfully!");
+      router.refresh();
+      await loadAIContent();
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+      successTimeoutRef.current = setTimeout(() => setSuccessMsg(""), 3000);
     } catch (e: any) {
-      setErr(e?.message || "Failed to generate content");
+      console.error("Error generating preview:", e);
+      setErr(e?.message || "Failed to generate preview");
+    } finally {
+      setGenerating(null);
+    }
+  }
+
+  async function generateSummary() {
+    const summaryExists = match?.aiTexts?.some(
+      (t) => t.kind === "summary" && t.language === lang,
+    );
+    if (summaryExists) return;
+
+    try {
+      setGenerating("match-summary");
+      setErr("");
+      setSuccessMsg("");
+
+      const response = await apiPost<AISummary>("/api/ai/match-summary", {
+        matchId: params.id,
+        language: lang,
+      });
+
+      setMatch((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          aiTexts: [...prev.aiTexts, response],
+        };
+      });
+
+      setSuccessMsg("✅ Summary generated successfully!");
+      router.refresh();
+      await loadAIContent();
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+      successTimeoutRef.current = setTimeout(() => setSuccessMsg(""), 3000);
+    } catch (e: any) {
+      console.error("Error generating summary:", e);
+      setErr(e?.message || "Failed to generate summary");
     } finally {
       setGenerating(null);
     }
@@ -190,7 +251,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
 
   if (err && !match) {
     return (
-      <div className="min-h-screen bg-[#0a0e27] flex flex-col">
+      <Shell className="bg-[#0a0e27] flex flex-col">
         <div className="flex-1 p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <button
@@ -212,7 +273,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                 </div>
                 <p className="text-red-400 font-bold text-xl mb-2">⚠️ {err}</p>
                 <button
-                  onClick={load}
+                  onClick={loadMatch}
                   className="mt-4 bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 text-white font-medium px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105"
                 >
                   Try Again
@@ -221,21 +282,20 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
-        <Footer />
-      </div>
+      </Shell>
     );
   }
 
   if (!match) {
     return (
-      <div className="min-h-screen bg-[#0a0e27] flex flex-col">
+      <Shell className="bg-[#0a0e27] flex flex-col">
         <div className="flex-1 p-4 md:p-6">
           <div className="max-w-7xl mx-auto">
             <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-slate-900/80 to-slate-800/80 border-2 border-cyan-500/20 rounded-2xl">
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1),transparent)]"></div>
               <div className="relative">
                 <div className="w-20 h-20 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-2xl shadow-cyan-500/30">
-                  <Activity className="w-10 h-10 text-white" />
+                  <Trophy className="w-10 h-10 text-white" />
                 </div>
                 <p className="text-slate-300 font-bold text-xl">
                   ⚡ Loading match data...
@@ -244,23 +304,23 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
             </div>
           </div>
         </div>
-        <Footer />
-      </div>
+      </Shell>
     );
   }
 
-  const preview = (match.aiTexts || []).find(
+  const aiTexts = match?.aiTexts ?? [];
+  const preview = aiTexts.find(
     (x) => x.kind === "preview" && x.language === lang,
   );
-  const summary = (match.aiTexts || []).find(
+  const summary = aiTexts.find(
     (x) => x.kind === "summary" && x.language === lang,
   );
 
   return (
-    <div className="min-h-screen bg-[#0a0e27] flex flex-col">
+    <Shell className="bg-[#0a0e27] flex flex-col">
       <div className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Game Zone Style Back Button */}
+          {/* Back Button */}
           <button
             onClick={() => window.history.back()}
             className="group flex items-center gap-3 text-slate-400 hover:text-cyan-400 transition-all duration-300 px-4 py-2.5 rounded-xl hover:bg-slate-800/70 border border-transparent hover:border-cyan-500/30"
@@ -273,16 +333,28 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
             </span>
           </button>
 
-          {/* Game Zone Hero Section */}
+          {/* Success Message */}
+          {successMsg && (
+            <div className="relative overflow-hidden bg-gradient-to-br from-green-900/30 to-green-800/30 border-2 border-green-500/50 rounded-2xl p-5 backdrop-blur-sm shadow-lg">
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(34,197,94,0.15),transparent)]"></div>
+              <div className="relative flex items-center gap-3">
+                <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Sparkles className="w-5 h-5 text-white" />
+                </div>
+                <p className="text-sm text-green-300 font-bold">{successMsg}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Match Hero Section */}
           <div className="relative overflow-hidden bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 border-2 border-cyan-500/30 rounded-2xl shadow-2xl shadow-cyan-500/20">
-            {/* Animated Gaming Background */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(6,182,212,0.3)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-[shimmer_3s_linear_infinite]"></div>
             </div>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,_rgba(6,182,212,0.15),transparent_50%),radial-gradient(circle_at_70%_80%,_rgba(59,130,246,0.15),transparent_50%)]"></div>
 
             <div className="relative z-10 p-6 md:p-10">
-              {/* League Badge - Gaming Style */}
+              {/* League Badge */}
               <div className="flex items-center justify-center mb-8">
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -346,7 +418,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                   </div>
                 </div>
 
-                {/* Score/VS Section - Gaming Style */}
+                {/* Score/VS Section */}
                 <div className="text-center min-w-[140px] md:min-w-[180px]">
                   {match.status === "FINISHED" || match.status === "LIVE" ? (
                     <div className="space-y-4">
@@ -423,81 +495,41 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Gaming Style Border */}
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500"></div>
           </div>
 
-          {/* Language & Stream Section */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Language Selector */}
-            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-purple-500/30 rounded-2xl p-6 shadow-xl">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,_rgba(168,85,247,0.1),transparent)]"></div>
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Globe className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-lg font-black text-white uppercase tracking-wide">
-                    Language
-                  </h3>
+          {/* Language Selector */}
+          <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-purple-500/30 rounded-2xl p-6 shadow-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,_rgba(168,85,247,0.1),transparent)]"></div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Globe className="w-5 h-5 text-white" />
                 </div>
-                <select
-                  className="w-full bg-slate-800/90 border-2 border-purple-500/50 rounded-xl px-5 py-3.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all cursor-pointer hover:border-purple-400"
-                  value={lang}
-                  onChange={(e) => setLang(e.target.value as "en" | "fr")}
-                >
-                  <option value="en">🇬🇧 English</option>
-                  <option value="fr">🇫🇷 French</option>
-                </select>
+                <h3 className="text-lg font-black text-white uppercase tracking-wide">
+                  Language
+                </h3>
               </div>
-            </div>
-
-            {/* Stream Section */}
-            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl p-6 shadow-xl">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,_rgba(6,182,212,0.1),transparent)]"></div>
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Tv className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-lg font-black text-white uppercase tracking-wide">
-                    Live Stream
-                  </h3>
-                </div>
-                {match.stream?.type === "EMBED" && match.stream?.isActive ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs bg-green-500/20 rounded-lg px-3 py-2 border border-green-500/30">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                      </span>
-                      <span className="font-bold text-green-400">
-                        STREAM ACTIVE • {match.stream.provider}
-                      </span>
-                    </div>
-                    <a
-                      href={match.stream.url || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative inline-flex items-center justify-center gap-3 w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 hover:from-cyan-500 hover:via-blue-500 hover:to-cyan-500 text-white font-black px-6 py-4 rounded-xl shadow-lg shadow-cyan-500/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/50 uppercase tracking-wide"
-                    >
-                      <Play className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                      <span>Watch Live</span>
-                      <Flame className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                    </a>
-                  </div>
-                ) : (
-                  <div className="text-center py-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                    <p className="text-xs text-slate-400 font-semibold">
-                      🎮 Score-only mode • No stream available
-                    </p>
-                  </div>
-                )}
-              </div>
+              <select
+                className="w-full bg-slate-800/90 border-2 border-purple-500/50 rounded-xl px-5 py-3.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all cursor-pointer hover:border-purple-400"
+                value={lang}
+                onChange={(e) => setLang(e.target.value as "en" | "fr")}
+              >
+                <option value="en">🇬🇧 English</option>
+                <option value="fr">🇫🇷 French</option>
+              </select>
             </div>
           </div>
 
-          {/* AI Content Section - Gaming Style */}
+          {/* STREAM EMBED COMPONENT - NEW INTEGRATION */}
+          <StreamEmbed
+            stream={match.stream}
+            matchStatus={match.status}
+            homeTeam={match.homeTeam.name}
+            awayTeam={match.awayTeam.name}
+          />
+
+          {/* AI Content Section */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* AI Preview */}
             <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl shadow-2xl">
@@ -518,8 +550,8 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                     </div>
                   </div>
                   <button
-                    onClick={() => gen("match-preview")}
-                    disabled={generating === "match-preview"}
+                    onClick={generatePreview}
+                    disabled={generating === "match-preview" || !!preview}
                     className="relative group bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-black px-5 py-3 rounded-xl text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-cyan-500/30 disabled:scale-100 disabled:cursor-not-allowed shadow-md uppercase tracking-wide"
                   >
                     {generating === "match-preview" ? (
@@ -530,7 +562,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                     ) : (
                       <span className="flex items-center gap-2">
                         <Crosshair className="w-4 h-4" />
-                        Generate
+                        {preview ? "Generated" : "Generate"}
                       </span>
                     )}
                   </button>
@@ -559,7 +591,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                         ⚡ No preview yet
                       </p>
                       <p className="text-xs text-slate-600 font-semibold">
-                        Click Generate for AI analysis
+                        AI preview can be generated once
                       </p>
                     </div>
                   )}
@@ -586,8 +618,8 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                     </div>
                   </div>
                   <button
-                    onClick={() => gen("match-summary")}
-                    disabled={generating === "match-summary"}
+                    onClick={generateSummary}
+                    disabled={generating === "match-summary" || !!summary}
                     className="relative group bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 disabled:from-slate-700 disabled:to-slate-700 text-white font-black px-5 py-3 rounded-xl text-sm transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-purple-500/30 disabled:scale-100 disabled:cursor-not-allowed shadow-md uppercase tracking-wide"
                   >
                     {generating === "match-summary" ? (
@@ -598,7 +630,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                     ) : (
                       <span className="flex items-center gap-2">
                         <Crosshair className="w-4 h-4" />
-                        Generate
+                        {summary ? "Generated" : "Generate"}
                       </span>
                     )}
                   </button>
@@ -627,7 +659,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                         🔥 No summary yet
                       </p>
                       <p className="text-xs text-slate-600 font-semibold">
-                        Click Generate for AI report
+                        AI summary can be generated once
                       </p>
                     </div>
                   )}
@@ -650,8 +682,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
           )}
         </div>
       </div>
-
-      <Footer />
 
       <style jsx>{`
         @keyframes shimmer {
@@ -685,141 +715,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
           );
         }
       `}</style>
-    </div>
-  );
-}
-
-// Footer Component - Clean version matching your site
-function Footer() {
-  return (
-    <footer className="relative mt-auto bg-[#1e293b] border-t border-slate-700/50">
-      <div className="relative max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          {/* Brand Section */}
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center text-white font-bold text-sm shadow-lg">
-                FG
-              </div>
-              <span className="font-bold text-white text-lg">
-                Flacron <span className="text-blue-400">GameZone</span>
-              </span>
-            </div>
-            <p className="text-sm text-slate-400">
-              Football match discovery and live game platform.
-            </p>
-          </div>
-
-          {/* Platform Links */}
-          <div>
-            <h3 className="font-semibold mb-4 text-sm text-white">Platform</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a
-                  href="/live"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Live Matches
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/matches"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  All Matches
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/leagues"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Leagues
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/teams"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Teams
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Account Links */}
-          <div>
-            <h3 className="font-semibold mb-4 text-sm text-white">Account</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a
-                  href="/pricing"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Pricing
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/login"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Login
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/signup"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Sign Up
-                </a>
-              </li>
-            </ul>
-          </div>
-
-          {/* Legal Links */}
-          <div>
-            <h3 className="font-semibold mb-4 text-sm text-white">Legal</h3>
-            <ul className="space-y-2 text-sm">
-              <li>
-                <a
-                  href="/privacy"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Privacy Policy
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/terms"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Terms of Service
-                </a>
-              </li>
-              <li>
-                <a
-                  href="/contact"
-                  className="text-slate-400 hover:text-white transition-colors"
-                >
-                  Contact
-                </a>
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        {/* Bottom Copyright */}
-        <div className="border-t border-slate-700/50 pt-8 flex flex-col sm:flex-row justify-between items-center text-sm text-slate-400 gap-2">
-          <p>
-            © {new Date().getFullYear()} Flacron GameZone. All rights reserved.
-          </p>
-          <p>Football Match Discovery & Live Game Platform</p>
-        </div>
-      </div>
-    </footer>
+    </Shell>
   );
 }

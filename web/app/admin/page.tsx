@@ -1,13 +1,9 @@
-// File: src/app/admin/page.tsx
 "use client";
 
 import { apiDelete, apiGet, apiPost, apiPut } from "@/components/api";
 import { Shell } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-
-// Import all components
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import AdminStreamsManagement from "@/components/ui/admin/AdminStreamsManagement";
 import { AlertMessage } from "@/components/ui/admin/AlertMessage";
 import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
 import { LeagueBrowser } from "@/components/ui/admin/LeagueBrowser";
@@ -21,10 +17,11 @@ import { TeamBrowser } from "@/components/ui/admin/TeamBrowser";
 import { TeamEditModal } from "@/components/ui/admin/TeamEditModal";
 import { TeamsTab } from "@/components/ui/admin/TeamsTab";
 import { UsersTab } from "@/components/ui/admin/UsersTab";
+import { Button } from "@/components/ui/button";
 import { useRequireAdmin } from "@/hooks/useAuth";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
-// Types
 interface LeaguesResponse {
   success: boolean;
   leagues: Array<{
@@ -78,7 +75,34 @@ interface MatchesResponse {
   }>;
 }
 
-type TabType = "leagues" | "teams" | "matches" | "users";
+interface UsersResponse {
+  success: boolean;
+  users: Array<{
+    id: string;
+    email: string;
+    role: string;
+    createdAt: string;
+    subscription: {
+      id: string;
+      status: string;
+      plan: string | null;
+      stripeCustomerId: string | null;
+      stripeSubscriptionId: string | null;
+      currentPeriodStart: string | null;
+      currentPeriodEnd: string | null;
+      cancelAtPeriodEnd: boolean;
+    } | null;
+  }>;
+  total: number;
+  stats: {
+    totalUsers: number;
+    activeSubscriptions: number;
+    canceledSubscriptions: number;
+    inactiveUsers: number;
+  };
+}
+
+type TabType = "leagues" | "teams" | "matches" | "users" | "streams";
 
 export default function AdminPage() {
   // Tab state
@@ -89,6 +113,12 @@ export default function AdminPage() {
   const [teams, setTeams] = useState<any[]>([]);
   const [matches, setMatches] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+  const [userStats, setUserStats] = useState<{
+    totalUsers: number;
+    activeSubscriptions: number;
+    canceledSubscriptions: number;
+    inactiveUsers: number;
+  } | null>(null);
   const [msg, setMsg] = useState<{
     text: string;
     type: "success" | "error" | "info";
@@ -171,10 +201,13 @@ export default function AdminPage() {
       setMatches(m || []);
 
       try {
-        const u = await apiGet<any[]>("/api/admin/users");
-        setUsers(u || []);
+        const usersResponse = await apiGet<UsersResponse>("/api/admin/users");
+        // Extract users array and stats from the response object
+        setUsers(usersResponse.users || []);
+        setUserStats(usersResponse.stats || null);
       } catch {
         setUsers([]);
+        setUserStats(null);
       }
     } catch (err) {
       console.error(err);
@@ -612,17 +645,6 @@ export default function AdminPage() {
     }
   }
 
-  async function handleSetMatchStatus(matchId: string, status: string) {
-    try {
-      await apiPut(`/api/admin/match/${matchId}`, { status });
-      setMsg({ text: "Match status updated", type: "success" });
-      refreshAll();
-    } catch (err) {
-      console.error(err);
-      setMsg({ text: "Failed to update status", type: "error" });
-    }
-  }
-
   async function handleDeleteMatch(matchId: string) {
     const match = matches.find((m) => m.id === matchId);
     if (match) {
@@ -690,6 +712,10 @@ export default function AdminPage() {
             >
               <Search className="w-4 h-4" />
               {browsingLeagues ? "Loading..." : "Browse Leagues"}
+            </Button>
+
+            <Button onClick={() => setTab("streams")} className="gap-2">
+              Streams
             </Button>
           </div>
 
@@ -820,15 +846,17 @@ export default function AdminPage() {
 
           {/* Tab Selector */}
           <div className="flex gap-2 mt-4">
-            {(["leagues", "teams", "matches", "users"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={tabButtonClass(tab === t)}
-              >
-                {t[0].toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+            {(["leagues", "teams", "matches", "users", "streams"] as const).map(
+              (t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={tabButtonClass(tab === t)}
+                >
+                  {t[0].toUpperCase() + t.slice(1)}
+                </button>
+              ),
+            )}
           </div>
 
           {/* Tab Content */}
@@ -862,7 +890,6 @@ export default function AdminPage() {
                   matches={matches}
                   onEdit={openEditMatchModal}
                   onDelete={handleDeleteMatch}
-                  onSetStatus={handleSetMatchStatus}
                   onBrowse={() => {
                     setSelectedLeagueForMatches("");
                     setSelectedDateForMatches("");
@@ -872,7 +899,15 @@ export default function AdminPage() {
                 />
               )}
 
-              {tab === "users" && <UsersTab users={users} />}
+              {tab === "users" && (
+                <UsersTab users={users} stats={userStats || undefined} />
+              )}
+
+              {tab === "streams" && (
+                <div className="pt-4">
+                  <AdminStreamsManagement />
+                </div>
+              )}
             </>
           )}
 

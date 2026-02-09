@@ -1,101 +1,227 @@
 import { Router } from "express";
 import { z } from "zod";
+import { validateBody } from "../lib/validate.js";
+import {
+  generateMatchPreview,
+  generateMatchSummary,
+  getMatchAIContent,
+  clearAICache,
+} from "../services/ai-service.js";
 import { prisma } from "../lib/prisma.js";
 import { requireAuth, requireAdmin } from "../lib/auth.js";
-import { validateBody } from "../lib/validate.js";
-import { generateText } from "../services/ai.js";
 
 export const aiRouter = Router();
 
-const schema = z.object({
+const generateAISchema = z.object({
   matchId: z.string().min(1),
-  language: z.enum(["en", "fr"]).default("en"),
+  language: z.enum(["en", "fr"]).optional().default("en"),
+  regenerate: z.boolean().optional().default(false),
 });
 
+/**
+ * POST /api/ai/match-preview
+ * Generate AI match preview before the game
+ * Authenticated users only
+ */
 aiRouter.post(
   "/match-preview",
   requireAuth,
-  validateBody(schema),
+  validateBody(generateAISchema),
   async (req, res) => {
-    const { matchId, language } = (req as any).validated;
-    const match = await prisma.match.findUnique({
-      where: { id: matchId },
-      include: { league: true, homeTeam: true, awayTeam: true },
-    });
-    if (!match) return res.status(404).json({ error: "Match not found" });
+    try {
+      const { matchId, language, regenerate } = (req as any).validated;
 
-    const existing = await prisma.aISummary.findFirst({
-      where: { matchId, language, kind: "preview" },
-      orderBy: { createdAt: "desc" },
-    });
-    if (existing) return res.json(existing);
+      // Check if match exists
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: { homeTeam: true, awayTeam: true },
+      });
 
-    const prompt =
-      language === "fr"
-        ? `Rédige un aperçu concis du match (style journaliste). Match: ${
-            match.homeTeam.name
-          } vs ${match.awayTeam.name}. Ligue: ${
-            match.league?.name || "N/A"
-          }. Coup d'envoi: ${match.kickoffTime.toISOString()}.`
-        : `Write a concise football match preview (journalistic style). Match: ${
-            match.homeTeam.name
-          } vs ${match.awayTeam.name}. League: ${
-            match.league?.name || "N/A"
-          }. Kickoff: ${match.kickoffTime.toISOString()}.`;
+      if (!match) {
+        return res
+          .status(404)
+          .json({ success: false, error: "Match not found" });
+      }
 
-    const content = await generateText(prompt);
+      if (match.status === "FINISHED") {
+        return res.status(400).json({
+          success: false,
+          error:
+            "Cannot generate preview for finished match. Use summary instead.",
+        });
+      }
 
-    const saved = await prisma.aISummary.create({
-      data: { matchId, provider: "openai", language, kind: "preview", content },
-    });
-    res.json(saved);
-  }
+      // If regenerate requested, only allow admins to trigger a full regenerate
+      if (regenerate && !(req as any).user?.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          error: "Insufficient permissions to regenerate",
+        });
+      }
+
+      if (regenerate) {
+        await clearAICache(matchId);
+        await prisma.aISummary.deleteMany({
+          where: { matchId, kind: "preview", language },
+        });
+      } else {
+        const existing = await prisma.aISummary.findFirst({
+          where: { matchId, kind: "preview", language },
+        });
+        if (existing) {
+          return res.json({
+            success: true,
+            preview: existing.content,
+            cached: true,
+          });
+        }
+      }
+
+      const preview = await generateMatchPreview(matchId, language);
+
+      res.json({ success: true, preview, cached: false });
+    } catch (error) {
+      console.error("Error generating match preview:", error);
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to generate preview",
+      });
+    }
+  },
 );
 
+/**
+ * POST /api/ai/match-summary
+ * Generate AI match summary after the game
+ * Authenticated users only
+ */
 aiRouter.post(
   "/match-summary",
   requireAuth,
-  validateBody(schema),
+  validateBody(generateAISchema),
   async (req, res) => {
-    const { matchId, language } = (req as any).validated;
-    const match = await prisma.match.findUnique({
-      where: { id: matchId },
-      include: { league: true, homeTeam: true, awayTeam: true },
-    });
-    if (!match) return res.status(404).json({ error: "Match not found" });
+    try {
+      const { matchId, language, regenerate } = (req as any).validated;
 
-    const existing = await prisma.aISummary.findFirst({
-      where: { matchId, language, kind: "summary" },
-      orderBy: { createdAt: "desc" },
-    });
-    if (existing) return res.json(existing);
+      const match = await prisma.match.findUnique({
+        where: { id: matchId },
+        include: { homeTeam: true, awayTeam: true },
+      });
 
-    const prompt =
-      language === "fr"
-        ? `Rédige un résumé du match après coup. Match: ${
-            match.homeTeam.name
-          } vs ${match.awayTeam.name}. Score: ${
-            match.score || "N/A"
-          }. Statut: ${match.status}.`
-        : `Write a post-match summary. Match: ${match.homeTeam.name} vs ${
-            match.awayTeam.name
-          }. Score: ${match.score || "N/A"}. Status: ${match.status}.`;
+      if (!match)
+        return res
+          .status(404)
+          .json({ success: false, error: "Match not found" });
+      if (match.status !== "FINISHED")
+        return res.status(400).json({
+          success: false,
+          error: "Cannot generate summary for unfinished match",
+        });
 
-    const content = await generateText(prompt);
+      if (regenerate && !(req as any).user?.isAdmin) {
+        return res.status(403).json({
+          success: false,
+          error: "Insufficient permissions to regenerate",
+        });
+      }
 
-    const saved = await prisma.aISummary.create({
-      data: { matchId, provider: "openai", language, kind: "summary", content },
-    });
-    res.json(saved);
-  }
+      if (regenerate) {
+        await clearAICache(matchId);
+        await prisma.aISummary.deleteMany({
+          where: { matchId, kind: "summary", language },
+        });
+      } else {
+        const existing = await prisma.aISummary.findFirst({
+          where: { matchId, kind: "summary", language },
+        });
+        if (existing) {
+          return res.json({
+            success: true,
+            summary: existing.content,
+            cached: true,
+          });
+        }
+      }
+
+      const summary = await generateMatchSummary(matchId, language);
+
+      res.json({ success: true, summary, cached: false });
+    } catch (error) {
+      console.error("Error generating match summary:", error);
+      res.status(500).json({
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to generate summary",
+      });
+    }
+  },
 );
 
-// Admin-only regenerate (optional)
-aiRouter.post("/regenerate", requireAuth, requireAdmin, async (req, res) => {
-  const { matchId, language, kind } = req.body || {};
-  if (!matchId || !language || !kind)
-    return res.status(400).json({ error: "matchId, language, kind required" });
+/**
+ * GET /api/ai/match/:matchId
+ * Get existing AI content (preview and summary) for a match
+ * Authenticated users
+ */
+aiRouter.get("/match/:matchId", requireAuth, async (req, res) => {
+  try {
+    const { matchId } = req.params;
+    const language = req.query.language as string | undefined;
+    if (language && !["en", "fr"].includes(language)) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid language" });
+    }
+    const validLanguage = language || "en";
 
-  await prisma.aISummary.deleteMany({ where: { matchId, language, kind } });
-  res.json({ ok: true });
+    const content = await getMatchAIContent(matchId, validLanguage);
+
+    const aiTexts = [];
+
+    if (content.preview) {
+      aiTexts.push({
+        kind: "preview",
+        language: validLanguage,
+        content: content.preview,
+      });
+    }
+
+    if (content.summary) {
+      aiTexts.push({
+        kind: "summary",
+        language: validLanguage,
+        content: content.summary,
+      });
+    }
+
+    res.json(aiTexts);
+  } catch (error) {
+    console.error("Error fetching AI content:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch AI content" });
+  }
 });
+
+/**
+ * DELETE /api/ai/match/:matchId
+ * Clear AI cache and delete AI content for a match
+ * Admin only
+ */
+aiRouter.delete("/match/:matchId", requireAdmin, async (req, res) => {
+  try {
+    const { matchId } = req.params;
+
+    await clearAICache(matchId);
+    await prisma.aISummary.deleteMany({ where: { matchId } });
+
+    res.json({ success: true, message: "AI content cleared" });
+  } catch (error) {
+    console.error("Error clearing AI content:", error);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to clear AI content" });
+  }
+});
+
+export default aiRouter;

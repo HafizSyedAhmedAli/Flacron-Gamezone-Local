@@ -40,7 +40,7 @@ export function isAdmin(): boolean {
 export function logout() {
   localStorage.removeItem("fgz_token");
   localStorage.removeItem("fgz_user");
-  window.location.href = "/";
+  window.location.href = "/login";
 }
 
 /**
