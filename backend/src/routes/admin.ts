@@ -771,7 +771,7 @@ adminRouter.get("/streams", async (req, res) => {
       },
       orderBy: [
         // Put LIVE first then UPCOMING, then soonest kickoff
-        { status: "desc" }, // assuming LIVE > UPCOMING in sort order lexicographically — keep for clarity
+        { status: "asc" }, // assuming LIVE > UPCOMING in sort order lexicographically — keep for clarity
         { kickoffTime: "asc" },
       ],
       take: 200,

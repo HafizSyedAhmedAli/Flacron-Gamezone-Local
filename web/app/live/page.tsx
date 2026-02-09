@@ -50,7 +50,7 @@ export default function LiveMatchesPage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
+  const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
 
   async function loadMatches() {
     try {
@@ -125,7 +125,7 @@ export default function LiveMatchesPage() {
                   Last Update
                 </div>
                 <div className="text-sm text-white font-bold">
-                  {lastUpdate.toLocaleTimeString()}
+                  {lastUpdate ? lastUpdate.toLocaleTimeString() : "—"}
                 </div>
               </div>
             </div>
@@ -217,7 +217,7 @@ export default function LiveMatchesPage() {
                       {/* Score */}
                       <div className="text-center min-w-[100px]">
                         <div className="text-4xl font-black bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
-                          {match.score || "0-0"}
+                          {match.score ?? "vs"}
                         </div>
                       </div>
 

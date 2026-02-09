@@ -65,6 +65,10 @@ export default function AdminStreamsManagement() {
   useEffect(() => {
     // prevent background scroll when modal is open
     document.body.style.overflow = showForm ? "hidden" : "auto";
+
+    return () => {
+      document.body.style.overflow = "auto"; // restore on unmount
+    };
   }, [showForm]);
 
   async function loadStreamsMatches() {

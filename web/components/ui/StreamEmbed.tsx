@@ -78,7 +78,10 @@ export default function StreamEmbed({
 
           <div className="space-y-3 max-w-md mx-auto">
             <button
-              onClick={() => setShowEmbed(true)}
+              onClick={() => {
+                setShowEmbed(true);
+                setEmbedError(false);
+              }}
               className="group relative w-full inline-flex items-center justify-center gap-3 bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 hover:from-cyan-500 hover:via-blue-500 hover:to-cyan-500 text-white font-black px-8 py-4 rounded-xl shadow-lg shadow-cyan-500/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/50 uppercase tracking-wide"
             >
               <Play className="w-6 h-6 group-hover:scale-125 transition-transform" />
@@ -152,30 +155,30 @@ export default function StreamEmbed({
                 Stream Error
               </h4>
               <p className="text-sm text-slate-400 mb-4">
-                Unable to load the embedded stream. Try opening in a new tab.
+                Unable to load the embedded stream
               </p>
-              {stream.url && (
-                <a
-                  href={stream.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 bg-cyan-600 hover:bg-cyan-500 text-white font-bold px-6 py-3 rounded-lg transition-all"
-                >
-                  <ExternalLink className="w-5 h-5" />
-                  Open Stream
-                </a>
-              )}
             </div>
           </div>
-        ) : (
+        ) : stream.url ? (
           <iframe
-            src={stream.url || ""}
+            src={stream.url}
             className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
             onError={() => setEmbedError(true)}
+            allowFullScreen
             title={`${homeTeam} vs ${awayTeam} - Live Stream`}
           />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
+            <div className="text-center p-8">
+              <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
+              <h4 className="text-lg font-black text-white mb-2">
+                URL Error
+              </h4>
+              <p className="text-sm text-slate-400 mb-4">
+                Stream URL unavailable
+              </p>
+            </div>
+          </div>
         )}
       </div>
 

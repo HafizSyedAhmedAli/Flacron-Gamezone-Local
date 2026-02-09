@@ -395,11 +395,8 @@ publicRouter.get("/matches", async (req, res) => {
  */
 publicRouter.get("/matches/live", async (_req, res) => {
   try {
-    // Fetch live fixtures from API-Football (cached for 30 seconds)
     const apiData = await getLiveFixturesCached();
     const apiFixtures = apiData?.response || [];
-
-    // Sync live matches to database
     const liveMatchIds: string[] = [];
 
     for (const fixture of apiFixtures) {
@@ -407,115 +404,88 @@ publicRouter.get("/matches/live", async (_req, res) => {
         const fixtureId = fixture.fixture?.id;
         if (!fixtureId) continue;
 
-        // Find or create match in database
-        let match = await prisma.match.findFirst({
-          where: { apiFixtureId: fixtureId },
-        });
-
-        if (!match) {
-          // Create league FIRST if it doesn't exist
-          const leagueData = fixture.league;
-          let league = null;
-
-          if (leagueData?.id) {
-            league = await prisma.league.findFirst({
+        // Upsert league
+        const leagueData = fixture.league;
+        const league = leagueData?.id
+          ? await prisma.league.upsert({
               where: { apiLeagueId: leagueData.id },
-            });
+              update: {}, // No changes needed if it exists
+              create: {
+                name: leagueData.name || "Unknown League",
+                country: leagueData.country,
+                logo: leagueData.logo,
+                apiLeagueId: leagueData.id,
+              },
+            })
+          : null;
 
-            if (!league) {
-              league = await prisma.league.create({
-                data: {
-                  name: leagueData.name || "Unknown League",
-                  country: leagueData.country,
-                  logo: leagueData.logo,
-                  apiLeagueId: leagueData.id,
-                },
-              });
-            }
-          }
-
-          // Create teams with league assignment
-          const homeTeamData = fixture.teams?.home;
-          const awayTeamData = fixture.teams?.away;
-
-          let homeTeam = await prisma.team.findFirst({
-            where: { apiTeamId: homeTeamData?.id },
-          });
-
-          if (!homeTeam && homeTeamData) {
-            homeTeam = await prisma.team.create({
-              data: {
+        // Upsert home team
+        const homeTeamData = fixture.teams?.home;
+        const homeTeam = homeTeamData?.id
+          ? await prisma.team.upsert({
+              where: { apiTeamId: homeTeamData.id },
+              update: { leagueId: league?.id }, // ensure league assigned
+              create: {
                 name: homeTeamData.name || "Unknown Home",
                 logo: homeTeamData.logo,
                 apiTeamId: homeTeamData.id,
-                leagueId: league?.id || null, // ✅ ASSIGN LEAGUE HERE
+                leagueId: league?.id || null,
               },
-            });
-          } else if (homeTeam && league && !homeTeam.leagueId) {
-            // Update team with league if it doesn't have one
-            homeTeam = await prisma.team.update({
-              where: { id: homeTeam.id },
-              data: { leagueId: league.id },
-            });
-          }
+            })
+          : null;
 
-          let awayTeam = await prisma.team.findFirst({
-            where: { apiTeamId: awayTeamData?.id },
-          });
-
-          if (!awayTeam && awayTeamData) {
-            awayTeam = await prisma.team.create({
-              data: {
+        // Upsert away team
+        const awayTeamData = fixture.teams?.away;
+        const awayTeam = awayTeamData?.id
+          ? await prisma.team.upsert({
+              where: { apiTeamId: awayTeamData.id },
+              update: { leagueId: league?.id }, // ensure league assigned
+              create: {
                 name: awayTeamData.name || "Unknown Away",
                 logo: awayTeamData.logo,
                 apiTeamId: awayTeamData.id,
-                leagueId: league?.id || null, // ✅ ASSIGN LEAGUE HERE
-              },
-            });
-          } else if (awayTeam && league && !awayTeam.leagueId) {
-            // Update team with league if it doesn't have one
-            awayTeam = await prisma.team.update({
-              where: { id: awayTeam.id },
-              data: { leagueId: league.id },
-            });
-          }
-
-          // Create match
-          if (homeTeam && awayTeam) {
-            match = await prisma.match.create({
-              data: {
-                apiFixtureId: fixtureId,
                 leagueId: league?.id || null,
-                homeTeamId: homeTeam.id,
-                awayTeamId: awayTeam.id,
-                kickoffTime: new Date(fixture.fixture.date),
-                status: "LIVE",
-                score: `${fixture.goals?.home || 0}-${fixture.goals?.away || 0}`,
-                venue: fixture.fixture?.venue?.name,
               },
-            });
-          }
-        } else {
-          // Update existing match with live score
-          match = await prisma.match.update({
-            where: { id: match.id },
-            data: {
+            })
+          : null;
+
+        // Upsert match
+        if (homeTeam && awayTeam) {
+          const match = await prisma.match.upsert({
+            where: { apiFixtureId: fixtureId },
+            update: {
               status: "LIVE",
               score: `${fixture.goals?.home || 0}-${fixture.goals?.away || 0}`,
             },
+            create: {
+              apiFixtureId: fixtureId,
+              leagueId: league?.id || null,
+              homeTeamId: homeTeam.id,
+              awayTeamId: awayTeam.id,
+              kickoffTime: new Date(fixture.fixture.date),
+              status: "LIVE",
+              score: `${fixture.goals?.home || 0}-${fixture.goals?.away || 0}`,
+              venue: fixture.fixture?.venue?.name,
+            },
           });
-        }
 
-        if (match) {
           liveMatchIds.push(match.id);
         }
       } catch (error) {
         console.error(`Error syncing fixture ${fixture.fixture?.id}:`, error);
-        // Continue processing other fixtures
       }
     }
 
-    // Fetch all live matches from database with relations
+    // Mark matches as FINISHED if they're no longer live
+    await prisma.match.updateMany({
+      where: {
+        status: "LIVE",
+        id: { notIn: liveMatchIds }, // any LIVE match not in API response
+      },
+      data: { status: "FINISHED" },
+    });
+
+    // Fetch live matches with relations
     const liveMatches = await prisma.match.findMany({
       where: {
         OR: [{ status: "LIVE" }, { id: { in: liveMatchIds } }],
@@ -524,26 +494,18 @@ publicRouter.get("/matches/live", async (_req, res) => {
         league: true,
         homeTeam: true,
         awayTeam: true,
-        stream: true, // ✅ INCLUDE STREAM DATA
+        stream: true,
       },
-      orderBy: {
-        kickoffTime: "asc",
-      },
+      orderBy: { kickoffTime: "asc" },
     });
 
     res.json(liveMatches);
   } catch (error: any) {
     console.error("Error fetching live matches:", error);
 
-    // Fallback: Return live matches from database only
     const liveMatches = await prisma.match.findMany({
       where: { status: "LIVE" },
-      include: {
-        league: true,
-        homeTeam: true,
-        awayTeam: true,
-        stream: true, // ✅ INCLUDE STREAM DATA
-      },
+      include: { league: true, homeTeam: true, awayTeam: true, stream: true },
       orderBy: { kickoffTime: "asc" },
     });
 
