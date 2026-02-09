@@ -44,12 +44,11 @@ export async function generateText(
     // Call the AI SDK's generateText function.
     // The SDK is provider-agnostic; configure provider via environment (e.g. AI_GATEWAY_API_KEY)
     const res = await sdkGenerateText({
-      model: openai(DEFAULT_MODEL),
+      model: openai(model),
       prompt,
       temperature,
       maxTokens,
     } as any);
-
     // Most SDK releases return an object containing `text`.
     // Be defensive in parsing in case of different shapes.
     if (res == null) throw new Error("No response from AI SDK");
@@ -125,13 +124,24 @@ export async function generateMatchPreview(
   });
 
   // Save to database
-  await prisma.aISummary.create({
-    data: {
-      matchId,
+  await prisma.aISummary.upsert({
+    where: {
+      matchId_language_kind: {
+        matchId,
+        language,
+        kind: "preview",
+      },
+    },
+    update: {
+      content: text,
       provider: "ai-sdk",
+    },
+    create: {
+      matchId,
       language,
       kind: "preview",
       content: text,
+      provider: "ai-sdk",
     },
   });
 
@@ -185,14 +195,24 @@ export async function generateMatchSummary(
     maxTokens: 600,
   });
 
-  // Save to database
-  await prisma.aISummary.create({
-    data: {
-      matchId,
+  await prisma.aISummary.upsert({
+    where: {
+      matchId_language_kind: {
+        matchId,
+        language,
+        kind: "summary",
+      },
+    },
+    update: {
+      content: text,
       provider: "ai-sdk",
+    },
+    create: {
+      matchId,
       language,
       kind: "summary",
       content: text,
+      provider: "ai-sdk",
     },
   });
 

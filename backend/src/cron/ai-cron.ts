@@ -1,5 +1,5 @@
 import { prisma } from "../lib/prisma";
-import { generateMatchSummary } from "../services/ai-service.js";
+import { generateMatchPreview, generateMatchSummary } from "../services/ai-service.js";
 
 /**
  * Cron job to automatically generate AI summaries for finished matches
@@ -156,8 +156,6 @@ export async function autoGenerateMatchPreviews() {
         console.log(
           `[CRON] Generating preview for match ${match.id} (${match.homeTeamId} vs ${match.awayTeamId})`,
         );
-
-        const { generateMatchPreview } = await import("../services/ai-service");
 
         // Generate English preview
         await generateMatchPreview(match.id, "en");

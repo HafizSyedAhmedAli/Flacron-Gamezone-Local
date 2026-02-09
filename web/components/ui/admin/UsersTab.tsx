@@ -1,5 +1,7 @@
 import { Calendar, CreditCard, Mail, Shield, User } from "lucide-react";
-import Badge from "../badge";
+import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { UserDetailModal } from "./UserDetailModal";
 
 interface UserWithSubscription {
   id: string;
@@ -20,9 +22,28 @@ interface UserWithSubscription {
 
 interface UsersTabProps {
   users: UserWithSubscription[];
+  stats?: {
+    totalUsers: number;
+    activeSubscriptions: number;
+    canceledSubscriptions: number;
+    inactiveUsers: number;
+  };
 }
 
-export function UsersTab({ users }: UsersTabProps) {
+export function UsersTab({ users, stats: backendStats }: UsersTabProps) {
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+
+  const handleUserClick = (userId: string) => {
+    setSelectedUserId(userId);
+    setIsDetailModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedUserId(null);
+  };
+
   const getStatusBadge = (status: string) => {
     const variants: Record<
       string,
@@ -58,15 +79,25 @@ export function UsersTab({ users }: UsersTabProps) {
     });
   };
 
-  const stats = {
-    total: users.length,
-    active: users.filter((u) => u.subscription?.status === "active").length,
-    inactive: users.filter(
-      (u) => !u.subscription || u.subscription.status === "inactive",
-    ).length,
-    canceled: users.filter((u) => u.subscription?.status === "canceled").length,
-    admins: users.filter((u) => u.role === "ADMIN").length,
-  };
+  // Use backend stats if provided, otherwise calculate as fallback
+  const stats = backendStats
+    ? {
+        total: backendStats.totalUsers,
+        active: backendStats.activeSubscriptions,
+        inactive: backendStats.inactiveUsers,
+        canceled: backendStats.canceledSubscriptions,
+        admins: users.filter((u) => u.role === "ADMIN").length, // Admin count not in backend stats
+      }
+    : {
+        total: users.length,
+        active: users.filter((u) => u.subscription?.status === "active").length,
+        inactive: users.filter(
+          (u) => !u.subscription || u.subscription.status === "inactive",
+        ).length,
+        canceled: users.filter((u) => u.subscription?.status === "canceled")
+          .length,
+        admins: users.filter((u) => u.role === "ADMIN").length,
+      };
 
   return (
     <div className="space-y-6">
@@ -113,6 +144,16 @@ export function UsersTab({ users }: UsersTabProps) {
         </div>
       </div>
 
+      {/* Additional Info */}
+      {users.length > 0 && (
+        <div className="text-sm text-muted-foreground">
+          Showing {users.length} user{users.length !== 1 ? "s" : ""}
+          <span className="ml-2 text-xs">
+            (Click on a user to view details)
+          </span>
+        </div>
+      )}
+
       {/* Users Table */}
       <div className="border rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
@@ -151,7 +192,11 @@ export function UsersTab({ users }: UsersTabProps) {
                 </tr>
               ) : (
                 users.map((user) => (
-                  <tr key={user.id} className="hover:bg-muted/30">
+                  <tr
+                    key={user.id}
+                    className="hover:bg-muted/10 cursor-pointer transition-colors"
+                    onClick={() => handleUserClick(user.id)}
+                  >
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <Mail className="w-4 h-4 text-muted-foreground" />
@@ -170,7 +215,7 @@ export function UsersTab({ users }: UsersTabProps) {
                     </td>
                     <td className="px-4 py-3">
                       <span className="text-sm">
-                        {user.subscription?.plan || "-----"}
+                        {user.subscription?.plan || "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -183,7 +228,7 @@ export function UsersTab({ users }: UsersTabProps) {
                             </span>
                           </>
                         ) : (
-                          <span className="text-sm">{"-----"}</span>
+                          <span className="text-sm">{"—"}</span>
                         )}
                         {user.subscription?.cancelAtPeriodEnd && (
                           <Badge variant="warning" className="ml-2">
@@ -205,12 +250,12 @@ export function UsersTab({ users }: UsersTabProps) {
         </div>
       </div>
 
-      {/* Additional Info */}
-      {users.length > 0 && (
-        <div className="text-sm text-muted-foreground">
-          Showing {users.length} user{users.length !== 1 ? "s" : ""}
-        </div>
-      )}
+      {/* User Detail Modal */}
+      <UserDetailModal
+        userId={selectedUserId}
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 }

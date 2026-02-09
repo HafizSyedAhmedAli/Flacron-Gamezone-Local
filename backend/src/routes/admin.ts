@@ -744,25 +744,6 @@ adminRouter.post("/stream", validateBody(streamSchema), async (req, res) => {
   res.json(stream);
 });
 
-// ==================== USERS ====================
-
-adminRouter.get("/users", async (_req, res) => {
-  const users = await prisma.user.findMany({
-    include: { subscription: true },
-    orderBy: { createdAt: "desc" },
-    take: 200,
-  });
-  res.json(
-    users.map((u) => ({
-      id: u.id,
-      email: u.email,
-      role: u.role,
-      createdAt: u.createdAt,
-      subscription: u.subscription,
-    })),
-  );
-});
-
 // ==================== USERS & SUBSCRIPTIONS ====================
 
 /**
@@ -1100,6 +1081,8 @@ adminRouter.delete("/ai/match/:matchId", async (req, res) => {
  * POST /api/admin/ai/bulk-generate
  * Bulk generate AI content for multiple matches
  */
+const MAX_BULK_MATCHES = 50;
+
 adminRouter.post("/ai/bulk-generate", async (req, res) => {
   try {
     const { matchIds, type, language = "en" } = req.body;
@@ -1115,6 +1098,13 @@ adminRouter.post("/ai/bulk-generate", async (req, res) => {
       return res.status(400).json({
         success: false,
         error: "type must be either 'preview' or 'summary'",
+      });
+    }
+
+    if (matchIds.length > MAX_BULK_MATCHES) {
+      return res.status(400).json({
+        success: false,
+        error: `Maximum ${MAX_BULK_MATCHES} matches allowed per request`,
       });
     }
 
@@ -1142,10 +1132,9 @@ adminRouter.post("/ai/bulk-generate", async (req, res) => {
           continue;
         }
 
-        const content =
-          type === "preview"
-            ? await generateMatchPreview(matchId, language)
-            : await generateMatchSummary(matchId, language);
+        type === "preview"
+          ? await generateMatchPreview(matchId, language)
+          : await generateMatchSummary(matchId, language);
 
         results.push({ matchId, success: true });
       } catch (error) {
@@ -1155,7 +1144,6 @@ adminRouter.post("/ai/bulk-generate", async (req, res) => {
         });
       }
     }
-
     res.json({
       success: true,
       results,

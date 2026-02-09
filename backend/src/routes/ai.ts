@@ -166,16 +166,22 @@ aiRouter.post(
 aiRouter.get("/match/:matchId", requireAuth, async (req, res) => {
   try {
     const { matchId } = req.params;
-    const language = (req.query.language as string) || "en";
+    const language = req.query.language as string | undefined;
+    if (language && !["en", "fr"].includes(language)) {
+      return res
+        .status(400)
+        .json({ success: false, error: "Invalid language" });
+    }
+    const validLanguage = language || "en";
 
-    const content = await getMatchAIContent(matchId, language);
+    const content = await getMatchAIContent(matchId, validLanguage);
 
     const aiTexts = [];
 
     if (content.preview) {
       aiTexts.push({
         kind: "preview",
-        language,
+        language: validLanguage,
         content: content.preview,
       });
     }
@@ -183,15 +189,17 @@ aiRouter.get("/match/:matchId", requireAuth, async (req, res) => {
     if (content.summary) {
       aiTexts.push({
         kind: "summary",
-        language,
+        language: validLanguage,
         content: content.summary,
       });
     }
 
-    res.json(aiTexts); 
+    res.json(aiTexts);
   } catch (error) {
     console.error("Error fetching AI content:", error);
-    res.status(500).json([]);
+    res
+      .status(500)
+      .json({ success: false, error: "Failed to fetch AI content" });
   }
 });
 

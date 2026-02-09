@@ -27,7 +27,6 @@ interface MatchesTabProps {
   matches: Match[];
   onEdit: (match: Match) => void;
   onDelete: (matchId: string) => void;
-  onSetStatus: (matchId: string, status: string) => void;
   onBrowse: () => void;
 }
 
@@ -35,7 +34,6 @@ export function MatchesTab({
   matches,
   onEdit,
   onDelete,
-  onSetStatus,
   onBrowse,
 }: MatchesTabProps) {
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -59,16 +57,16 @@ export function MatchesTab({
   };
 
   const formatDateTime = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleString("en-US", {
-        month: "short",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) {
       return dateString;
     }
+    return d.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   };
 
   const handleOpenAI = (match: Match) => {

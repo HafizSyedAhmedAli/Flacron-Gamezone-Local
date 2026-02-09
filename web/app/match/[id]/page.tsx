@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ChevronLeft,
@@ -81,6 +81,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
   const [lang, setLang] = useState<"en" | "fr">("en");
   const [generating, setGenerating] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState("");
+  const successTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const router = useRouter();
 
@@ -126,6 +127,15 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
     }
   }, [lang, match?.id]);
 
+  // Cleanup timeout on unmount to prevent state updates after unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+    };
+  }, []);
+
   // Generate preview once per match+language. Frontend guard + backend must enforce.
   async function generatePreview() {
     // If preview already exists, do nothing on the frontend
@@ -157,7 +167,10 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
       // Soft refresh (re-fetches server data, keeps app state)
       router.refresh();
       await loadAIContent();
-      setTimeout(() => setSuccessMsg(""), 3000);
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+      successTimeoutRef.current = setTimeout(() => setSuccessMsg(""), 3000);
     } catch (e: any) {
       console.error("Error generating preview:", e);
       setErr(e?.message || "Failed to generate preview");
@@ -195,7 +208,10 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
       setSuccessMsg("✅ Summary generated successfully!");
       router.refresh();
       await loadAIContent();
-      setTimeout(() => setSuccessMsg(""), 3000);
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+      successTimeoutRef.current = setTimeout(() => setSuccessMsg(""), 3000);
     } catch (e: any) {
       console.error("Error generating summary:", e);
       setErr(e?.message || "Failed to generate summary");

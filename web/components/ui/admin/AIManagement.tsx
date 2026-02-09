@@ -171,17 +171,19 @@ export function AIManagement({ match, onSuccess }: AIManagementProps) {
       )}
 
       <div className="flex gap-2 items-center mb-2 text-white">
-        <span className="text-sm font-medium">Language:</span>
+        <label htmlFor="ai-language-select" className="text-sm font-medium">
+          Language:
+        </label>
         <select
+          id="ai-language-select"
           value={language}
           onChange={(e) => setLanguage(e.target.value as "en" | "fr")}
-          className="border rounded px-2 py-1 text-sm bg-slate-900 text-white border-cyan-600 focus:ring-2 focus:ring-cyan-400 focus:outline-none"
+          className="border rounded px-2 py-1 text-sm bg-background text-foreground border-input focus:ring-2 focus:ring-ring focus:outline-none"
         >
           <option value="en">English</option>
           <option value="fr">French</option>
         </select>
       </div>
-
       {/* Action Buttons */}
       <div className="space-y-3">
         {/* Preview Generation */}
@@ -203,6 +205,7 @@ export function AIManagement({ match, onSuccess }: AIManagementProps) {
               variant="outline"
               size="icon"
               title="Regenerate preview"
+              aria-label="Regenerate preview"
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
@@ -233,6 +236,7 @@ export function AIManagement({ match, onSuccess }: AIManagementProps) {
               variant="outline"
               size="icon"
               title="Regenerate summary"
+              aria-label="Regenerate summary"
             >
               <RefreshCw className="w-4 h-4" />
             </Button>
