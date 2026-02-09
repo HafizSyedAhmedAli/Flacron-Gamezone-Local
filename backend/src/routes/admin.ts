@@ -4,7 +4,11 @@ import { prisma } from "../lib/prisma.js";
 import { validateBody } from "../lib/validate.js";
 import axios from "axios";
 import { cacheGet, cacheSet } from "../lib/redis.js";
-import { clearAICache, generateMatchPreview, generateMatchSummary } from "../services/ai-service.js";
+import {
+  clearAICache,
+  generateMatchPreview,
+  generateMatchSummary,
+} from "../services/ai-service.js";
 
 const LEAGUES_CACHE_KEY = "football:leagues";
 const TEAMS_CACHE_KEY = "football:teams";
@@ -742,6 +746,50 @@ adminRouter.post("/stream", validateBody(streamSchema), async (req, res) => {
     },
   });
   res.json(stream);
+});
+
+adminRouter.get("/streams", async (req, res) => {
+  try {
+    // Return matches that:
+    // - are LIVE or UPCOMING
+    // - have a stream relation
+    // - stream.type = "EMBED"
+    const matches = await prisma.match.findMany({
+      where: {
+        status: { in: ["LIVE", "UPCOMING"] },
+        stream: {
+          is: {
+            type: "EMBED",
+          },
+        },
+      },
+      include: {
+        league: true,
+        homeTeam: true,
+        awayTeam: true,
+        stream: true,
+      },
+      orderBy: [
+        // Put LIVE first then UPCOMING, then soonest kickoff
+        { status: "desc" }, // assuming LIVE > UPCOMING in sort order lexicographically — keep for clarity
+        { kickoffTime: "asc" },
+      ],
+      take: 200,
+    });
+
+    res.json({
+      success: true,
+      matches,
+      total: matches.length,
+    });
+  } catch (error) {
+    console.error("Error fetching streams list:", error);
+    res.status(500).json({
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Failed to fetch streams",
+    });
+  }
 });
 
 // ==================== USERS & SUBSCRIPTIONS ====================

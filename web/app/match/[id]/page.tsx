@@ -7,22 +7,19 @@ import {
   Trophy,
   Clock,
   MapPin,
-  Play,
   Sparkles,
   Globe,
   FileText,
   TrendingUp,
-  Activity,
+  AlertCircle,
   Shield,
-  Award,
   Target,
   Flame,
   Crosshair,
-  AlertCircle,
-  Tv,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/components/api";
 import { Shell } from "@/components/layout";
+import StreamEmbed from "@/components/ui/StreamEmbed";
 
 interface Team {
   id: string;
@@ -112,7 +109,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
         });
       }
     } catch (e: any) {
-      // Silently fail - no AI content exists yet
       console.log("No AI content found:", e?.message);
     }
   }
@@ -127,7 +123,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
     }
   }, [lang, match?.id]);
 
-  // Cleanup timeout on unmount to prevent state updates after unmount
   useEffect(() => {
     return () => {
       if (successTimeoutRef.current) {
@@ -136,9 +131,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
     };
   }, []);
 
-  // Generate preview once per match+language. Frontend guard + backend must enforce.
   async function generatePreview() {
-    // If preview already exists, do nothing on the frontend
     const previewExists = match?.aiTexts?.some(
       (t) => t.kind === "preview" && t.language === lang,
     );
@@ -154,7 +147,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
         language: lang,
       });
 
-      // Update the match with new AI content
       setMatch((prev) => {
         if (!prev) return prev;
         return {
@@ -164,7 +156,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
       });
 
       setSuccessMsg("✅ Preview generated successfully!");
-      // Soft refresh (re-fetches server data, keeps app state)
       router.refresh();
       await loadAIContent();
       if (successTimeoutRef.current) {
@@ -179,7 +170,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
     }
   }
 
-  // Generate summary once per match+language. Frontend guard + backend must enforce.
   async function generateSummary() {
     const summaryExists = match?.aiTexts?.some(
       (t) => t.kind === "summary" && t.language === lang,
@@ -196,7 +186,6 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
         language: lang,
       });
 
-      // Update the match with new AI content
       setMatch((prev) => {
         if (!prev) return prev;
         return {
@@ -306,7 +295,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
               <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1),transparent)]"></div>
               <div className="relative">
                 <div className="w-20 h-20 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-2xl shadow-cyan-500/30">
-                  <Activity className="w-10 h-10 text-white" />
+                  <Trophy className="w-10 h-10 text-white" />
                 </div>
                 <p className="text-slate-300 font-bold text-xl">
                   ⚡ Loading match data...
@@ -331,7 +320,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
     <Shell className="bg-[#0a0e27] flex flex-col">
       <div className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Game Zone Style Back Button */}
+          {/* Back Button */}
           <button
             onClick={() => window.history.back()}
             className="group flex items-center gap-3 text-slate-400 hover:text-cyan-400 transition-all duration-300 px-4 py-2.5 rounded-xl hover:bg-slate-800/70 border border-transparent hover:border-cyan-500/30"
@@ -357,16 +346,15 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
             </div>
           )}
 
-          {/* Game Zone Hero Section */}
+          {/* Match Hero Section */}
           <div className="relative overflow-hidden bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-slate-900/95 border-2 border-cyan-500/30 rounded-2xl shadow-2xl shadow-cyan-500/20">
-            {/* Animated Gaming Background */}
             <div className="absolute inset-0 opacity-10">
               <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(6,182,212,0.3)_50%,transparent_75%,transparent_100%)] bg-[length:250%_250%] animate-[shimmer_3s_linear_infinite]"></div>
             </div>
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,_rgba(6,182,212,0.15),transparent_50%),radial-gradient(circle_at_70%_80%,_rgba(59,130,246,0.15),transparent_50%)]"></div>
 
             <div className="relative z-10 p-6 md:p-10">
-              {/* League Badge - Gaming Style */}
+              {/* League Badge */}
               <div className="flex items-center justify-center mb-8">
                 <div className="relative group">
                   <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
@@ -430,7 +418,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
                   </div>
                 </div>
 
-                {/* Score/VS Section - Gaming Style */}
+                {/* Score/VS Section */}
                 <div className="text-center min-w-[140px] md:min-w-[180px]">
                   {match.status === "FINISHED" || match.status === "LIVE" ? (
                     <div className="space-y-4">
@@ -507,81 +495,41 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
               )}
             </div>
 
-            {/* Gaming Style Border */}
             <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-cyan-500"></div>
           </div>
 
-          {/* Language & Stream Section */}
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Language Selector */}
-            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-purple-500/30 rounded-2xl p-6 shadow-xl">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,_rgba(168,85,247,0.1),transparent)]"></div>
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Globe className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-lg font-black text-white uppercase tracking-wide">
-                    Language
-                  </h3>
+          {/* Language Selector */}
+          <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-purple-500/30 rounded-2xl p-6 shadow-xl">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,_rgba(168,85,247,0.1),transparent)]"></div>
+            <div className="relative">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                  <Globe className="w-5 h-5 text-white" />
                 </div>
-                <select
-                  className="w-full bg-slate-800/90 border-2 border-purple-500/50 rounded-xl px-5 py-3.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all cursor-pointer hover:border-purple-400"
-                  value={lang}
-                  onChange={(e) => setLang(e.target.value as "en" | "fr")}
-                >
-                  <option value="en">🇬🇧 English</option>
-                  <option value="fr">🇫🇷 French</option>
-                </select>
+                <h3 className="text-lg font-black text-white uppercase tracking-wide">
+                  Language
+                </h3>
               </div>
-            </div>
-
-            {/* Stream Section */}
-            <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl p-6 shadow-xl">
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_50%,_rgba(6,182,212,0.1),transparent)]"></div>
-              <div className="relative">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                    <Tv className="w-5 h-5 text-white" />
-                  </div>
-                  <h3 className="text-lg font-black text-white uppercase tracking-wide">
-                    Live Stream
-                  </h3>
-                </div>
-                {match.stream?.type === "EMBED" && match.stream?.isActive ? (
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-xs bg-green-500/20 rounded-lg px-3 py-2 border border-green-500/30">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                      </span>
-                      <span className="font-bold text-green-400">
-                        STREAM ACTIVE • {match.stream.provider}
-                      </span>
-                    </div>
-                    <a
-                      href={match.stream.url || "#"}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative inline-flex items-center justify-center gap-3 w-full bg-gradient-to-r from-cyan-600 via-blue-600 to-cyan-600 hover:from-cyan-500 hover:via-blue-500 hover:to-cyan-500 text-white font-black px-6 py-4 rounded-xl shadow-lg shadow-cyan-500/40 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-cyan-500/50 uppercase tracking-wide"
-                    >
-                      <Play className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                      <span>Watch Live</span>
-                      <Flame className="w-5 h-5 group-hover:scale-125 transition-transform" />
-                    </a>
-                  </div>
-                ) : (
-                  <div className="text-center py-4 bg-slate-800/50 rounded-xl border border-slate-700/50">
-                    <p className="text-xs text-slate-400 font-semibold">
-                      🎮 Score-only mode • No stream available
-                    </p>
-                  </div>
-                )}
-              </div>
+              <select
+                className="w-full bg-slate-800/90 border-2 border-purple-500/50 rounded-xl px-5 py-3.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all cursor-pointer hover:border-purple-400"
+                value={lang}
+                onChange={(e) => setLang(e.target.value as "en" | "fr")}
+              >
+                <option value="en">🇬🇧 English</option>
+                <option value="fr">🇫🇷 French</option>
+              </select>
             </div>
           </div>
 
-          {/* AI Content Section - Gaming Style */}
+          {/* STREAM EMBED COMPONENT - NEW INTEGRATION */}
+          <StreamEmbed
+            stream={match.stream}
+            matchStatus={match.status}
+            homeTeam={match.homeTeam.name}
+            awayTeam={match.awayTeam.name}
+          />
+
+          {/* AI Content Section */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* AI Preview */}
             <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl shadow-2xl">

@@ -1,11 +1,9 @@
-// File: src/app/admin/page.tsx
 "use client";
 
 import { apiDelete, apiGet, apiPost, apiPut } from "@/components/api";
 import { Shell } from "@/components/layout";
-import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import AdminStreamsManagement from "@/components/ui/admin/AdminStreamsManagement";
 import { AlertMessage } from "@/components/ui/admin/AlertMessage";
 import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
 import { LeagueBrowser } from "@/components/ui/admin/LeagueBrowser";
@@ -19,8 +17,10 @@ import { TeamBrowser } from "@/components/ui/admin/TeamBrowser";
 import { TeamEditModal } from "@/components/ui/admin/TeamEditModal";
 import { TeamsTab } from "@/components/ui/admin/TeamsTab";
 import { UsersTab } from "@/components/ui/admin/UsersTab";
+import { Button } from "@/components/ui/button";
 import { useRequireAdmin } from "@/hooks/useAuth";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
+import { Search } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 interface LeaguesResponse {
   success: boolean;
@@ -102,7 +102,7 @@ interface UsersResponse {
   };
 }
 
-type TabType = "leagues" | "teams" | "matches" | "users";
+type TabType = "leagues" | "teams" | "matches" | "users" | "streams";
 
 export default function AdminPage() {
   // Tab state
@@ -713,6 +713,10 @@ export default function AdminPage() {
               <Search className="w-4 h-4" />
               {browsingLeagues ? "Loading..." : "Browse Leagues"}
             </Button>
+
+            <Button onClick={() => setTab("streams")} className="gap-2">
+              Streams
+            </Button>
           </div>
 
           {/* Modals */}
@@ -842,15 +846,17 @@ export default function AdminPage() {
 
           {/* Tab Selector */}
           <div className="flex gap-2 mt-4">
-            {(["leagues", "teams", "matches", "users"] as const).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={tabButtonClass(tab === t)}
-              >
-                {t[0].toUpperCase() + t.slice(1)}
-              </button>
-            ))}
+            {(["leagues", "teams", "matches", "users", "streams"] as const).map(
+              (t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={tabButtonClass(tab === t)}
+                >
+                  {t[0].toUpperCase() + t.slice(1)}
+                </button>
+              ),
+            )}
           </div>
 
           {/* Tab Content */}
@@ -895,6 +901,12 @@ export default function AdminPage() {
 
               {tab === "users" && (
                 <UsersTab users={users} stats={userStats || undefined} />
+              )}
+
+              {tab === "streams" && (
+                <div className="pt-4">
+                  <AdminStreamsManagement />
+                </div>
               )}
             </>
           )}
