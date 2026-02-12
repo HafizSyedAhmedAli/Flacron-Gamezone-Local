@@ -1284,7 +1284,7 @@ export default function AdminPage() {
                             Loading...
                           </>
                         ) : (
-                          `Load More (${totalCounts.leagues - leagues.length} remaining)`
+                          `Load More (${Math.max(0, totalCounts.leagues - leagues.length)} remaining)`
                         )}
                       </Button>
                     </div>

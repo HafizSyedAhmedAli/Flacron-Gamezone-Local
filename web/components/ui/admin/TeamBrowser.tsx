@@ -188,7 +188,7 @@ export function TeamBrowser({
                         Loading...
                       </>
                     ) : (
-                      `Load More (${pagination.total - filteredTeams.length} remaining)`
+                      `Load More (${pagination.total - teams.length} remaining)`
                     )}
                   </button>
                 </div>

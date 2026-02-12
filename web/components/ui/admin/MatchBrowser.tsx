@@ -342,7 +342,7 @@ export function MatchBrowser({
                         Loading...
                       </>
                     ) : (
-                      `Load More (${pagination.total - filteredMatches.length} remaining)`
+                      `Load More (${pagination.total - matches.length} remaining)`
                     )}
                   </button>
                 </div>

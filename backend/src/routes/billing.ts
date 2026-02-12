@@ -120,24 +120,28 @@ billingRouter.post("/checkout", requireAuth, async (req: AuthRequest, res) => {
     }
 
     // Create checkout session (only if no active subscription exists)
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customerId,
-      line_items: [{ price: priceId, quantity: 1 }],
-      success_url: `${process.env.FRONTEND_ORIGIN}/dashboard?success=1`,
-      cancel_url: `${process.env.FRONTEND_ORIGIN}/pricing?canceled=1`,
-      metadata: {
-        userId: user.id,
-        plan: plan,
-      },
-      // ✅ PREVENT DUPLICATE SUBSCRIPTIONS AT STRIPE LEVEL
-      subscription_data: {
+    const session = await stripe.checkout.sessions.create(
+      {
+        mode: "subscription",
+        customer: customerId,
+        line_items: [{ price: priceId, quantity: 1 }],
+        success_url: `${process.env.FRONTEND_ORIGIN}/dashboard?success=1`,
+        cancel_url: `${process.env.FRONTEND_ORIGIN}/pricing?canceled=1`,
         metadata: {
           userId: user.id,
           plan: plan,
         },
+        subscription_data: {
+          metadata: {
+            userId: user.id,
+            plan: plan,
+          },
+        },
       },
-    });
+      {
+        idempotencyKey: `checkout_${user.id}_${plan}_${Date.now()}`,
+      },
+    );
 
     res.json({ url: session.url });
   } catch (error: any) {
@@ -296,7 +300,7 @@ billingRouter.post("/cancel", requireAuth, async (req: AuthRequest, res) => {
     });
 
     res.json({
-      message: "Subscription canceled ",
+      message: "Subscription canceled",
       canceledAt: new Date(canceledSubscription.canceled_at! * 1000),
       status: canceledSubscription.status,
     });
@@ -390,79 +394,79 @@ billingRouter.post("/portal", requireAuth, async (req: AuthRequest, res) => {
 });
 
 /**
- * ✅ NEW ENDPOINT: Cancel all duplicate subscriptions for a user
+ * Cancel all duplicate subscriptions for a user
  * POST /api/billing/cleanup-duplicates
  * This helps clean up any existing duplicate subscriptions
  */
-billingRouter.post(
-  "/cleanup-duplicates",
-  requireAuth,
-  async (req: AuthRequest, res) => {
-    try {
-      if (!stripe) {
-        return res.status(500).json({ error: "Stripe not configured" });
-      }
+// billingRouter.post(
+//   "/cleanup-duplicates",
+//   requireAuth,
+//   async (req: AuthRequest, res) => {
+//     try {
+//       if (!stripe) {
+//         return res.status(500).json({ error: "Stripe not configured" });
+//       }
 
-      const user = req.user!;
+//       const user = req.user!;
 
-      const subscription = await prisma.subscription.findUnique({
-        where: { userId: user.id },
-      });
+//       const subscription = await prisma.subscription.findUnique({
+//         where: { userId: user.id },
+//       });
 
-      if (!subscription?.stripeCustomerId) {
-        return res.status(404).json({ error: "No customer found" });
-      }
+//       if (!subscription?.stripeCustomerId) {
+//         return res.status(404).json({ error: "No customer found" });
+//       }
 
-      // Get all subscriptions for this customer
-      const allSubscriptions = await stripe.subscriptions.list({
-        customer: subscription.stripeCustomerId,
-        status: "all",
-        limit: 100,
-      });
+//       // Get all subscriptions for this customer
+//       const allSubscriptions = await stripe.subscriptions.list({
+//         customer: subscription.stripeCustomerId,
+//         status: "all",
+//         limit: 100,
+//       });
 
-      const activeSubs = allSubscriptions.data.filter((sub) =>
-        ["active", "trialing"].includes(sub.status),
-      );
+//       const activeSubs = allSubscriptions.data.filter((sub) =>
+//         ["active", "trialing"].includes(sub.status),
+//       );
 
-      if (activeSubs.length <= 1) {
-        return res.json({
-          message: "No duplicate subscriptions found",
-          count: activeSubs.length,
-        });
-      }
+//       if (activeSubs.length <= 1) {
+//         return res.json({
+//           message: "No duplicate subscriptions found",
+//           count: activeSubs.length,
+//         });
+//       }
 
-      // Keep the most recent one, cancel the rest
-      const sortedSubs = activeSubs.sort((a, b) => b.created - a.created);
-      const keepSub = sortedSubs[0];
-      const cancelSubs = sortedSubs.slice(1);
+//       // Keep the most recent one, cancel the rest
+//       const sortedSubs = activeSubs.sort((a, b) => b.created - a.created);
+//       const keepSub = sortedSubs[0];
+//       const cancelSubs = sortedSubs.slice(1);
 
-      const canceledIds = [];
-      for (const sub of cancelSubs) {
-        await stripe.subscriptions.cancel(sub.id);
-        canceledIds.push(sub.id);
-      }
+//       const canceledIds = [];
+//       for (const sub of cancelSubs) {
+//         await stripe.subscriptions.cancel(sub.id);
+//         canceledIds.push(sub.id);
+//       }
 
-      // Update database to reflect the kept subscription
-      await prisma.subscription.update({
-        where: { userId: user.id },
-        data: {
-          stripeSubscriptionId: keepSub.id,
-          status: keepSub.status,
-          updatedAt: new Date(),
-        },
-      });
+//       // Update database to reflect the kept subscription
+//       await prisma.subscription.update({
+//         where: { userId: user.id },
+//         data: {
+//           stripeSubscriptionId: keepSub.id,
+//           status: keepSub.status,
+//           updatedAt: new Date(),
+//         },
+//       });
 
-      res.json({
-        message: `Cleaned up ${canceledIds.length} duplicate subscription(s)`,
-        kept: keepSub.id,
-        canceled: canceledIds,
-      });
-    } catch (error: any) {
-      console.error("Cleanup duplicates error:", error);
-      res.status(500).json({ error: "Failed to cleanup duplicates" });
-    }
-  },
-);
+//       res.json({
+//         message: `Cleaned up ${canceledIds.length} duplicate subscription(s)`,
+//         kept: keepSub.id,
+//         canceled: canceledIds,
+//       });
+//     } catch (error: any) {
+//       console.error("Cleanup duplicates error:", error);
+//       res.status(500).json({ error: "Failed to cleanup duplicates" });
+//     }
+//   },
+// );
 
 // Helper functions for webhook handlers
 

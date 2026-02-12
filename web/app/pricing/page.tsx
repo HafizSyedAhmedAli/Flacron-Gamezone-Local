@@ -32,16 +32,21 @@ export default function PricingPage() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    if (searchParams.get("scroll") === "faq") {
-      const faqSection = document.getElementById("faq-section");
-      if (faqSection) {
-        faqSection.scrollIntoView({ behavior: "smooth" });
-      }
-    } else {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  }, [searchParams]);
+    if (!mounted) return;
 
+    // Delay scroll to allow entry animations to complete
+    const timeoutId = setTimeout(() => {
+      if (searchParams.get("scroll") === "faq") {
+        const faqSection = document.getElementById("faq-section");
+        if (faqSection) {
+          faqSection.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    }, 600); // Account for delay-500 + buffer
+
+    return () => clearTimeout(timeoutId);
+  }, [searchParams, mounted]);
+  
   useEffect(() => {
     setMounted(true);
   }, []);

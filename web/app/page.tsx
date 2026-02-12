@@ -2,7 +2,7 @@
 
 import { Shell } from "@/components/layout";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiGet } from "@/components/api";
 import {
   Search,
@@ -52,6 +52,7 @@ interface SearchResults {
 export default function Home() {
   const [featuredLeagues, setFeaturedLeagues] = useState<League[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
+  const liveMatchesRef = useRef<Match[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResults | null>(
@@ -61,11 +62,15 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    liveMatchesRef.current = liveMatches;
+  }, [liveMatches]);
+
+  useEffect(() => {
     loadInitialData();
 
     // Auto-refresh live matches every 45 seconds
     const interval = setInterval(() => {
-      if (liveMatches.length > 0) {
+      if (liveMatchesRef.current.length > 0) {
         refreshLiveMatches();
       }
     }, 45000);
@@ -94,9 +99,11 @@ export default function Home() {
         apiGet<Match[]>("/api/matches?status=UPCOMING"),
       ]);
 
-      setFeaturedLeagues(leaguesRes.leagues?.slice(0, 8) || []);
-      setLiveMatches(liveRes.slice(0, 4));
-      setUpcomingMatches(upcomingRes.slice(0, 6));
+      setFeaturedLeagues(leaguesRes.leagues?.slice(0, 8) ?? []);
+      setLiveMatches(Array.isArray(liveRes) ? liveRes.slice(0, 4) : []);
+      setUpcomingMatches(
+        Array.isArray(upcomingRes) ? upcomingRes.slice(0, 6) : [],
+      );
     } catch (error) {
       console.error("Error loading data:", error);
     } finally {

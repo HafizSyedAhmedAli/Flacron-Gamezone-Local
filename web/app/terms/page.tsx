@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Shell } from "@/components/layout";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import Link from "next/link";
 
 export default function TermsPage() {
   const lastUpdated = "January 24, 2026";
@@ -139,14 +140,14 @@ export default function TermsPage() {
       icon: Mail,
       color: "purple",
       title: "Contact Information",
-      content:
-        "If you have any questions about these Terms of Service, need clarification on any provisions, or wish to report a violation, please contact our legal team:",
+      content: `If you have any questions about these Terms of Service, need clarification on any provisions, or wish to report a violation, please`,
     },
   ];
 
   return (
     <Shell className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
       <ScrollToTop />
+
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
@@ -221,7 +222,7 @@ export default function TermsPage() {
                 red: "from-red-500 to-red-600 text-red-400 bg-red-500/10 border-red-500/30",
               }[section.color]!;
 
-              const [bgFrom, bgTo, textColor, borderColor] =
+              const [bgFrom, bgTo, textColor, bgColor, borderColor] =
                 colorClasses.split(" ");
 
               return (
@@ -243,7 +244,7 @@ export default function TermsPage() {
                       <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         {section.title}
                         <span
-                          className={`text-sm font-semibold px-3 py-1 rounded-full ${textColor} ${borderColor}`}
+                          className={`text-sm font-semibold px-3 py-1 rounded-full ${textColor} ${bgColor} ${borderColor}`}
                         >
                           {index + 1}
                         </span>
@@ -257,6 +258,27 @@ export default function TermsPage() {
                         {section.content}
                       </p>
                     )}
+
+                    {/* Additional content */}
+                    {section.additional && (
+                      <p className="text-slate-400 italic mt-4">
+                        {section.additional}
+                      </p>
+                    )}
+
+                    {/* Special rendering for Contact Information */}
+                    {section.title === "Contact Information" && (
+                      <div className="ml-0 mb-4 mt-3">
+                        <Link
+                          href="/contact"
+                          className="text-blue-400 font-semibold hover:underline"
+                        >
+                          Contact Us
+                        </Link>
+                      </div>
+                    )}
+
+                    {/* Render restrictions */}
                     {section.restrictions &&
                       section.restrictions.map((restriction, i) => (
                         <div
@@ -271,6 +293,8 @@ export default function TermsPage() {
                           </div>
                         </div>
                       ))}
+
+                    {/* Render responsibilities */}
                     {section.responsibilities &&
                       section.responsibilities.map((resp, i) => (
                         <div
@@ -283,6 +307,46 @@ export default function TermsPage() {
                           </div>
                         </div>
                       ))}
+
+                    {/* Render thirdParty items */}
+                    {section.thirdParty &&
+                      section.thirdParty.map((item, i) => (
+                        <div
+                          key={i}
+                          className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 mb-2 hover:border-green-500/30 transition-all"
+                        >
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-300">{item}</span>
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* Render note */}
+                    {section.note && (
+                      <p className="text-slate-400 italic mt-4">
+                        {section.note}
+                      </p>
+                    )}
+
+                    {/* Render violations */}
+                    {section.violations &&
+                      section.violations.map((violation, i) => (
+                        <div
+                          key={i}
+                          className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 mb-2 hover:border-red-500/30 transition-all"
+                        >
+                          <div className="flex items-start gap-3">
+                            <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-300">{violation}</span>
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* Render rights */}
+                    {section.rights && (
+                      <p className="text-slate-400 mt-4">{section.rights}</p>
+                    )}
                   </div>
                 </section>
               );

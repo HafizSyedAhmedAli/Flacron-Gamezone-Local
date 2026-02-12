@@ -16,7 +16,7 @@ import {
   cancelSubscription,
   reactivateSubscription,
   createPortalSession,
-  cleanupDuplicates,
+  // cleanupDuplicates, 
 } from "@/components/billingApi";
 import { useRouter } from "next/navigation";
 import { Shell } from "@/components/layout";
@@ -57,12 +57,10 @@ export default function DashboardPage() {
     }
   };
 
-  // Open cancel confirmation modal (replaces window.confirm)
   const handleCancelClick = () => {
     setShowCancelModal(true);
   };
 
-  // Confirm cancel flow (called from modal)
   const handleConfirmCancel = async () => {
     try {
       setActionLoading("cancel");
@@ -107,28 +105,27 @@ export default function DashboardPage() {
     }
   };
 
-  // NEW: cleanup duplicates action
-  const handleCleanupDuplicates = async () => {
-    try {
-      setActionLoading("cleanup");
-      setError(null);
-      setSuccess(null);
-      const resp = await cleanupDuplicates();
-      const msg =
-        resp?.message ||
-        `Cleaned up duplicates${
-          resp?.canceled ? `: ${resp.canceled.join(", ")}` : ""
-        }`;
-      setSuccess(msg);
-      // refresh subscription so UI reflects kept subscription
-      await loadSubscription();
-    } catch (err: any) {
-      console.error("Cleanup failed", err);
-      setError(err.message || "Failed to cleanup duplicate subscriptions");
-    } finally {
-      setActionLoading(null);
-    }
-  };
+  // --- Commented out cleanup duplicates action ---
+  // const handleCleanupDuplicates = async () => {
+  //   try {
+  //     setActionLoading("cleanup");
+  //     setError(null);
+  //     setSuccess(null);
+  //     const resp = await cleanupDuplicates();
+  //     const msg =
+  //       resp?.message ||
+  //       `Cleaned up duplicates${
+  //         resp?.canceled ? `: ${resp.canceled.join(", ")}` : ""
+  //       }`;
+  //     setSuccess(msg);
+  //     await loadSubscription();
+  //   } catch (err: any) {
+  //     console.error("Cleanup failed", err);
+  //     setError(err.message || "Failed to cleanup duplicate subscriptions");
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -268,7 +265,6 @@ export default function DashboardPage() {
                   </div>
                 )}
 
-                {/* If the subscription was scheduled to cancel at period end, show that note */}
                 {subscription.cancelAtPeriodEnd && (
                   <div className="bg-orange-500/10 border border-orange-500/30 rounded-lg p-4">
                     <p className="text-orange-400 text-sm flex items-center gap-2">
@@ -298,7 +294,6 @@ export default function DashboardPage() {
           </div>
 
           {/* Action Buttons */}
-          {/* Active subscription actions */}
           {subscription?.plan && subscription.status === "active" && (
             <div className="flex gap-4">
               <button
@@ -316,7 +311,7 @@ export default function DashboardPage() {
                 )}
               </button>
 
-              <button
+              {/* <button
                 onClick={handleCleanupDuplicates}
                 disabled={actionLoading === "cleanup"}
                 className="flex-1 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
@@ -326,7 +321,7 @@ export default function DashboardPage() {
                 ) : (
                   "Cleanup Duplicates"
                 )}
-              </button>
+              </button> */}
 
               {subscription.cancelAtPeriodEnd ? (
                 <button
@@ -365,7 +360,7 @@ export default function DashboardPage() {
                 Subscribe again
               </button>
 
-              <button
+              {/* <button
                 onClick={handleCleanupDuplicates}
                 disabled={actionLoading === "cleanup"}
                 className="flex-1 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
@@ -375,7 +370,7 @@ export default function DashboardPage() {
                 ) : (
                   "Cleanup Duplicates"
                 )}
-              </button>
+              </button> */}
             </div>
           )}
         </div>

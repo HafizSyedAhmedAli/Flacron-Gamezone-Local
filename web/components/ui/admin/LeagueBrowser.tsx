@@ -162,7 +162,7 @@ export function LeagueBrowser({
                         Loading...
                       </>
                     ) : (
-                      `Load More (${pagination.total - filteredLeagues.length} remaining)`
+                      `Load More (${pagination.total - leagues.length} remaining)`
                     )}
                   </button>
                 </div>

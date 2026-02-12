@@ -83,8 +83,9 @@ export function Shell({ children, className }: ShellProps) {
 
   const handleLogout = () => {
     authLogout();
+    setIsAuthenticated(false);
+    setUserIsAdmin(false);
   };
-
   return (
     <div
       className={cn(
@@ -228,13 +229,15 @@ export function Shell({ children, className }: ShellProps) {
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="md:hidden p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
               >
                 {mobileMenuOpen ? (
                   <X className="w-5 h-5" />
                 ) : (
                   <Menu className="w-5 h-5" />
                 )}
-              </button>
+              </button>{" "}
             </div>
           </div>
 
@@ -293,6 +296,7 @@ export function Shell({ children, className }: ShellProps) {
                   href="/contact"
                   onClick={() => setMobileMenuOpen(false)}
                   icon={<Mail className="w-4 h-4" />}
+                  active={pathname === "/contact"}
                 >
                   Contact
                 </MobileNavLink>

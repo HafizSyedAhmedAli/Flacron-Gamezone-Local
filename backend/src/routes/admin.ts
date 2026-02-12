@@ -716,7 +716,7 @@ adminRouter.get("/matches", async (req, res) => {
     }
 
     // ---------- Fetch with axios params ----------
-    const url = "https://v3.football.api-sports.io/fixtures";
+    const url = `${process.env.API_FOOTBALL_BASEURL}/fixtures`;
     const { data } = await axios.get(url, {
       params: paramsObj,
       headers: config.headers,

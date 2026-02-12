@@ -91,6 +91,14 @@ export default function ContactPage() {
     try {
       setLoading(true);
 
+      if (!WEB3FORMS_ACCESS_KEY) {
+        setError({
+          general:
+            "Contact form is not configured. Please add WEB3FORMS_ACCESS_KEY in .env",
+        });
+        return;
+      }
+
       // Web3Forms API call
       const response = await fetch("https://api.web3forms.com/submit", {
         method: "POST",
