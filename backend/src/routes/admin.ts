@@ -29,12 +29,26 @@ const leagueSchema = z.object({
 // Get all leagues from Football API for browsing : /api/admin/leagues
 adminRouter.get("/leagues", async (req, res) => {
   try {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+
     const cachedLeagues = await cacheGet<any[]>(LEAGUES_CACHE_KEY);
     if (cachedLeagues) {
+      // Paginate cached data
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedLeagues = cachedLeagues.slice(startIndex, endIndex);
+
       return res.json({
         success: true,
-        leagues: cachedLeagues,
+        leagues: paginatedLeagues,
         cached: true,
+        pagination: {
+          page,
+          limit,
+          total: cachedLeagues.length,
+          hasMore: endIndex < cachedLeagues.length,
+        },
       });
     }
 
@@ -94,7 +108,22 @@ adminRouter.get("/leagues", async (req, res) => {
       }));
 
       await cacheSet(LEAGUES_CACHE_KEY, leaguesData, LEAGUES_TTL);
-      return res.json({ success: true, leagues: leaguesData });
+
+      // Paginate response
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedLeagues = leaguesData.slice(startIndex, endIndex);
+
+      return res.json({
+        success: true,
+        leagues: paginatedLeagues,
+        pagination: {
+          page,
+          limit,
+          total: leaguesData.length,
+          hasMore: endIndex < leaguesData.length,
+        },
+      });
     }
 
     leaguesData = apiFootballData.response.map((item: any) => ({
@@ -105,7 +134,22 @@ adminRouter.get("/leagues", async (req, res) => {
     }));
 
     await cacheSet(LEAGUES_CACHE_KEY, leaguesData, LEAGUES_TTL);
-    res.json({ success: true, leagues: leaguesData });
+
+    // Paginate response
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedLeagues = leaguesData.slice(startIndex, endIndex);
+
+    res.json({
+      success: true,
+      leagues: paginatedLeagues,
+      pagination: {
+        page,
+        limit,
+        total: leaguesData.length,
+        hasMore: endIndex < leaguesData.length,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -115,12 +159,31 @@ adminRouter.get("/leagues", async (req, res) => {
   }
 });
 
+// Get saved leagues from database : /api/admin/leagues/saved
 adminRouter.get("/leagues/saved", async (req, res) => {
   try {
-    const leagues = await prisma.league.findMany({
-      orderBy: { createdAt: "desc" },
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = (page - 1) * limit;
+
+    const [leagues, total] = await Promise.all([
+      prisma.league.findMany({
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.league.count(),
+    ]);
+
+    res.json({
+      leagues,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: skip + leagues.length < total,
+      },
     });
-    res.json(leagues);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch saved leagues" });
@@ -181,6 +244,8 @@ const teamSchema = z.object({
 adminRouter.get("/teams", async (req, res) => {
   try {
     const { leagueId } = req.query;
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
 
     // Build cache key based on league filter
     const cacheKey = leagueId
@@ -189,10 +254,20 @@ adminRouter.get("/teams", async (req, res) => {
 
     const cachedTeams = await cacheGet<any[]>(cacheKey);
     if (cachedTeams) {
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedTeams = cachedTeams.slice(startIndex, endIndex);
+
       return res.json({
         success: true,
-        teams: cachedTeams,
+        teams: paginatedTeams,
         cached: true,
+        pagination: {
+          page,
+          limit,
+          total: cachedTeams.length,
+          hasMore: endIndex < cachedTeams.length,
+        },
       });
     }
 
@@ -305,10 +380,20 @@ adminRouter.get("/teams", async (req, res) => {
         };
       });
       await cacheSet(cacheKey, teamsData, TEAMS_TTL);
+
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedTeams = teamsData.slice(startIndex, endIndex);
+
       return res.json({
         success: true,
-        message: "Showing Data from Backup API",
-        teams: teamsData,
+        teams: paginatedTeams,
+        pagination: {
+          page,
+          limit,
+          total: teamsData.length,
+          hasMore: endIndex < teamsData.length,
+        },
       });
     }
 
@@ -322,7 +407,21 @@ adminRouter.get("/teams", async (req, res) => {
     }));
 
     await cacheSet(cacheKey, teamsData, TEAMS_TTL);
-    res.json({ success: true, teams: teamsData });
+
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedTeams = teamsData.slice(startIndex, endIndex);
+
+    res.json({
+      success: true,
+      teams: paginatedTeams,
+      pagination: {
+        page,
+        limit,
+        total: teamsData.length,
+        hasMore: endIndex < teamsData.length,
+      },
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({
@@ -335,13 +434,31 @@ adminRouter.get("/teams", async (req, res) => {
 // Get saved teams from database : /api/admin/teams/saved
 adminRouter.get("/teams/saved", async (req, res) => {
   try {
-    const teams = await prisma.team.findMany({
-      include: {
-        league: true,
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = (page - 1) * limit;
+
+    const [teams, total] = await Promise.all([
+      prisma.team.findMany({
+        include: {
+          league: true,
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.team.count(),
+    ]);
+
+    res.json({
+      teams,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: skip + teams.length < total,
       },
-      orderBy: { createdAt: "desc" },
     });
-    res.json(teams);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch saved teams" });
@@ -480,84 +597,132 @@ adminRouter.get("/matches", async (req, res) => {
       leagueId: leagueIdRaw,
       date: dateRaw,
       status: statusRaw,
+      page: pageRaw,
+      limit: limitRaw,
     } = req.query;
 
     if (!process.env.API_FOOTBALL_KEY) {
-      return res.status(500).json({
-        success: false,
-        message: "Football API key not configured",
-      });
+      return res
+        .status(500)
+        .json({ success: false, message: "Football API key not configured" });
     }
 
-    // ---------- Normalize query params ----------
     const leagueId =
       typeof leagueIdRaw === "string" && leagueIdRaw.trim() !== ""
         ? leagueIdRaw.trim()
         : null;
-
     const date =
       typeof dateRaw === "string" && dateRaw.trim() !== ""
         ? dateRaw.trim()
         : null;
-
     const status =
       typeof statusRaw === "string" && statusRaw.trim() !== ""
         ? statusRaw.trim()
         : null;
+    const page = parseInt(pageRaw as string) || 1;
+    const limit = parseInt(limitRaw as string) || 100;
 
-    // ---------- Cache key ----------
+    // cache key uses explicit dateKey and status string
     const dateKey = date || new Date().toISOString().split("T")[0];
     const cacheKey = `${MATCHES_CACHE_KEY}:${leagueId || "all"}:${dateKey}:${status || "all"}`;
 
     const cachedMatches = await cacheGet<any[]>(cacheKey);
     if (cachedMatches) {
+      // Paginate cached data
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedMatches = cachedMatches.slice(startIndex, endIndex);
+
       return res.json({
         success: true,
-        matches: cachedMatches,
+        matches: paginatedMatches,
         cached: true,
+        pagination: {
+          page,
+          limit,
+          total: cachedMatches.length,
+          hasMore: endIndex < cachedMatches.length,
+        },
       });
     }
 
-    // ---------- Axios config ----------
+    // axios config
     const config = {
-      headers: {
-        "x-apisports-key": process.env.API_FOOTBALL_KEY!,
-      },
+      headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY },
       timeout: 10_000,
     };
 
-    // ---------- Build API params ----------
-    const params = new URLSearchParams();
+    // ---------- Status mapping ----------
+    // Map UI statuses to API statuses
+    const statusMap: Record<string, string | { live: string }> = {
+      UPCOMING: "NS",
+      LIVE: "LIVE", // we'll translate this to `live=all`
+      FINISHED: "FT",
+    };
 
-    // League filter
+    // ---------- Season calculation ----------
+    // For a given date, pick season start year:
+    // - If date month is July (6) or later => season = year (e.g., Aug 2025 -> season 2025)
+    // - Else => season = year - 1 (e.g., Feb 2026 -> season 2025)
+    function deriveSeasonFromDate(dStr: string) {
+      const d = new Date(dStr);
+      if (Number.isNaN(d.getTime())) return null;
+      const monthIdx = d.getMonth(); // 0-11
+      const year = d.getFullYear();
+      return monthIdx >= 6 ? year : year - 1;
+    }
+
+    // default season from today if needed
+    function defaultSeason() {
+      const today = new Date();
+      return today.getMonth() >= 6
+        ? today.getFullYear()
+        : today.getFullYear() - 1;
+    }
+
+    const paramsObj: any = {};
+
+    // league + season
     if (leagueId) {
-      params.append("league", leagueId);
-
-      // Season is REQUIRED when league is specified
-      // Derive season from date if provided, otherwise use 2024
-      // const seasonYear = date ? new Date(date).getFullYear() : 2026;
-
-      // const season = Math.min(seasonYear, 2024);
-      params.append("season", String("2024"));
+      paramsObj.league = leagueId;
+      const season = date ? deriveSeasonFromDate(date) : defaultSeason();
+      if (season) paramsObj.season = String(season);
     }
 
-    // Date filter
-    if (date) {
-      params.append("date", date);
-    } else if (!leagueId) {
-      // Default: today's matches if no league and no date
-      params.append("date", new Date().toISOString().split("T")[0]);
-    }
-
-    // Status filter
+    // decide API status/live/date
+    let apiStatus = undefined;
     if (status) {
-      const apiStatus =
-        status === "UPCOMING" ? "NS" : status === "LIVE" ? "LIVE" : "FT";
-      params.append("status", apiStatus);
+      if (status === "LIVE") {
+        paramsObj.live = "all"; // do NOT add date
+        apiStatus = "LIVE";
+      } else {
+        apiStatus = statusMap[status] || status; // fallback to given
+        if (apiStatus) paramsObj.status = apiStatus;
+      }
     }
-    const url = `https://v3.football.api-sports.io/fixtures?${params.toString()}`;
-    // ---------- Fetch ----------
-    const { data } = await axios.get(url, config);
+
+    // Date filter: only send date if we're not requesting live matches
+    if (paramsObj.live !== "all") {
+      if (date) {
+        paramsObj.date = date;
+      } else if (!leagueId) {
+        // default to today's matches when no league specified
+        paramsObj.date = new Date().toISOString().split("T")[0];
+      } else {
+        // league specified & no date: optionally add default date (today)
+        // If you prefer season-wide fetch, remove this and rely on league+season
+        paramsObj.date = new Date().toISOString().split("T")[0];
+      }
+    }
+
+    // ---------- Fetch with axios params ----------
+    const url = `${process.env.API_FOOTBALL_BASEURL}/fixtures`;
+    const { data } = await axios.get(url, {
+      params: paramsObj,
+      headers: config.headers,
+      timeout: config.timeout,
+    });
+
     if (!data || !data.response) {
       return res.status(400).json({
         success: false,
@@ -565,40 +730,84 @@ adminRouter.get("/matches", async (req, res) => {
       });
     }
 
-    // ---------- Map data ----------
-    const matchesData = data.response.map((item: any) => ({
-      apiFixtureId: item.fixture.id,
-      leagueId: item.league.id,
-      leagueName: item.league.name,
-      leagueLogo: item.league.logo,
-      homeTeam: {
-        id: item.teams.home.id,
-        name: item.teams.home.name,
-        logo: item.teams.home.logo,
-      },
-      awayTeam: {
-        id: item.teams.away.id,
-        name: item.teams.away.name,
-        logo: item.teams.away.logo,
-      },
-      kickoffTime: item.fixture.date,
-      status: item.fixture.status.short, // NS, LIVE, FT, etc.
-      score:
-        item.goals.home !== null && item.goals.away !== null
-          ? `${item.goals.home}-${item.goals.away}`
-          : "0-0",
-      venue: item.fixture.venue?.name || null,
-      round: item.league.round,
-    }));
+    const now = new Date();
+    const matchesData = data.response.map((item: any) => {
+      const homeGoals = item.goals.home;
+      const awayGoals = item.goals.away;
+      const score =
+        homeGoals === null || awayGoals === null
+          ? null
+          : `${homeGoals}-${awayGoals}`;
 
-    // ---------- Cache ----------
+      return {
+        apiFixtureId: item.fixture.id,
+        leagueId: item.league.id,
+        leagueName: item.league.name,
+        leagueLogo: item.league.logo,
+        homeTeam: {
+          id: item.teams.home.id,
+          name: item.teams.home.name,
+          logo: item.teams.home.logo,
+        },
+        awayTeam: {
+          id: item.teams.away.id,
+          name: item.teams.away.name,
+          logo: item.teams.away.logo,
+        },
+        kickoffTime: item.fixture.date,
+        status: item.fixture.status.short, // NS, LIVE, FT, etc.
+        score,
+        venue: item.fixture.venue?.name || null,
+        round: item.league.round,
+        // convenience flags
+        isFuture: new Date(item.fixture.date) > now,
+      };
+    });
+
+    // ---------- If UI asked for UPCOMING, filter server-side by date too ----------
+    // If you consider UPCOMING = fixtures in future, filter here:
+    if (status === "UPCOMING") {
+      const filtered = matchesData.filter(
+        (m: any) => m.status === "NS" && m.isFuture,
+      );
+      await cacheSet(cacheKey, filtered, MATCHES_TTL);
+
+      // Paginate response
+      const startIndex = (page - 1) * limit;
+      const endIndex = startIndex + limit;
+      const paginatedMatches = filtered.slice(startIndex, endIndex);
+
+      return res.json({
+        success: true,
+        matches: paginatedMatches,
+        total: filtered.length,
+        pagination: {
+          page,
+          limit,
+          total: filtered.length,
+          hasMore: endIndex < filtered.length,
+        },
+      });
+    }
+
+    // ---------- Cache & respond ----------
     await cacheSet(cacheKey, matchesData, MATCHES_TTL);
 
-    // ---------- Response ----------
+    // Paginate response
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedMatches = matchesData.slice(startIndex, endIndex);
+
     res.json({
       success: true,
-      matches: matchesData,
+      matches: paginatedMatches,
       total: matchesData.length,
+      pagination: {
+        page,
+        limit,
+        total: matchesData.length,
+        hasMore: endIndex < matchesData.length,
+      },
     });
   } catch (error) {
     console.error("MATCH FETCH ERROR:", error);
@@ -612,16 +821,33 @@ adminRouter.get("/matches", async (req, res) => {
 // Get saved matches from database : /api/admin/matches/saved
 adminRouter.get("/matches/saved", async (req, res) => {
   try {
-    const matches = await prisma.match.findMany({
-      include: {
-        league: true,
-        homeTeam: true,
-        awayTeam: true,
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 100;
+    const skip = (page - 1) * limit;
+
+    const [matches, total] = await Promise.all([
+      prisma.match.findMany({
+        include: {
+          league: true,
+          homeTeam: true,
+          awayTeam: true,
+        },
+        orderBy: { kickoffTime: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.match.count(),
+    ]);
+
+    res.json({
+      matches,
+      pagination: {
+        page,
+        limit,
+        total,
+        hasMore: skip + matches.length < total,
       },
-      orderBy: { kickoffTime: "desc" },
-      take: 100, // Limit to latest 100 matches
     });
-    res.json(matches);
   } catch (error) {
     console.error(error);
     res.status(500).json({ error: "Failed to fetch saved matches" });

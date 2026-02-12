@@ -16,9 +16,11 @@ import {
   cancelSubscription,
   reactivateSubscription,
   createPortalSession,
+  // cleanupDuplicates, 
 } from "@/components/billingApi";
 import { useRouter } from "next/navigation";
 import { Shell } from "@/components/layout";
+import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
 
 interface Subscription {
   status: string;
@@ -34,6 +36,7 @@ export default function DashboardPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showCancelModal, setShowCancelModal] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -43,6 +46,7 @@ export default function DashboardPage() {
   const loadSubscription = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getSubscription();
       setSubscription(data as Subscription);
     } catch (err: any) {
@@ -53,24 +57,20 @@ export default function DashboardPage() {
     }
   };
 
-  const handleCancelSubscription = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to cancel your subscription? You'll retain access until the end of your billing period.",
-      )
-    ) {
-      return;
-    }
+  const handleCancelClick = () => {
+    setShowCancelModal(true);
+  };
 
+  const handleConfirmCancel = async () => {
     try {
       setActionLoading("cancel");
       setError(null);
       await cancelSubscription();
-      setSuccess(
-        "Subscription will be canceled at the end of the billing period",
-      );
+      setSuccess("Subscription canceled");
+      setShowCancelModal(false);
       await loadSubscription();
     } catch (err: any) {
+      console.error("Cancel failed", err);
       setError(err.message || "Failed to cancel subscription");
     } finally {
       setActionLoading(null);
@@ -104,7 +104,29 @@ export default function DashboardPage() {
       setActionLoading(null);
     }
   };
-  
+
+  // --- Commented out cleanup duplicates action ---
+  // const handleCleanupDuplicates = async () => {
+  //   try {
+  //     setActionLoading("cleanup");
+  //     setError(null);
+  //     setSuccess(null);
+  //     const resp = await cleanupDuplicates();
+  //     const msg =
+  //       resp?.message ||
+  //       `Cleaned up duplicates${
+  //         resp?.canceled ? `: ${resp.canceled.join(", ")}` : ""
+  //       }`;
+  //     setSuccess(msg);
+  //     await loadSubscription();
+  //   } catch (err: any) {
+  //     console.error("Cleanup failed", err);
+  //     setError(err.message || "Failed to cleanup duplicate subscriptions");
+  //   } finally {
+  //     setActionLoading(null);
+  //   }
+  // };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "active":
@@ -289,6 +311,18 @@ export default function DashboardPage() {
                 )}
               </button>
 
+              {/* <button
+                onClick={handleCleanupDuplicates}
+                disabled={actionLoading === "cleanup"}
+                className="flex-1 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {actionLoading === "cleanup" ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  "Cleanup Duplicates"
+                )}
+              </button> */}
+
               {subscription.cancelAtPeriodEnd ? (
                 <button
                   onClick={handleReactivateSubscription}
@@ -303,7 +337,7 @@ export default function DashboardPage() {
                 </button>
               ) : (
                 <button
-                  onClick={handleCancelSubscription}
+                  onClick={handleCancelClick}
                   disabled={actionLoading === "cancel"}
                   className="flex-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
@@ -316,9 +350,32 @@ export default function DashboardPage() {
               )}
             </div>
           )}
+
+          {subscription?.plan && subscription.status === "canceled" && (
+            <div className="flex gap-4">
+              <button
+                onClick={() => router.push("/pricing")}
+                className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2"
+              >
+                Subscribe again
+              </button>
+
+              {/* <button
+                onClick={handleCleanupDuplicates}
+                disabled={actionLoading === "cleanup"}
+                className="flex-1 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {actionLoading === "cleanup" ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  "Cleanup Duplicates"
+                )}
+              </button> */}
+            </div>
+          )}
         </div>
 
-        {/* Features Overview */}
+        {/* Features Overview (unchanged) */}
         <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
           <h3 className="text-xl font-bold text-white mb-4">
             Your Active Features
@@ -354,6 +411,18 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirm Modal */}
+      <DeleteConfirmModal
+        isOpen={showCancelModal}
+        title={"Confirm cancel subscription"}
+        message={
+          "Are you sure you want to cancel your subscription? Your access will end now."
+        }
+        onConfirm={handleConfirmCancel}
+        onCancel={() => setShowCancelModal(false)}
+        isDeleting={actionLoading === "cancel"}
+      />
     </Shell>
   );
 }

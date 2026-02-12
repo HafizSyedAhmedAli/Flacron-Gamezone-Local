@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Mail,
   Clock,
@@ -34,6 +35,10 @@ export default function ContactPage() {
   const [loading, setLoading] = useState<boolean>(false);
   const [success, setSuccess] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
+
+  const router = useRouter();
+
+  const WEB3FORMS_ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
 
   useEffect(() => {
     setMounted(true);
@@ -85,12 +90,51 @@ export default function ContactPage() {
 
     try {
       setLoading(true);
-      await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      setSuccess(true);
-      setFormData({ name: "", email: "", subject: "", message: "" });
+      if (!WEB3FORMS_ACCESS_KEY) {
+        setError({
+          general:
+            "Contact form is not configured. Please add WEB3FORMS_ACCESS_KEY in .env",
+        });
+        return;
+      }
+
+      // Web3Forms API call
+      const response = await fetch("https://api.web3forms.com/submit", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          access_key: WEB3FORMS_ACCESS_KEY,
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          // Optional: Add these fields for better tracking
+          from_name: "Flacrom Gamezone Contact Form",
+          replyto: formData.email,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        setSuccess(true);
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } else {
+        setError({
+          general:
+            result.message || "Failed to send message. Please try again.",
+        });
+      }
     } catch (err) {
-      setError({ general: "Failed to send message. Please try again." });
+      console.error("Form submission error:", err);
+      setError({
+        general:
+          "Failed to send message. Please check your connection and try again.",
+      });
     } finally {
       setLoading(false);
     }
@@ -440,7 +484,7 @@ export default function ContactPage() {
                       )}
                     </div>
                   </button>
-                </form>{" "}
+                </form>
               </div>
             </div>
           </div>
@@ -499,12 +543,12 @@ export default function ContactPage() {
             <div className="bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
               <h3 className="font-semibold text-white mb-4">Quick Links</h3>
               <div className="space-y-2">
-                <a
-                  href="/faq"
-                  className="block text-sm text-slate-400 hover:text-blue-400 transition-colors"
+                <button
+                  onClick={() => router.push("/pricing?scroll=faq")}
+                  className="block text-sm text-slate-400 hover:text-blue-400 transition-colors text-left w-full"
                 >
                   → FAQ & Help Center
-                </a>
+                </button>
                 <a
                   href="/terms"
                   className="block text-sm text-slate-400 hover:text-blue-400 transition-colors"
@@ -526,22 +570,6 @@ export default function ContactPage() {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Additional Info */}
-        <div
-          className={`mt-12 text-center transition-all duration-1000 delay-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
-        >
-          <p className="text-slate-500 text-sm">
-            For urgent technical issues, please use our{" "}
-            <a
-              href="/support"
-              className="text-blue-400 hover:text-blue-300 transition-colors underline"
-            >
-              live chat support
-            </a>{" "}
-            for immediate assistance
-          </p>
         </div>
       </div>
 

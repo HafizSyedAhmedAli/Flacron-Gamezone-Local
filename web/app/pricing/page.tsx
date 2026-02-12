@@ -17,6 +17,8 @@ import { createCheckoutSession } from "@/components/billingApi";
 import { useRouter } from "next/navigation";
 import { getToken } from "@/components/api";
 import { Shell } from "@/components/layout";
+import { useSearchParams } from "next/navigation";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 
 export default function PricingPage() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">(
@@ -27,6 +29,24 @@ export default function PricingPage() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    // Delay scroll to allow entry animations to complete
+    const timeoutId = setTimeout(() => {
+      if (searchParams.get("scroll") === "faq") {
+        const faqSection = document.getElementById("faq-section");
+        if (faqSection) {
+          faqSection.scrollIntoView({ behavior: "smooth" });
+        }
+      }
+    }, 600); // Account for delay-500 + buffer
+
+    return () => clearTimeout(timeoutId);
+  }, [searchParams, mounted]);
+  
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -68,6 +88,7 @@ export default function PricingPage() {
 
   return (
     <Shell className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+      <ScrollToTop />
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
@@ -329,6 +350,7 @@ export default function PricingPage() {
 
         {/* FAQ Section */}
         <div
+          id="faq-section"
           className={`max-w-3xl mx-auto transition-all duration-1000 delay-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
         >
           <h2 className="text-3xl font-bold text-center mb-8 text-white flex items-center justify-center gap-3">
