@@ -1,7 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FileText, Scale, UserCheck, AlertTriangle, Shield, Link2, RefreshCw, XCircle, Gavel, Mail, CheckCircle } from "lucide-react";
+import {
+  FileText,
+  Scale,
+  UserCheck,
+  AlertTriangle,
+  Shield,
+  Link2,
+  RefreshCw,
+  XCircle,
+  Gavel,
+  Mail,
+  CheckCircle,
+} from "lucide-react";
+import { Shell } from "@/components/layout";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 
 export default function TermsPage() {
   const lastUpdated = "January 24, 2026";
@@ -17,13 +31,15 @@ export default function TermsPage() {
       icon: FileText,
       color: "purple",
       title: "Acceptance of Terms",
-      content: "By accessing and using Flacrom Gamezone, you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to abide by these terms, please do not use this gaming platform. Your continued use of Flacrom Gamezone, including participation in tournaments, use of matchmaking services, or engagement with our community features, constitutes acceptance of any modifications to these terms. These terms apply to all users, including free tier members, premium subscribers, tournament participants, and casual players."
+      content:
+        "By accessing and using Flacrom Gamezone, you accept and agree to be bound by the terms and provisions of this agreement. If you do not agree to abide by these terms, please do not use this gaming platform. Your continued use of Flacrom Gamezone, including participation in tournaments, use of matchmaking services, or engagement with our community features, constitutes acceptance of any modifications to these terms. These terms apply to all users, including free tier members, premium subscribers, tournament participants, and casual players.",
     },
     {
       icon: Scale,
       color: "purple",
       title: "Use License",
-      content: "Permission is granted to access Flacrom Gamezone for personal gaming and entertainment purposes only. This is the grant of a license, not a transfer of title. Under this license you may not:",
+      content:
+        "Permission is granted to access Flacrom Gamezone for personal gaming and entertainment purposes only. This is the grant of a license, not a transfer of title. Under this license you may not:",
       restrictions: [
         "Modify, copy, or redistribute any game assets, software, or platform materials",
         "Use the platform for commercial purposes without written authorization",
@@ -32,98 +48,119 @@ export default function TermsPage() {
         "Transfer your account or license to another person without permission",
         "Use cheating software, bots, or automation tools that violate fair play",
         "Exploit bugs or glitches for competitive advantage",
-        "Engage in account sharing or selling"
-      ]
+        "Engage in account sharing or selling",
+      ],
     },
     {
       icon: UserCheck,
       color: "blue",
       title: "User Accounts and Subscriptions",
-      content: "When you create a Flacrom Gamezone account, you must provide accurate and complete information. You are responsible for:",
+      content:
+        "When you create a Flacrom Gamezone account, you must provide accurate and complete information. You are responsible for:",
       responsibilities: [
         "Maintaining the security of your account credentials",
         "All activities and transactions under your account",
         "Timely payment of subscription fees for premium services",
         "Compliance with these terms and community guidelines",
         "Keeping your contact information up to date",
-        "Notifying us immediately of any unauthorized account access"
+        "Notifying us immediately of any unauthorized account access",
       ],
-      additional: "Premium subscriptions auto-renew unless cancelled. You can manage your subscription from your account dashboard. Refunds are provided according to our refund policy."
+      additional:
+        "Premium subscriptions auto-renew unless cancelled. You can manage your subscription from your account dashboard. Refunds are provided according to our refund policy.",
     },
     {
       icon: AlertTriangle,
       color: "amber",
       title: "Disclaimer",
-      content: "The gaming services on Flacrom Gamezone are provided on an 'as is' and 'as available' basis. Flacrom Gamezone makes no warranties, expressed or implied, and hereby disclaims all warranties including, without limitation, implied warranties of merchantability, fitness for a particular gaming purpose, uninterrupted service, or non-infringement. We do not guarantee that tournaments will run without interruption, that matchmaking will always be balanced, or that live streams will be available without technical issues. Game statistics, leaderboards, and rankings are provided for informational purposes and may contain errors."
+      content:
+        "The gaming services on Flacrom Gamezone are provided on an 'as is' and 'as available' basis. Flacrom Gamezone makes no warranties, expressed or implied, and hereby disclaims all warranties including, without limitation, implied warranties of merchantability, fitness for a particular gaming purpose, uninterrupted service, or non-infringement. We do not guarantee that tournaments will run without interruption, that matchmaking will always be balanced, or that live streams will be available without technical issues. Game statistics, leaderboards, and rankings are provided for informational purposes and may contain errors.",
     },
     {
       icon: Shield,
       color: "orange",
       title: "Limitations of Liability",
-      content: "In no event shall Flacrom Gamezone or its suppliers be liable for any damages including, without limitation, loss of game progress, virtual items, tournament prizes, subscription fees, or business interruption arising from the use or inability to use our gaming platform. This includes damages from server outages, account suspension, tournament disqualification, or technical failures. Our maximum liability is limited to the amount you paid for services in the 12 months preceding the claim, even if Flacrom Gamezone has been notified of the possibility of such damage."
+      content:
+        "In no event shall Flacrom Gamezone or its suppliers be liable for any damages including, without limitation, loss of game progress, virtual items, tournament prizes, subscription fees, or business interruption arising from the use or inability to use our gaming platform. This includes damages from server outages, account suspension, tournament disqualification, or technical failures. Our maximum liability is limited to the amount you paid for services in the 12 months preceding the claim, even if Flacrom Gamezone has been notified of the possibility of such damage.",
     },
     {
       icon: CheckCircle,
       color: "orange",
       title: "Accuracy of Materials",
-      content: "The materials on Flacrom Gamezone, including tournament schedules, match results, player statistics, leaderboard rankings, and live stream information, could include technical, typographical, or other errors. Flacrom Gamezone does not warrant that game data, player profiles, or tournament information is accurate, complete, or current. We reserve the right to correct errors, update statistics, or modify tournament brackets at any time without notice. Match results are considered final once officially published, except in cases of proven technical errors or rule violations."
+      content:
+        "The materials on Flacrom Gamezone, including tournament schedules, match results, player statistics, leaderboard rankings, and live stream information, could include technical, typographical, or other errors. Flacrom Gamezone does not warrant that game data, player profiles, or tournament information is accurate, complete, or current. We reserve the right to correct errors, update statistics, or modify tournament brackets at any time without notice. Match results are considered final once officially published, except in cases of proven technical errors or rule violations.",
     },
     {
       icon: Link2,
       color: "green",
       title: "Links and Third-Party Content",
-      content: "Flacrom Gamezone may contain links to third-party websites, streaming platforms, or gaming services. We are not responsible for:",
+      content:
+        "Flacrom Gamezone may contain links to third-party websites, streaming platforms, or gaming services. We are not responsible for:",
       thirdParty: [
         "The content, privacy practices, or security of third-party sites",
         "Availability, quality, or latency of third-party game servers or streams",
         "Any damages, losses, or issues arising from your use of external services",
         "Content shared by other players in community features",
-        "Third-party tournament organizers or prize distributions"
+        "Third-party tournament organizers or prize distributions",
       ],
-      note: "Use of external links and services is at your own risk. We recommend reviewing their terms and privacy policies."
+      note: "Use of external links and services is at your own risk. We recommend reviewing their terms and privacy policies.",
     },
     {
       icon: RefreshCw,
       color: "green",
       title: "Modifications to Terms",
-      content: "Flacrom Gamezone may revise these Terms of Service at any time to reflect changes in our gaming services, legal requirements, or business practices. Material changes will be communicated via email to registered users and prominently displayed on the platform. By continuing to use Flacrom Gamezone after modifications take effect, you agree to be bound by the revised terms. We recommend reviewing these terms periodically. Premium members will receive 30 days advance notice of any changes affecting subscription pricing or core features."
+      content:
+        "Flacrom Gamezone may revise these Terms of Service at any time to reflect changes in our gaming services, legal requirements, or business practices. Material changes will be communicated via email to registered users and prominently displayed on the platform. By continuing to use Flacrom Gamezone after modifications take effect, you agree to be bound by the revised terms. We recommend reviewing these terms periodically. Premium members will receive 30 days advance notice of any changes affecting subscription pricing or core features.",
     },
     {
       icon: XCircle,
       color: "red",
       title: "Account Termination",
-      content: "We may terminate or suspend your account and access to Flacrom Gamezone immediately, without prior notice or liability, for any reason including but not limited to:",
+      content:
+        "We may terminate or suspend your account and access to Flacrom Gamezone immediately, without prior notice or liability, for any reason including but not limited to:",
       violations: [
         "Breach of these Terms of Service or community guidelines",
         "Use of cheating software or unauthorized third-party tools",
         "Harassment, abuse, or toxic behavior toward other players",
         "Fraud, payment disputes, or chargebacks",
         "Account sharing, selling, or unauthorized access",
-        "Violation of tournament rules or competitive integrity"
+        "Violation of tournament rules or competitive integrity",
       ],
-      rights: "Upon termination, your right to use the service will immediately cease. You may lose access to virtual items, game progress, and any unused subscription time. We reserve the right to delete terminated accounts and associated data."
+      rights:
+        "Upon termination, your right to use the service will immediately cease. You may lose access to virtual items, game progress, and any unused subscription time. We reserve the right to delete terminated accounts and associated data.",
     },
     {
       icon: Gavel,
       color: "red",
       title: "Governing Law",
-      content: "These Terms of Service are governed by and construed in accordance with the laws of the State of California, United States, without regard to its conflict of law provisions. You irrevocably submit to the exclusive jurisdiction of the courts located in San Francisco, California for resolution of any disputes arising from these terms or your use of Flacrom Gamezone. Any legal action must be commenced within one year of the cause of action arising."
+      content:
+        "These Terms of Service are governed by and construed in accordance with the laws of the State of California, United States, without regard to its conflict of law provisions. You irrevocably submit to the exclusive jurisdiction of the courts located in San Francisco, California for resolution of any disputes arising from these terms or your use of Flacrom Gamezone. Any legal action must be commenced within one year of the cause of action arising.",
     },
     {
       icon: Mail,
       color: "purple",
       title: "Contact Information",
-      content: "If you have any questions about these Terms of Service, need clarification on any provisions, or wish to report a violation, please contact our legal team:"
-    }
+      content:
+        "If you have any questions about these Terms of Service, need clarification on any provisions, or wish to report a violation, please contact our legal team:",
+    },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+    <Shell className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+      <ScrollToTop />
       {/* Animated background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '4s' }}></div>
-        <div className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s', animationDelay: '2s' }}></div>
+        <div
+          className="absolute top-20 left-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "4s" }}
+        ></div>
+        <div
+          className="absolute bottom-20 right-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "6s", animationDelay: "1s" }}
+        ></div>
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse"
+          style={{ animationDuration: "8s", animationDelay: "2s" }}
+        ></div>
       </div>
 
       {/* Floating particles */}
@@ -136,7 +173,7 @@ export default function TermsPage() {
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
               animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`
+              animationDelay: `${Math.random() * 5}s`,
             }}
           />
         ))}
@@ -144,7 +181,11 @@ export default function TermsPage() {
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-16">
         {/* Header */}
-        <div className={`text-center mb-12 transition-all duration-1000 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div
+          className={`text-center mb-12 transition-all duration-1000 ${
+            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
           <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-blue-600 mb-6 shadow-lg shadow-purple-500/50 relative group">
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-purple-400 to-blue-500 blur-md opacity-50 group-hover:opacity-75 transition-opacity"></div>
             <FileText className="w-10 h-10 text-white relative z-10" />
@@ -155,195 +196,100 @@ export default function TermsPage() {
           <p className="text-slate-400 text-lg mb-2">
             Please read these terms carefully before using our platform
           </p>
-          <p className="text-slate-500 text-sm">
-            Last updated: {lastUpdated}
-          </p>
+          <p className="text-slate-500 text-sm">Last updated: {lastUpdated}</p>
         </div>
 
         {/* Content */}
-        <div className={`bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl transition-all duration-1000 delay-150 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+        <div
+          className={`bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl transition-all duration-1000 delay-150 ${
+            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
+          }`}
+        >
           <div className="space-y-8">
             {sections.map((section, index) => {
               const Icon = section.icon;
               const colorClasses = {
-                purple: "from-purple-500 to-purple-600 text-purple-400 bg-purple-500/10 border-purple-500/30",
+                purple:
+                  "from-purple-500 to-purple-600 text-purple-400 bg-purple-500/10 border-purple-500/30",
                 blue: "from-blue-500 to-blue-600 text-blue-400 bg-blue-500/10 border-blue-500/30",
-                amber: "from-amber-500 to-amber-600 text-amber-400 bg-amber-500/10 border-amber-500/30",
-                orange: "from-orange-500 to-orange-600 text-orange-400 bg-orange-500/10 border-orange-500/30",
-                green: "from-green-500 to-green-600 text-green-400 bg-green-500/10 border-green-500/30",
-                red: "from-red-500 to-red-600 text-red-400 bg-red-500/10 border-red-500/30"
-              }[section.color];
+                amber:
+                  "from-amber-500 to-amber-600 text-amber-400 bg-amber-500/10 border-amber-500/30",
+                orange:
+                  "from-orange-500 to-orange-600 text-orange-400 bg-orange-500/10 border-orange-500/30",
+                green:
+                  "from-green-500 to-green-600 text-green-400 bg-green-500/10 border-green-500/30",
+                red: "from-red-500 to-red-600 text-red-400 bg-red-500/10 border-red-500/30",
+              }[section.color]!;
+
+              const [bgFrom, bgTo, textColor, borderColor] =
+                colorClasses.split(" ");
 
               return (
-                <section 
+                <section
                   key={index}
                   className="group"
                   onMouseEnter={() => setActiveSection(index)}
                   onMouseLeave={() => setActiveSection(null)}
                 >
                   <div className="flex items-start gap-4 mb-4">
-                    <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${colorClasses.split(' ')[0]} ${colorClasses.split(' ')[1]} flex items-center justify-center flex-shrink-0 shadow-lg transition-transform duration-300 ${activeSection === index ? 'scale-110' : ''}`}>
+                    <div
+                      className={`w-12 h-12 rounded-xl bg-gradient-to-br ${bgFrom} ${bgTo} flex items-center justify-center flex-shrink-0 shadow-lg transition-transform duration-300 ${
+                        activeSection === index ? "scale-110" : ""
+                      }`}
+                    >
                       <Icon className="w-6 h-6 text-white" />
                     </div>
                     <div className="flex-1">
                       <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         {section.title}
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${colorClasses.split(' ')[2]} ${colorClasses.split(' ')[3]}`}>
+                        <span
+                          className={`text-sm font-semibold px-3 py-1 rounded-full ${textColor} ${borderColor}`}
+                        >
                           {index + 1}
                         </span>
                       </h2>
                     </div>
                   </div>
-                  
+
                   <div className="ml-16">
-                    {index === 3 ? (
-                      <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl p-6">
-                        <p className="text-slate-300 leading-relaxed">
-                          {section.content}
-                        </p>
-                      </div>
-                    ) : (
+                    {section.content && (
                       <p className="text-slate-300 leading-relaxed mb-4">
                         {section.content}
                       </p>
                     )}
-
-                    {/* Restrictions for Use License */}
-                    {section.restrictions && (
-                      <div className="space-y-3">
-                        {section.restrictions.map((restriction, i) => (
-                          <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-red-500/30 transition-all">
-                            <div className="flex items-start gap-3">
-                              <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                              <span className="text-slate-300">{restriction}</span>
-                            </div>
+                    {section.restrictions &&
+                      section.restrictions.map((restriction, i) => (
+                        <div
+                          key={i}
+                          className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 mb-2 hover:border-red-500/30 transition-all"
+                        >
+                          <div className="flex items-start gap-3">
+                            <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-300">
+                              {restriction}
+                            </span>
                           </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Responsibilities for User Accounts */}
-                    {section.responsibilities && (
-                      <>
-                        <div className="grid md:grid-cols-2 gap-3 mb-4">
-                          {section.responsibilities.map((resp, i) => (
-                            <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-blue-500/30 transition-all">
-                              <div className="flex items-start gap-3">
-                                <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                                <span className="text-slate-300">{resp}</span>
-                              </div>
-                            </div>
-                          ))}
                         </div>
-                        {section.additional && (
-                          <div className="bg-blue-500/10 border border-blue-500/30 rounded-xl p-4">
-                            <p className="text-slate-300 text-sm">{section.additional}</p>
+                      ))}
+                    {section.responsibilities &&
+                      section.responsibilities.map((resp, i) => (
+                        <div
+                          key={i}
+                          className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 mb-2 hover:border-blue-500/30 transition-all"
+                        >
+                          <div className="flex items-start gap-3">
+                            <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                            <span className="text-slate-300">{resp}</span>
                           </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Third Party items */}
-                    {section.thirdParty && (
-                      <>
-                        <div className="space-y-3 mb-4">
-                          {section.thirdParty.map((item, i) => (
-                            <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-green-500/30 transition-all">
-                              <div className="flex items-start gap-3">
-                                <span className="text-slate-500 font-bold">•</span>
-                                <span className="text-slate-300">{item}</span>
-                              </div>
-                            </div>
-                          ))}
                         </div>
-                        {section.note && (
-                          <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4">
-                            <p className="text-slate-300 text-sm">{section.note}</p>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Violations for Termination */}
-                    {section.violations && (
-                      <>
-                        <div className="space-y-3 mb-4">
-                          {section.violations.map((violation, i) => (
-                            <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-red-500/30 transition-all">
-                              <div className="flex items-start gap-3">
-                                <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-                                <span className="text-slate-300">{violation}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {section.rights && (
-                          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
-                            <p className="text-slate-300 text-sm">{section.rights}</p>
-                          </div>
-                        )}
-                      </>
-                    )}
-
-                    {/* Contact section special styling */}
-                    {index === sections.length - 1 && (
-                      <div className="bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/30 rounded-xl p-6 mt-4">
-                        <div className="space-y-3">
-                          <div className="flex items-center gap-3 text-slate-300">
-                            <Mail className="w-5 h-5 text-purple-400" />
-                            <a href="mailto:legal@flacromgamezone.com" className="text-purple-400 hover:text-purple-300 transition-colors font-semibold">
-                              legal@flacromgamezone.com
-                            </a>
-                          </div>
-                          <div className="flex items-center gap-3 text-slate-300">
-                            <Mail className="w-5 h-5 text-blue-400" />
-                            <a href="mailto:support@flacromgamezone.com" className="text-blue-400 hover:text-blue-300 transition-colors font-semibold">
-                              support@flacromgamezone.com
-                            </a>
-                          </div>
-                          <p className="text-sm text-slate-400 mt-4">
-                            Our legal team typically responds within 2-3 business days. For urgent matters, please contact support.
-                          </p>
-                        </div>
-                      </div>
-                    )}
+                      ))}
                   </div>
                 </section>
               );
             })}
           </div>
         </div>
-
-        {/* Footer note */}
-        <div className={`mt-8 text-center transition-all duration-1000 delay-300 ${mounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
-          <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 inline-block">
-            <div className="flex items-center gap-3 justify-center mb-2">
-              <Scale className="w-5 h-5 text-purple-400" />
-              <p className="text-slate-300 font-semibold">Legally Binding Agreement</p>
-            </div>
-            <p className="text-slate-500 text-sm max-w-2xl">
-              By using Flacrom Gamezone, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service. If you do not agree, please discontinue use immediately.
-            </p>
-          </div>
-        </div>
       </div>
-
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-20px) translateX(10px); }
-        }
-        
-        @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        
-        .animate-gradient {
-          background-size: 200% auto;
-          animation: gradient 3s ease infinite;
-        }
-      `}</style>
-    </div>
+    </Shell>
   );
 }

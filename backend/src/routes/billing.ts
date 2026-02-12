@@ -63,7 +63,63 @@ billingRouter.post("/checkout", requireAuth, async (req: AuthRequest, res) => {
       });
     }
 
-    // Create checkout session
+    // ✅ CHECK FOR EXISTING ACTIVE SUBSCRIPTIONS
+    if (customerId) {
+      const existingSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 100,
+      });
+
+      // If user has any active subscriptions, prevent creating a new one
+      if (existingSubscriptions.data.length > 0) {
+        const activeSub = existingSubscriptions.data[0];
+
+        // Check if it's for the same price (same plan)
+        const currentPriceId = activeSub.items.data[0]?.price.id;
+
+        if (currentPriceId === priceId) {
+          return res.status(400).json({
+            error: "You already have an active subscription for this plan",
+            existingSubscription: true,
+            currentPlan: plan,
+          });
+        } else {
+          // Different plan - they want to switch
+          return res.status(400).json({
+            error:
+              "You already have an active subscription. Please cancel your current subscription before subscribing to a new plan.",
+            existingSubscription: true,
+            currentPlan:
+              currentPriceId === process.env.STRIPE_PRICE_MONTHLY
+                ? "monthly"
+                : "yearly",
+            requestedPlan: plan,
+          });
+        }
+      }
+
+      // Also check for trialing, past_due, or unpaid subscriptions
+      const pendingSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "all",
+        limit: 100,
+      });
+
+      const activeOrPending = pendingSubscriptions.data.filter((sub) =>
+        ["active", "trialing", "past_due"].includes(sub.status),
+      );
+
+      if (activeOrPending.length > 0) {
+        return res.status(400).json({
+          error:
+            "You already have a subscription. Please manage your existing subscription first.",
+          existingSubscription: true,
+        });
+      }
+    }
+
+    // Create checkout session (only if no active subscription exists)
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: customerId,
@@ -73,6 +129,13 @@ billingRouter.post("/checkout", requireAuth, async (req: AuthRequest, res) => {
       metadata: {
         userId: user.id,
         plan: plan,
+      },
+      // ✅ PREVENT DUPLICATE SUBSCRIPTIONS AT STRIPE LEVEL
+      subscription_data: {
+        metadata: {
+          userId: user.id,
+          plan: plan,
+        },
       },
     });
 
@@ -200,10 +263,6 @@ billingRouter.get(
   },
 );
 
-/**
- * POST /api/billing/cancel
- * Cancel subscription at period end
- */
 billingRouter.post("/cancel", requireAuth, async (req: AuthRequest, res) => {
   try {
     if (!stripe) {
@@ -220,29 +279,29 @@ billingRouter.post("/cancel", requireAuth, async (req: AuthRequest, res) => {
       return res.status(404).json({ error: "No active subscription found" });
     }
 
-    // Cancel at period end in Stripe
-    const stripeSubscription = await stripe.subscriptions.update(
+    // ✅ Cancel subscription instantly in Stripe
+    const canceledSubscription = await stripe.subscriptions.cancel(
       subscription.stripeSubscriptionId,
-      { cancel_at_period_end: true },
+      { invoice_now: true, prorate: true },
     );
 
-    // Update in database
+    // ✅ Update database
     await prisma.subscription.update({
       where: { userId: user.id },
       data: {
-        cancelAtPeriodEnd: true,
+        status: "canceled",
+        cancelAtPeriodEnd: false,
         updatedAt: new Date(),
       },
     });
 
     res.json({
-      message: "Subscription will be canceled at the end of the billing period",
-      cancelAt: stripeSubscription.cancel_at
-        ? new Date(stripeSubscription.cancel_at * 1000)
-        : null,
+      message: "Subscription canceled ",
+      canceledAt: new Date(canceledSubscription.canceled_at! * 1000),
+      status: canceledSubscription.status,
     });
   } catch (error: any) {
-    console.error("Cancel subscription error:", error);
+    console.error("Instant cancel subscription error:", error);
     res.status(500).json({ error: "Failed to cancel subscription" });
   }
 });
@@ -329,6 +388,81 @@ billingRouter.post("/portal", requireAuth, async (req: AuthRequest, res) => {
     res.status(500).json({ error: "Failed to create portal session" });
   }
 });
+
+/**
+ * ✅ NEW ENDPOINT: Cancel all duplicate subscriptions for a user
+ * POST /api/billing/cleanup-duplicates
+ * This helps clean up any existing duplicate subscriptions
+ */
+billingRouter.post(
+  "/cleanup-duplicates",
+  requireAuth,
+  async (req: AuthRequest, res) => {
+    try {
+      if (!stripe) {
+        return res.status(500).json({ error: "Stripe not configured" });
+      }
+
+      const user = req.user!;
+
+      const subscription = await prisma.subscription.findUnique({
+        where: { userId: user.id },
+      });
+
+      if (!subscription?.stripeCustomerId) {
+        return res.status(404).json({ error: "No customer found" });
+      }
+
+      // Get all subscriptions for this customer
+      const allSubscriptions = await stripe.subscriptions.list({
+        customer: subscription.stripeCustomerId,
+        status: "all",
+        limit: 100,
+      });
+
+      const activeSubs = allSubscriptions.data.filter((sub) =>
+        ["active", "trialing"].includes(sub.status),
+      );
+
+      if (activeSubs.length <= 1) {
+        return res.json({
+          message: "No duplicate subscriptions found",
+          count: activeSubs.length,
+        });
+      }
+
+      // Keep the most recent one, cancel the rest
+      const sortedSubs = activeSubs.sort((a, b) => b.created - a.created);
+      const keepSub = sortedSubs[0];
+      const cancelSubs = sortedSubs.slice(1);
+
+      const canceledIds = [];
+      for (const sub of cancelSubs) {
+        await stripe.subscriptions.cancel(sub.id);
+        canceledIds.push(sub.id);
+      }
+
+      // Update database to reflect the kept subscription
+      await prisma.subscription.update({
+        where: { userId: user.id },
+        data: {
+          stripeSubscriptionId: keepSub.id,
+          status: keepSub.status,
+          updatedAt: new Date(),
+        },
+      });
+
+      res.json({
+        message: `Cleaned up ${canceledIds.length} duplicate subscription(s)`,
+        kept: keepSub.id,
+        canceled: canceledIds,
+      });
+    } catch (error: any) {
+      console.error("Cleanup duplicates error:", error);
+      res.status(500).json({ error: "Failed to cleanup duplicates" });
+    }
+  },
+);
 
 // Helper functions for webhook handlers
 

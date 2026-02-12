@@ -14,6 +14,7 @@ import {
   PlayCircle,
   Radio,
 } from "lucide-react";
+import { ScrollToTop } from "@/components/ui/ScrollToTop";
 
 interface Team {
   id: string;
@@ -101,6 +102,7 @@ export default function LiveMatchesPage() {
 
   return (
     <Shell className="bg-[#0a0e27] flex flex-col">
+      <ScrollToTop />
       <div className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-6">
           {/* Header */}

@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Plus, Search, X, Calendar, Filter } from "lucide-react";
+import { Plus, Search, X } from "lucide-react";
+import { useEffect } from "react";
 
 interface Match {
   apiFixtureId: number;
@@ -42,6 +41,13 @@ interface MatchBrowserProps {
   selectedStatus: string;
   onStatusChange: (status: string) => void;
   isLoading?: boolean;
+  pagination: {
+    page: number;
+    hasMore: boolean;
+    loading: boolean;
+    total: number;
+  };
+  onLoadMore: () => void;
 }
 
 export function MatchBrowser({
@@ -60,6 +66,8 @@ export function MatchBrowser({
   selectedStatus,
   onStatusChange,
   isLoading,
+  pagination,
+  onLoadMore,
 }: MatchBrowserProps) {
   if (!isOpen) return null;
 
@@ -86,7 +94,12 @@ export function MatchBrowser({
   };
 
   const getStatusBadge = (status: string) => {
-    if (status === "LIVE" || status === "1H" || status === "2H" || status === "HT") {
+    if (
+      status === "LIVE" ||
+      status === "1H" ||
+      status === "2H" ||
+      status === "HT"
+    ) {
       return (
         <span className="px-3 py-1 rounded-lg text-xs font-bold bg-gradient-to-r from-red-500 to-orange-500 text-white animate-pulse inline-flex items-center gap-1.5 shadow-lg shadow-red-500/30">
           <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
@@ -131,7 +144,10 @@ export function MatchBrowser({
         {/* Header */}
         <div className="p-6 border-b border-slate-700/50">
           <div className="flex items-center justify-between mb-5">
-            <h2 id="match-browser-title" className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent">
+            <h2
+              id="match-browser-title"
+              className="text-2xl font-bold bg-gradient-to-r from-white via-blue-100 to-purple-200 bg-clip-text text-transparent"
+            >
               Browse Matches from API
             </h2>
             <button
@@ -194,7 +210,7 @@ export function MatchBrowser({
 
         {/* Matches List */}
         <div className="overflow-y-auto p-6 space-y-3">
-          {isLoading ? (
+          {isLoading && matches.length === 0 ? (
             <div className="text-center text-slate-400 py-12">
               <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
               <p>Loading matches...</p>
@@ -204,110 +220,134 @@ export function MatchBrowser({
               <p>No matches found. Try different filters.</p>
             </div>
           ) : (
-            filteredMatches.map((match) => {
-              const alreadyAdded = savedMatches.some(
-                (m) => m.apiFixtureId === match.apiFixtureId,
-              );
-              return (
-                <div
-                  key={match.apiFixtureId}
-                  className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-xl p-4 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10"
-                >
-                  <div className="flex items-center justify-between gap-4">
-                    {/* Match Info */}
-                    <div className="flex-1">
-                      {/* League Badge */}
-                      <div className="flex items-center gap-2 mb-3">
-                        {match.leagueLogo && (
-                          <img
-                            src={match.leagueLogo}
-                            alt={match.leagueName}
-                            className="w-5 h-5 object-contain"
-                          />
-                        )}
-                        <span className="text-xs text-slate-400 font-medium">
-                          {match.leagueName}
-                          {match.round && ` • ${match.round}`}
-                        </span>
-                      </div>
-
-                      {/* Teams */}
-                      <div className="flex items-center gap-4 mb-3">
-                        {/* Home Team */}
-                        <div className="flex items-center gap-2 flex-1">
-                          {match.homeTeam.logo && (
-                            <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg p-1.5 flex items-center justify-center">
-                              <img
-                                src={match.homeTeam.logo}
-                                alt={match.homeTeam.name}
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
+            <>
+              {filteredMatches.map((match) => {
+                const alreadyAdded = savedMatches.some(
+                  (m) => m.apiFixtureId === match.apiFixtureId,
+                );
+                return (
+                  <div
+                    key={match.apiFixtureId}
+                    className="bg-gradient-to-br from-slate-800/50 to-slate-900/50 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-xl p-4 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/10"
+                  >
+                    <div className="flex items-center justify-between gap-4">
+                      {/* Match Info */}
+                      <div className="flex-1">
+                        {/* League Badge */}
+                        <div className="flex items-center gap-2 mb-3">
+                          {match.leagueLogo && (
+                            <img
+                              src={match.leagueLogo}
+                              alt={match.leagueName}
+                              className="w-5 h-5 object-contain"
+                            />
                           )}
-                          <span className="font-semibold text-sm text-slate-100">
-                            {match.homeTeam.name}
+                          <span className="text-xs text-slate-400 font-medium">
+                            {match.leagueName}
+                            {match.round && ` • ${match.round}`}
                           </span>
                         </div>
 
-                        {/* Score/VS */}
-                        <div className="text-center px-4">
-                          {match.status === "NS" ? (
-                            <span className="text-slate-500 text-sm font-medium">vs</span>
-                          ) : (
-                            <span className="font-bold text-xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                              {match.score}
+                        {/* Teams */}
+                        <div className="flex items-center gap-4 mb-3">
+                          {/* Home Team */}
+                          <div className="flex items-center gap-2 flex-1">
+                            {match.homeTeam.logo && (
+                              <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg p-1.5 flex items-center justify-center">
+                                <img
+                                  src={match.homeTeam.logo}
+                                  alt={match.homeTeam.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            )}
+                            <span className="font-semibold text-sm text-slate-100">
+                              {match.homeTeam.name}
                             </span>
-                          )}
+                          </div>
+
+                          {/* Score/VS */}
+                          <div className="text-center px-4">
+                            {match.status === "NS" ? (
+                              <span className="text-slate-500 text-sm font-medium">
+                                vs
+                              </span>
+                            ) : (
+                              <span className="font-bold text-xl bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                                {match.score}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Away Team */}
+                          <div className="flex items-center gap-2 flex-1 justify-end">
+                            <span className="font-semibold text-sm text-slate-100">
+                              {match.awayTeam.name}
+                            </span>
+                            {match.awayTeam.logo && (
+                              <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg p-1.5 flex items-center justify-center">
+                                <img
+                                  src={match.awayTeam.logo}
+                                  alt={match.awayTeam.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Away Team */}
-                        <div className="flex items-center gap-2 flex-1 justify-end">
-                          <span className="font-semibold text-sm text-slate-100">
-                            {match.awayTeam.name}
-                          </span>
-                          {match.awayTeam.logo && (
-                            <div className="w-10 h-10 bg-gradient-to-br from-slate-700 to-slate-800 rounded-lg p-1.5 flex items-center justify-center">
-                              <img
-                                src={match.awayTeam.logo}
-                                alt={match.awayTeam.name}
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
-                          )}
+                        {/* Time and Venue */}
+                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                          <span>{formatDate(match.kickoffTime)}</span>
+                          {match.venue && <span>• {match.venue}</span>}
+                          {getStatusBadge(match.status)}
                         </div>
                       </div>
 
-                      {/* Time and Venue */}
-                      <div className="flex items-center gap-3 text-xs text-slate-400">
-                        <span>{formatDate(match.kickoffTime)}</span>
-                        {match.venue && <span>• {match.venue}</span>}
-                        {getStatusBadge(match.status)}
-                      </div>
+                      {/* Add Button */}
+                      <button
+                        onClick={() => onAddMatch(match)}
+                        disabled={alreadyAdded}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 shrink-0 ${
+                          alreadyAdded
+                            ? "bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-400 border border-green-500/30 cursor-not-allowed"
+                            : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white hover:scale-105 shadow-lg shadow-blue-500/20"
+                        }`}
+                      >
+                        {alreadyAdded ? (
+                          "Added ✓"
+                        ) : (
+                          <>
+                            <Plus className="w-4 h-4" />
+                            Add
+                          </>
+                        )}
+                      </button>
                     </div>
-
-                    {/* Add Button */}
-                    <button
-                      onClick={() => onAddMatch(match)}
-                      disabled={alreadyAdded}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-300 flex items-center gap-2 shrink-0 ${
-                        alreadyAdded
-                          ? "bg-gradient-to-r from-green-600/20 to-emerald-600/20 text-green-400 border border-green-500/30 cursor-not-allowed"
-                          : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white hover:scale-105 shadow-lg shadow-blue-500/20"
-                      }`}
-                    >
-                      {alreadyAdded ? (
-                        "Added ✓"
-                      ) : (
-                        <>
-                          <Plus className="w-4 h-4" />
-                          Add
-                        </>
-                      )}
-                    </button>
                   </div>
+                );
+              })}
+
+              {/* Load More Button */}
+              {pagination.hasMore && (
+                <div className="pt-4">
+                  <button
+                    onClick={onLoadMore}
+                    disabled={pagination.loading}
+                    className="w-full px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:from-slate-600 disabled:to-slate-700 rounded-lg text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                    {pagination.loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      `Load More (${pagination.total - filteredMatches.length} remaining)`
+                    )}
+                  </button>
                 </div>
-              );
-            })
+              )}
+            </>
           )}
         </div>
       </div>

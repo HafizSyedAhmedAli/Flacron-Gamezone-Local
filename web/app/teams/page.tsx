@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "../../components/api";
 import { Shell } from "../../components/layout";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 import {
-  ChevronLeft,
-  ChevronRight,
   Search,
   Trophy,
   Users,
@@ -16,13 +15,14 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 
+const ITEMS_PER_PAGE = 12;
+
 export default function TeamsPage() {
   const [q, setQ] = useState("");
   const [teams, setTeams] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [page, setPage] = useState(0);
-  const itemsPerPage = 12;
+  const [currentPage, setCurrentPage] = useState(0);
 
   async function load() {
     setIsLoading(true);
@@ -42,7 +42,7 @@ export default function TeamsPage() {
 
   useEffect(() => {
     load();
-    setPage(0);
+    setCurrentPage(0);
   }, [q]);
 
   // Filter teams based on search
@@ -52,19 +52,10 @@ export default function TeamsPage() {
       (t.league?.name || "").toLowerCase().includes(q.toLowerCase()),
   );
 
-  const paginatedTeams = filteredTeams.slice(
-    page * itemsPerPage,
-    (page + 1) * itemsPerPage,
-  );
-  const totalPages = Math.ceil(filteredTeams.length / itemsPerPage);
-
-  const handlePrevPage = () => {
-    if (page > 0) setPage(page - 1);
-  };
-
-  const handleNextPage = () => {
-    if (page < totalPages - 1) setPage(page + 1);
-  };
+  const totalPages = Math.ceil(filteredTeams.length / ITEMS_PER_PAGE);
+  const startIndex = currentPage * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const paginatedTeams = filteredTeams.slice(startIndex, endIndex);
 
   const totalMatches = Math.floor(
     teams.reduce((acc, t) => acc + (t.matches || 0), 0) / 2,
@@ -157,39 +148,16 @@ export default function TeamsPage() {
           </div>
         </div>
 
-        {/* Header with pagination */}
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm text-slate-400">
-            <span className="font-medium text-white">
-              {filteredTeams.length}
-            </span>
-            <span>teams found</span>
-          </div>
-
-          {filteredTeams.length > itemsPerPage && (
-            <div className="flex gap-2 items-center bg-slate-900/50 rounded-xl px-2 py-2 border border-slate-700/50">
-              <button
-                onClick={handlePrevPage}
-                disabled={page === 0}
-                className="hover:bg-blue-500/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-all duration-200 hover:text-blue-400"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <div className="flex items-center px-3 text-sm font-medium min-w-[60px] justify-center">
-                <span className="text-blue-400">{page + 1}</span>
-                <span className="text-slate-600 mx-1.5">/</span>
-                <span className="text-slate-400">{totalPages}</span>
-              </div>
-              <button
-                onClick={handleNextPage}
-                disabled={page >= totalPages - 1}
-                className="hover:bg-blue-500/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-lg px-3 py-2 transition-all duration-200 hover:text-blue-400"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Pagination Controls */}
+        {filteredTeams.length > ITEMS_PER_PAGE && (
+          <PaginationControls
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            itemsPerPage={ITEMS_PER_PAGE}
+            totalItems={filteredTeams.length}
+          />
+        )}
 
         {/* Teams Grid */}
         {isLoading ? (
@@ -206,7 +174,10 @@ export default function TeamsPage() {
             ))}
           </div>
         ) : paginatedTeams.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          <div
+            key={currentPage}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 animate-in fade-in slide-in-from-bottom-4 duration-700"
+          >
             {paginatedTeams.map((t, idx) => {
               const winRate =
                 t.wins && t.matches
