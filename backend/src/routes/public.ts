@@ -1,4 +1,5 @@
 import { Router } from "express";
+import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
 import { getLiveFixturesCached } from "../services/footballApi.js";
 
@@ -526,7 +527,42 @@ publicRouter.get("/match/:id", async (req, res) => {
     },
   });
   if (!match) return res.status(404).json({ error: "Not found" });
-  res.json(match);
+
+  // Check if caller is premium
+  const authHeader = req.headers.authorization;
+  let isPremium = false;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const token = authHeader.slice(7);
+      const secret = process.env.JWT_SECRET || "dev_secret";
+      const decoded = jwt.verify(token, secret) as any;
+      const user = await prisma.user.findUnique({
+        where: { id: decoded.userId },
+        include: { subscription: true },
+      });
+      isPremium =
+        user?.role === "ADMIN" || user?.subscription?.status === "active";
+    } catch {
+      isPremium = false;
+    }
+  }
+  // Scrub stream URL for non-premium
+  const safeMatch = {
+    ...match,
+    stream: match.stream
+      ? {
+          ...match.stream,
+          url: isPremium ? match.stream.url : null,
+          type: match.stream.type,
+          isActive: isPremium ? match.stream.isActive : false,
+        }
+      : null,
+    // Strip AI texts for non-premium too (they'll load via separate endpoint)
+    aiTexts: isPremium ? match.aiTexts : [],
+  };
+
+  res.json(safeMatch);
 });
 
 publicRouter.get("/search", async (req, res) => {

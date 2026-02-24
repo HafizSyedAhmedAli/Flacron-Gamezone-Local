@@ -57,3 +57,26 @@ export function requireAdmin(
   if (u.role !== "ADMIN") return res.status(403).json({ error: "Forbidden" });
   return next();
 }
+
+export async function requirePremium(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction,
+) {
+  const user = (req as any).user;
+  if (!user) return res.status(401).json({ error: "Unauthorized" });
+
+  // Admins always have premium access
+  if (user.role === "ADMIN") return next();
+
+  const sub = user.subscription;
+  const isPremium = sub?.status === "active";
+
+  if (!isPremium) {
+    return res.status(403).json({
+      error: "Premium subscription required",
+      code: "PREMIUM_REQUIRED",
+    });
+  }
+  return next();
+}

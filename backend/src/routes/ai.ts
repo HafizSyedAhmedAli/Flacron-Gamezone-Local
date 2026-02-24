@@ -8,7 +8,7 @@ import {
   clearAICache,
 } from "../services/ai-service.js";
 import { prisma } from "../lib/prisma.js";
-import { requireAuth, requireAdmin } from "../lib/auth.js";
+import { requireAuth, requireAdmin, requirePremium } from "../lib/auth.js";
 
 export const aiRouter = Router();
 
@@ -26,6 +26,7 @@ const generateAISchema = z.object({
 aiRouter.post(
   "/match-preview",
   requireAuth,
+  requirePremium,
   validateBody(generateAISchema),
   async (req, res) => {
     try {
@@ -99,6 +100,7 @@ aiRouter.post(
 aiRouter.post(
   "/match-summary",
   requireAuth,
+  requirePremium,
   validateBody(generateAISchema),
   async (req, res) => {
     try {
@@ -163,45 +165,50 @@ aiRouter.post(
  * Get existing AI content (preview and summary) for a match
  * Authenticated users
  */
-aiRouter.get("/match/:matchId", requireAuth, async (req, res) => {
-  try {
-    const { matchId } = req.params;
-    const language = req.query.language as string | undefined;
-    if (language && !["en", "fr"].includes(language)) {
-      return res
-        .status(400)
-        .json({ success: false, error: "Invalid language" });
+aiRouter.get(
+  "/match/:matchId",
+  requireAuth,
+  requirePremium,
+  async (req, res) => {
+    try {
+      const { matchId } = req.params;
+      const language = req.query.language as string | undefined;
+      if (language && !["en", "fr"].includes(language)) {
+        return res
+          .status(400)
+          .json({ success: false, error: "Invalid language" });
+      }
+      const validLanguage = language || "en";
+
+      const content = await getMatchAIContent(matchId, validLanguage);
+
+      const aiTexts = [];
+
+      if (content.preview) {
+        aiTexts.push({
+          kind: "preview",
+          language: validLanguage,
+          content: content.preview,
+        });
+      }
+
+      if (content.summary) {
+        aiTexts.push({
+          kind: "summary",
+          language: validLanguage,
+          content: content.summary,
+        });
+      }
+
+      res.json(aiTexts);
+    } catch (error) {
+      console.error("Error fetching AI content:", error);
+      res
+        .status(500)
+        .json({ success: false, error: "Failed to fetch AI content" });
     }
-    const validLanguage = language || "en";
-
-    const content = await getMatchAIContent(matchId, validLanguage);
-
-    const aiTexts = [];
-
-    if (content.preview) {
-      aiTexts.push({
-        kind: "preview",
-        language: validLanguage,
-        content: content.preview,
-      });
-    }
-
-    if (content.summary) {
-      aiTexts.push({
-        kind: "summary",
-        language: validLanguage,
-        content: content.summary,
-      });
-    }
-
-    res.json(aiTexts);
-  } catch (error) {
-    console.error("Error fetching AI content:", error);
-    res
-      .status(500)
-      .json({ success: false, error: "Failed to fetch AI content" });
-  }
-});
+  },
+);
 
 /**
  * DELETE /api/ai/match/:matchId
