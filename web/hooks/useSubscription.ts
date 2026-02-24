@@ -1,4 +1,5 @@
 import { apiGet } from "@/components/api";
+import { isAdmin } from "@/lib/auth";
 import { useEffect, useState } from "react";
 
 interface SubscriptionResponse {
@@ -13,6 +14,8 @@ export function useSubscription() {
   const [subscription, setSubscription] = useState<SubscriptionResponse | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const admin = isAdmin();
+
   useEffect(() => {
     apiGet<SubscriptionResponse>("/api/billing/subscription")
       .then((data) => setSubscription(data))
@@ -21,7 +24,7 @@ export function useSubscription() {
   }, []);
 
   return {
-    isPremium: subscription?.status === "active",
+    isPremium: admin || subscription?.status === "active",
     status: subscription?.status ?? null,
     loading,
   };

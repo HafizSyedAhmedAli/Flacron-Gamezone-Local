@@ -172,7 +172,8 @@ aiRouter.get(
   async (req, res) => {
     try {
       const { matchId } = req.params;
-      const language = req.query.language as string | undefined;
+      const language =
+        typeof req.query.language === "string" ? req.query.language : undefined;
       if (language && !["en", "fr"].includes(language)) {
         return res
           .status(400)
