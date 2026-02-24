@@ -536,6 +536,7 @@ publicRouter.get("/match/:id", async (req, res) => {
     try {
       const token = authHeader.slice(7);
       const secret = process.env.JWT_SECRET || "dev_secret";
+      if (!secret) throw new Error("JWT_SECRET not configured");
       const decoded = jwt.verify(token, secret) as any;
       const user = await prisma.user.findUnique({
         where: { id: decoded.userId },
