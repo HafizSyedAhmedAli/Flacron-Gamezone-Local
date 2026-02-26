@@ -70,11 +70,12 @@ export default async function LeaguesPage() {
                   </div>
                 </div>
               </div>
-
-              <div className="text-3xl font-bold text-blue-400 flex items-center gap-2">
-                {leagues.length}
-                <Sparkles className="w-5 h-5 text-cyan-400" />
-              </div>
+              {!fetchError && (
+                <div className="text-3xl font-bold text-blue-400 flex items-center gap-2">
+                  {leagues.length}
+                  <Sparkles className="w-5 h-5 text-cyan-400" />
+                </div>
+              )}{" "}
             </div>
           </div>
         </div>

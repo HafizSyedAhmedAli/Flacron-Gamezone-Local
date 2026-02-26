@@ -83,8 +83,13 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
     if (status) filtered = filtered.filter((m) => m.status === status);
     if (date) {
       filtered = filtered.filter((m) => {
-        const matchDate = new Date(m.kickoffTime).toISOString().split("T")[0];
-        return matchDate === date;
+        const d = new Date(m.kickoffTime);
+        const localDate = [
+          d.getFullYear(),
+          String(d.getMonth() + 1).padStart(2, "0"),
+          String(d.getDate()).padStart(2, "0"),
+        ].join("-");
+        return localDate === date;
       });
     }
     if (selectedLeague) {
@@ -146,7 +151,9 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
   };
 
   const liveCount = allMatches.filter((m) => m.status === "LIVE").length;
-  const upcomingCount = allMatches.filter((m) => m.status === "UPCOMING").length;
+  const upcomingCount = allMatches.filter(
+    (m) => m.status === "UPCOMING",
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -178,7 +185,9 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
                   <Play className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-white">{liveCount}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {liveCount}
+                  </div>
                   <div className="text-xs text-slate-400">Live Now</div>
                 </div>
               </div>
@@ -187,17 +196,20 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
                   <TrendingUp className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold text-white">{upcomingCount}</div>
+                  <div className="text-2xl font-bold text-white">
+                    {upcomingCount}
+                  </div>
                   <div className="text-xs text-slate-400">Upcoming</div>
                 </div>
               </div>
             </div>
 
-            <Link href="/live">
-              <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/40 flex items-center gap-2">
-                <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                Watch Live Matches
-              </button>
+            <Link
+              href="/live"
+              className="group inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold px-6 py-3 rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/40"
+            >
+              <Play className="w-5 h-5 group-hover:scale-110 transition-transform" />
+              Watch Live Matches
             </Link>
           </div>
         </div>
@@ -224,10 +236,15 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
             className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-purple-600 hover:to-purple-500 border border-slate-600/50 rounded-lg pl-4 pr-8 py-2 text-sm font-medium cursor-pointer transition-all duration-300 hover:scale-105 text-slate-100 min-w-[160px]"
             value={selectedLeague}
             onChange={(e) => setSelectedLeague(e.target.value)}
+            aria-label="Filter by league"
           >
-            <option value="" className="bg-slate-900 text-slate-300">All Leagues</option>
+            <option value="" className="bg-slate-900 text-slate-300">
+              All Leagues
+            </option>
             {leagues.map((l) => (
-              <option key={l.id} value={l.id} className="bg-slate-900">{l.name}</option>
+              <option key={l.id} value={l.id} className="bg-slate-900">
+                {l.name}
+              </option>
             ))}
           </select>
 
@@ -235,10 +252,15 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
             className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-purple-600 hover:to-purple-500 border border-slate-600/50 rounded-lg pl-4 pr-8 py-2 text-sm font-medium cursor-pointer transition-all duration-300 hover:scale-105 text-slate-100 min-w-[160px]"
             value={selectedTeam}
             onChange={(e) => setSelectedTeam(e.target.value)}
+            aria-label="Filter by team"
           >
-            <option value="" className="bg-slate-900 text-slate-300">All Teams</option>
+            <option value="" className="bg-slate-900 text-slate-300">
+              All Teams
+            </option>
             {teams.map((t) => (
-              <option key={t.id} value={t.id} className="bg-slate-900">{t.name}</option>
+              <option key={t.id} value={t.id} className="bg-slate-900">
+                {t.name}
+              </option>
             ))}
           </select>
 
@@ -246,16 +268,30 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
             className="bg-gradient-to-r from-slate-800 to-slate-700 hover:from-purple-600 hover:to-purple-500 border border-slate-600/50 rounded-lg pl-4 pr-8 py-2 text-sm font-medium cursor-pointer transition-all duration-300 hover:scale-105 text-slate-100 min-w-[140px]"
             value={status}
             onChange={(e) => setStatus(e.target.value)}
+            aria-label="Filter by status"
           >
-            <option value="" className="bg-slate-900 text-slate-300">All Status</option>
-            <option value="UPCOMING" className="bg-slate-900 text-blue-400">Upcoming</option>
-            <option value="LIVE" className="bg-slate-900 text-red-400">Live</option>
-            <option value="FINISHED" className="bg-slate-900 text-slate-400">Finished</option>
+            <option value="" className="bg-slate-900 text-slate-300">
+              All Status
+            </option>
+            <option value="UPCOMING" className="bg-slate-900 text-blue-400">
+              Upcoming
+            </option>
+            <option value="LIVE" className="bg-slate-900 text-red-400">
+              Live
+            </option>
+            <option value="FINISHED" className="bg-slate-900 text-slate-400">
+              Finished
+            </option>
           </select>
 
           {(status || date || selectedLeague || selectedTeam) && (
             <button
-              onClick={() => { setStatus(""); setDate(""); setSelectedLeague(""); setSelectedTeam(""); }}
+              onClick={() => {
+                setStatus("");
+                setDate("");
+                setSelectedLeague("");
+                setSelectedTeam("");
+              }}
               className="bg-gradient-to-r from-red-600 to-red-500 hover:from-red-500 hover:to-red-400 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-300 hover:scale-105"
             >
               Clear All
@@ -265,7 +301,9 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
 
         {showFilters && (
           <div className="mt-3 pt-3 border-t border-slate-700/50">
-            <label className="block text-xs text-slate-400 mb-2 font-medium">Select Date</label>
+            <label className="block text-xs text-slate-400 mb-2 font-medium">
+              Select Date
+            </label>
             <input
               type="date"
               value={date}
@@ -325,7 +363,11 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
                       <div className="relative flex-shrink-0 isolate">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-xl blur-md -z-10"></div>
                         {m.homeTeam?.logo ? (
-                          <img src={m.homeTeam.logo} alt={m.homeTeam.name} className="relative w-11 h-11 object-contain rounded-xl bg-white/5 border border-slate-600/50 shadow-lg p-1" />
+                          <img
+                            src={m.homeTeam.logo}
+                            alt={m.homeTeam.name}
+                            className="relative w-11 h-11 object-contain rounded-xl bg-white/5 border border-slate-600/50 shadow-lg p-1"
+                          />
                         ) : (
                           <div className="relative w-11 h-11 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center text-xs font-bold border border-slate-600/50 shadow-lg">
                             {m.homeTeam?.name.substring(0, 3).toUpperCase()}
@@ -333,7 +375,9 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <span className="font-bold text-base truncate block group-hover:text-blue-400 transition-colors">{m.homeTeam?.name}</span>
+                        <span className="font-bold text-base truncate block group-hover:text-blue-400 transition-colors">
+                          {m.homeTeam?.name}
+                        </span>
                         <span className="text-xs text-slate-500">Home</span>
                       </div>
                     </div>
@@ -364,13 +408,19 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
 
                     <div className="flex items-center gap-3 flex-1 justify-end min-w-0">
                       <div className="flex-1 min-w-0 text-right">
-                        <span className="font-bold text-base truncate block group-hover:text-purple-400 transition-colors">{m.awayTeam?.name}</span>
+                        <span className="font-bold text-base truncate block group-hover:text-purple-400 transition-colors">
+                          {m.awayTeam?.name}
+                        </span>
                         <span className="text-xs text-slate-500">Away</span>
                       </div>
                       <div className="relative flex-shrink-0 isolate">
                         <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-pink-500/20 rounded-xl blur-md -z-10"></div>
                         {m.awayTeam?.logo ? (
-                          <img src={m.awayTeam.logo} alt={m.awayTeam.name} className="relative w-11 h-11 object-contain rounded-xl bg-white/5 border border-slate-600/50 shadow-lg p-1" />
+                          <img
+                            src={m.awayTeam.logo}
+                            alt={m.awayTeam.name}
+                            className="relative w-11 h-11 object-contain rounded-xl bg-white/5 border border-slate-600/50 shadow-lg p-1"
+                          />
                         ) : (
                           <div className="relative w-11 h-11 bg-gradient-to-br from-slate-700 to-slate-800 rounded-xl flex items-center justify-center text-xs font-bold border border-slate-600/50 shadow-lg">
                             {m.awayTeam?.name.substring(0, 3).toUpperCase()}
@@ -396,8 +446,12 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
               <div className="w-14 h-14 bg-gradient-to-br from-slate-700 to-slate-800 rounded-full flex items-center justify-center mx-auto mb-3">
                 <Trophy className="w-7 h-7 text-slate-500" />
               </div>
-              <p className="text-slate-400 font-medium text-sm">No matches found</p>
-              <p className="text-slate-600 text-xs mt-1">Try adjusting your filters</p>
+              <p className="text-slate-400 font-medium text-sm">
+                No matches found
+              </p>
+              <p className="text-slate-600 text-xs mt-1">
+                Try adjusting your filters
+              </p>
             </div>
           )}
         </div>

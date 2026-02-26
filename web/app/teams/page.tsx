@@ -1,4 +1,3 @@
-// app/teams/page.tsx
 import { Metadata } from "next";
 import { Shell } from "@/components/layout";
 import dynamic from "next/dynamic";
@@ -7,7 +6,13 @@ export const metadata: Metadata = {
   title: "Football Teams | Browse All Competing Teams",
   description:
     "Browse all competing football teams, track their performance, win rates, and follow the action in real-time across all leagues.",
-  keywords: ["football teams", "soccer teams", "team stats", "win rate", "football tournament"],
+  keywords: [
+    "football teams",
+    "soccer teams",
+    "team stats",
+    "win rate",
+    "football tournament",
+  ],
   openGraph: {
     title: "Football Teams | Browse All Competing Teams",
     description:
@@ -17,7 +22,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Football Teams | Browse All Competing Teams",
-    description: "Browse all competing football teams and track their performance.",
+    description:
+      "Browse all competing football teams and track their performance.",
   },
 };
 
@@ -27,20 +33,21 @@ async function getTeams() {
       process.env.NEXT_PUBLIC_API_URL ||
       (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000");
-
+        : "http://localhost:4000");
     const res = await fetch(`${baseUrl}/api/teams`, {
       next: { revalidate: 120 },
     });
-
-    if (!res.ok) return [];
+    if (!res.ok) {
+      console.error(`[getTeams] fetch failed: ${res.status} ${res.statusText}`);
+      return [];
+    }
     return res.json();
-  } catch {
+  } catch (err) {
+    console.error("[getTeams] unexpected error:", err);
     return [];
   }
 }
 
-// Prevent SSR for the client component to avoid useContext/navigation hook errors
 const TeamsClient = dynamic(
   () => import("./TeamsClient").then((m) => m.TeamsClient),
   {
@@ -59,12 +66,11 @@ const TeamsClient = dynamic(
         ))}
       </div>
     ),
-  }
+  },
 );
 
 export default async function TeamsPage() {
   const initialTeams = await getTeams();
-
   return (
     <Shell>
       <TeamsClient initialTeams={initialTeams} />

@@ -16,7 +16,7 @@ import {
   cancelSubscription,
   reactivateSubscription,
   createPortalSession,
-  // cleanupDuplicates, 
+  // cleanupDuplicates,
 } from "@/components/billingApi";
 import { useRouter } from "next/navigation";
 import { Shell } from "@/components/layout";
@@ -65,6 +65,7 @@ export default function DashboardPage() {
     try {
       setActionLoading("cancel");
       setError(null);
+      setSuccess(null);
       await cancelSubscription();
       setSuccess("Subscription canceled");
       setShowCancelModal(false);
@@ -81,6 +82,7 @@ export default function DashboardPage() {
     try {
       setActionLoading("reactivate");
       setError(null);
+      setSuccess(null);
       await reactivateSubscription();
       setSuccess("Subscription reactivated successfully");
       await loadSubscription();
@@ -94,6 +96,8 @@ export default function DashboardPage() {
   const handleManageBilling = async () => {
     try {
       setActionLoading("portal");
+      setError(null);
+      setSuccess(null);
       const { url } = await createPortalSession();
       if (!url) {
         throw new Error("Invalid billing portal URL");
@@ -294,26 +298,28 @@ export default function DashboardPage() {
           </div>
 
           {/* Action Buttons */}
-          {subscription?.plan && subscription.status === "active" && (
-            <div className="flex gap-4">
-              <button
-                onClick={handleManageBilling}
-                disabled={actionLoading === "portal"}
-                className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {actionLoading === "portal" ? (
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                ) : (
-                  <>
-                    <ExternalLink className="w-5 h-5" />
-                    <span>Manage Billing</span>
-                  </>
-                )}
-              </button>
+          {subscription?.plan &&
+            (subscription.status === "active" ||
+              subscription.status === "past_due") && (
+              <div className="flex gap-4">
+                <button
+                  onClick={handleManageBilling}
+                  disabled={actionLoading !== null}
+                  className="flex-1 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {actionLoading === "portal" ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <>
+                      <ExternalLink className="w-5 h-5" />
+                      <span>Manage Billing</span>
+                    </>
+                  )}
+                </button>
 
-              {/* <button
+                {/* <button
                 onClick={handleCleanupDuplicates}
-                disabled={actionLoading === "cleanup"}
+                disabled={actionLoading !== null}
                 className="flex-1 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {actionLoading === "cleanup" ? (
@@ -323,33 +329,33 @@ export default function DashboardPage() {
                 )}
               </button> */}
 
-              {subscription.cancelAtPeriodEnd ? (
-                <button
-                  onClick={handleReactivateSubscription}
-                  disabled={actionLoading === "reactivate"}
-                  className="flex-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 text-green-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {actionLoading === "reactivate" ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    "Reactivate Subscription"
-                  )}
-                </button>
-              ) : (
-                <button
-                  onClick={handleCancelClick}
-                  disabled={actionLoading === "cancel"}
-                  className="flex-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {actionLoading === "cancel" ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    "Cancel Subscription"
-                  )}
-                </button>
-              )}
-            </div>
-          )}
+                {subscription.cancelAtPeriodEnd ? (
+                  <button
+                    onClick={handleReactivateSubscription}
+                    disabled={actionLoading !== null}
+                    className="flex-1 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 text-green-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {actionLoading === "reactivate" ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      "Reactivate Subscription"
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleCancelClick}
+                    disabled={actionLoading !== null}
+                    className="flex-1 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                    {actionLoading === "cancel" ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      "Cancel Subscription"
+                    )}
+                  </button>
+                )}
+              </div>
+            )}
 
           {subscription?.plan && subscription.status === "canceled" && (
             <div className="flex gap-4">
@@ -362,7 +368,7 @@ export default function DashboardPage() {
 
               {/* <button
                 onClick={handleCleanupDuplicates}
-                disabled={actionLoading === "cleanup"}
+                disabled={actionLoading !== null}
                 className="flex-1 bg-indigo-500/20 hover:bg-indigo-500/30 border border-indigo-500/30 text-indigo-400 py-3 px-6 rounded-xl font-semibold transition-all flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {actionLoading === "cleanup" ? (
@@ -375,7 +381,7 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Features Overview (unchanged) */}
+        {/* Features Overview */}
         <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-8">
           <h3 className="text-xl font-bold text-white mb-4">
             Your Active Features

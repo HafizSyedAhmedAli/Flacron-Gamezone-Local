@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiGet } from "@/components/api";
 import Link from "next/link";
+import Image from "next/image";
 import {
   Activity,
   Trophy,
@@ -48,33 +49,48 @@ interface Match {
 
 export default function LiveMatchesClient({
   initialMatches,
+  initialError = false,
 }: {
   initialMatches: Match[];
+  initialError?: boolean;
 }) {
   const [matches, setMatches] = useState<Match[]>(initialMatches || []);
-  const [loading, setLoading] = useState(initialMatches.length === 0);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(
+    initialMatches.length === 0 && !initialError,
+  );
+  const [error, setError] = useState(
+    initialError ? "Failed to load live matches" : "",
+  );
   const [lastUpdate, setLastUpdate] = useState<Date | null>(
     initialMatches.length ? new Date() : null,
   );
   const [mounted, setMounted] = useState(false);
 
-  async function loadMatches() {
-    try {
-      setError("");
-      const data = await apiGet<Match[]>("/api/matches/live");
-      setMatches(data);
-      setLastUpdate(new Date());
-    } catch (e: any) {
-      console.error("Error loading live matches:", e);
-      setError(e?.message || "Failed to load live matches");
-    } finally {
-      setLoading(false);
-    }
-  }
-
   useEffect(() => {
     setMounted(true);
+    let currentController: AbortController | null = null;
+
+    async function loadMatches() {
+      // Abort any previous in-flight request before starting a new one
+      if (currentController) currentController.abort();
+      currentController = new AbortController();
+
+      try {
+        setError("");
+        const data = await apiGet<Match[]>("/api/matches/live", {
+          signal: currentController.signal,
+        });
+        setMatches(data);
+        setLastUpdate(new Date());
+      } catch (e: any) {
+        if ((e as Error).name === "AbortError") return;
+        console.error("Error loading live matches:", e);
+        setError(e?.message || "Failed to load live matches");
+      } finally {
+        setLoading(false);
+      }
+    }
+
     if (initialMatches.length === 0) {
       loadMatches();
     }
@@ -83,7 +99,10 @@ export default function LiveMatchesClient({
       loadMatches();
     }, 45000);
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      if (currentController) currentController.abort();
+    };
   }, []);
 
   if (loading) {
@@ -161,10 +180,12 @@ export default function LiveMatchesClient({
                     {match.league && (
                       <div className="flex items-center gap-3">
                         {match.league.logo ? (
-                          <img
+                          <Image
                             src={match.league.logo}
                             alt={match.league.name}
-                            className="w-8 h-8 object-contain"
+                            width={32}
+                            height={32}
+                            className="object-contain"
                           />
                         ) : (
                           <Trophy className="w-8 h-8 text-cyan-400" />
@@ -186,10 +207,12 @@ export default function LiveMatchesClient({
                       {/* Home Team */}
                       <div className="flex items-center justify-end gap-3">
                         {match.homeTeam.logo && (
-                          <img
+                          <Image
                             src={match.homeTeam.logo}
                             alt={match.homeTeam.name}
-                            className="w-8 h-8 object-contain"
+                            width={32}
+                            height={32}
+                            className="object-contain"
                           />
                         )}
                         <span className="font-black text-white">
@@ -205,10 +228,12 @@ export default function LiveMatchesClient({
                       {/* Away Team */}
                       <div className="flex items-center justify-start gap-3">
                         {match.awayTeam.logo && (
-                          <img
+                          <Image
                             src={match.awayTeam.logo}
                             alt={match.awayTeam.name}
-                            className="w-8 h-8 object-contain"
+                            width={32}
+                            height={32}
+                            className="object-contain"
                           />
                         )}
                         <span className="font-black text-white">
@@ -217,7 +242,7 @@ export default function LiveMatchesClient({
                       </div>
                     </div>
 
-                    <div className="flex justify-between text-sm text-slate-400 border-t pt-3">
+                    <div className="flex items-center justify-between text-sm text-slate-400 border-t pt-3">
                       {match.venue && (
                         <div className="flex items-center gap-2">
                           <MapPin className="w-4 h-4" />
@@ -227,12 +252,12 @@ export default function LiveMatchesClient({
 
                       {match.stream?.type === "EMBED" &&
                       match.stream.isActive ? (
-                        <div className="flex items-center gap-2 text-green-400">
+                        <div className="flex items-center gap-2 text-green-400 ml-auto">
                           <PlayCircle className="w-4 h-4" />
                           Stream Available
                         </div>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 ml-auto">
                           <Tv className="w-4 h-4" />
                           Score Only
                         </div>

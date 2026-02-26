@@ -250,7 +250,9 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
               <div className="w-20 h-20 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-2xl shadow-cyan-500/30">
                 <Trophy className="w-10 h-10 text-white" />
               </div>
-              <p className="text-slate-300 font-bold text-xl">⚡ Loading match data...</p>
+              <p className="text-slate-300 font-bold text-xl">
+                ⚡ Loading match data...
+              </p>
             </div>
           </div>
         </div>
@@ -270,7 +272,9 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
             <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/70 group-hover:bg-gradient-to-br group-hover:from-cyan-600 group-hover:to-blue-600 transition-all duration-300 shadow-lg">
               <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
             </div>
-            <span className="text-sm font-bold uppercase tracking-wide">← Back</span>
+            <span className="text-sm font-bold uppercase tracking-wide">
+              ← Back
+            </span>
           </button>
           <div className="relative overflow-hidden text-center py-16 bg-gradient-to-br from-slate-900/90 to-red-900/30 border-2 border-red-500/30 rounded-2xl">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(239,68,68,0.1),transparent)]"></div>
@@ -295,8 +299,12 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
   if (!match) return null;
 
   const aiTexts = match.aiTexts ?? [];
-  const preview = aiTexts.find((x) => x.kind === "preview" && x.language === lang);
-  const summary = aiTexts.find((x) => x.kind === "summary" && x.language === lang);
+  const preview = aiTexts.find(
+    (x) => x.kind === "preview" && x.language === lang,
+  );
+  const summary = aiTexts.find(
+    (x) => x.kind === "summary" && x.language === lang,
+  );
 
   return (
     <div className="flex-1 p-4 md:p-6">
@@ -309,7 +317,9 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
           <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/70 group-hover:bg-gradient-to-br group-hover:from-cyan-600 group-hover:to-blue-600 transition-all duration-300 shadow-lg">
             <ChevronLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
           </div>
-          <span className="text-sm font-bold uppercase tracking-wide">← Back</span>
+          <span className="text-sm font-bold uppercase tracking-wide">
+            ← Back
+          </span>
         </button>
 
         {/* Premium upsell banner for free users */}
@@ -326,7 +336,8 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                     Premium features locked
                   </p>
                   <p className="text-yellow-300/80 text-xs">
-                    Upgrade to access live streams, AI previews & match summaries
+                    Upgrade to access live streams, AI previews & match
+                    summaries
                   </p>
                 </div>
               </div>
@@ -369,7 +380,11 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                 <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity"></div>
                 <div className="relative flex items-center gap-4 bg-slate-900/90 backdrop-blur-xl border-2 border-cyan-500/50 rounded-2xl px-6 py-4 shadow-2xl">
                   {match.league?.logo ? (
-                    <img src={match.league.logo} alt={match.league.name} className="w-10 h-10 object-contain" />
+                    <img
+                      src={match.league.logo}
+                      alt={match.league.name}
+                      className="w-10 h-10 object-contain"
+                    />
                   ) : (
                     <Trophy className="w-10 h-10 text-cyan-400" />
                   )}
@@ -397,7 +412,11 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                   <div className="relative">
                     {match.homeTeam?.logo ? (
                       <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl p-4 border-2 border-cyan-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
-                        <img src={match.homeTeam.logo} alt={match.homeTeam.name} className="w-full h-full object-contain" />
+                        <img
+                          src={match.homeTeam.logo}
+                          alt={match.homeTeam.name}
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                     ) : (
                       <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black border-2 border-cyan-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300">
@@ -413,7 +432,9 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                   {match.homeTeam?.name}
                 </h2>
                 <div className="inline-flex items-center gap-2 bg-cyan-500/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-cyan-500/30">
-                  <span className="text-xs font-black text-cyan-400 uppercase tracking-wider">🏠 Home</span>
+                  <span className="text-xs font-black text-cyan-400 uppercase tracking-wider">
+                    🏠 Home
+                  </span>
                 </div>
               </div>
 
@@ -435,12 +456,15 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                     <div className="flex flex-col items-center gap-2 text-sm bg-slate-900/70 backdrop-blur-sm rounded-xl px-4 py-3 border-2 border-blue-500/30 shadow-lg">
                       <Clock className="w-6 h-6 text-blue-400 animate-pulse" />
                       <div className="font-black text-white uppercase tracking-wide">
-                        {new Date(match.kickoffTime).toLocaleString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
+                        {new Date(match.kickoffTime).toLocaleString(
+                          lang === "fr" ? "fr-FR" : "en-US",
+                          {
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
                       </div>
                     </div>
                   </div>
@@ -454,7 +478,11 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                   <div className="relative">
                     {match.awayTeam?.logo ? (
                       <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl p-4 border-2 border-blue-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300 flex items-center justify-center">
-                        <img src={match.awayTeam.logo} alt={match.awayTeam.name} className="w-full h-full object-contain" />
+                        <img
+                          src={match.awayTeam.logo}
+                          alt={match.awayTeam.name}
+                          className="w-full h-full object-contain"
+                        />
                       </div>
                     ) : (
                       <div className="w-24 h-24 md:w-32 md:h-32 bg-slate-900/90 backdrop-blur-sm rounded-2xl flex items-center justify-center text-3xl md:text-4xl font-black border-2 border-blue-500/50 shadow-2xl group-hover:scale-110 transition-transform duration-300">
@@ -470,7 +498,9 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                   {match.awayTeam?.name}
                 </h2>
                 <div className="inline-flex items-center gap-2 bg-blue-500/20 backdrop-blur-sm rounded-lg px-3 py-1.5 border border-blue-500/30">
-                  <span className="text-xs font-black text-blue-400 uppercase tracking-wider">✈️ Away</span>
+                  <span className="text-xs font-black text-blue-400 uppercase tracking-wider">
+                    ✈️ Away
+                  </span>
                 </div>
               </div>
             </div>
@@ -480,7 +510,9 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
               <div className="flex items-center justify-center">
                 <div className="inline-flex items-center gap-2 bg-slate-900/70 backdrop-blur-sm rounded-xl px-5 py-2.5 border border-slate-700/50 shadow-lg">
                   <MapPin className="w-4 h-4 text-cyan-400" />
-                  <span className="text-sm text-slate-300 font-semibold">{match.venue}</span>
+                  <span className="text-sm text-slate-300 font-semibold">
+                    {match.venue}
+                  </span>
                 </div>
               </div>
             )}
@@ -498,9 +530,13 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                 <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
                   <Globe className="w-5 h-5 text-white" />
                 </div>
-                <h3 className="text-lg font-black text-white uppercase tracking-wide">Language</h3>
+                <h3 className="text-lg font-black text-white uppercase tracking-wide">
+                  Language
+                </h3>
               </div>
               <select
+                id="lang-selector"
+                aria-label="Select language"
                 className="w-full bg-slate-800/90 border-2 border-purple-500/50 rounded-xl px-5 py-3.5 text-sm font-bold text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all cursor-pointer hover:border-purple-400"
                 value={lang}
                 onChange={(e) => setLang(e.target.value as "en" | "fr")}
@@ -535,8 +571,12 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                       <Sparkles className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-black text-white text-lg uppercase tracking-wide">AI Preview</h3>
-                      <p className="text-xs text-cyan-400 font-bold">⚡ Pre-Match Analysis</p>
+                      <h3 className="font-black text-white text-lg uppercase tracking-wide">
+                        AI Preview
+                      </h3>
+                      <p className="text-xs text-cyan-400 font-bold">
+                        ⚡ Pre-Match Analysis
+                      </p>
                     </div>
                   </div>
                   <button
@@ -577,8 +617,12 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                       <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4">
                         <FileText className="w-8 h-8 text-slate-600" />
                       </div>
-                      <p className="text-sm text-slate-400 font-bold mb-1">⚡ No preview yet</p>
-                      <p className="text-xs text-slate-600 font-semibold">AI preview can be generated once</p>
+                      <p className="text-sm text-slate-400 font-bold mb-1">
+                        ⚡ No preview yet
+                      </p>
+                      <p className="text-xs text-slate-600 font-semibold">
+                        AI preview can be generated once
+                      </p>
                     </div>
                   )}
                 </div>
@@ -595,8 +639,12 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                       <TrendingUp className="w-5 h-5 text-white" />
                     </div>
                     <div>
-                      <h3 className="font-black text-white text-lg uppercase tracking-wide">AI Summary</h3>
-                      <p className="text-xs text-purple-400 font-bold">🔥 Post-Match Report</p>
+                      <h3 className="font-black text-white text-lg uppercase tracking-wide">
+                        AI Summary
+                      </h3>
+                      <p className="text-xs text-purple-400 font-bold">
+                        🔥 Post-Match Report
+                      </p>
                     </div>
                   </div>
                   <button
@@ -637,8 +685,12 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
                       <div className="w-16 h-16 bg-slate-800/50 rounded-2xl flex items-center justify-center mb-4">
                         <FileText className="w-8 h-8 text-slate-600" />
                       </div>
-                      <p className="text-sm text-slate-400 font-bold mb-1">🔥 No summary yet</p>
-                      <p className="text-xs text-slate-600 font-semibold">AI summary can be generated once</p>
+                      <p className="text-sm text-slate-400 font-bold mb-1">
+                        🔥 No summary yet
+                      </p>
+                      <p className="text-xs text-slate-600 font-semibold">
+                        AI summary can be generated once
+                      </p>
                     </div>
                   )}
                 </div>
@@ -663,20 +715,34 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
 
       <style jsx>{`
         @keyframes shimmer {
-          0% { background-position: -1000px 0; }
-          100% { background-position: 1000px 0; }
+          0% {
+            background-position: -1000px 0;
+          }
+          100% {
+            background-position: 1000px 0;
+          }
         }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
         .custom-scrollbar::-webkit-scrollbar-track {
           background: rgba(15, 23, 42, 0.5);
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: linear-gradient(to bottom, rgb(6, 182, 212), rgb(59, 130, 246));
+          background: linear-gradient(
+            to bottom,
+            rgb(6, 182, 212),
+            rgb(59, 130, 246)
+          );
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: linear-gradient(to bottom, rgb(8, 145, 178), rgb(37, 99, 235));
+          background: linear-gradient(
+            to bottom,
+            rgb(8, 145, 178),
+            rgb(37, 99, 235)
+          );
           border-radius: 10px;
         }
       `}</style>

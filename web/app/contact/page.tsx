@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     "esports support",
     "contact gaming platform",
   ],
+  // TODO: Replace placeholder URLs before shipping.
   openGraph: {
     title: "Contact Flacrom Gamezone",
     description:

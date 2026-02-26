@@ -67,6 +67,15 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
 
+  // Sync state when the parent provides new server data
+  useEffect(() => {
+    if (initialTeam) {
+      setTeam(initialTeam);
+      setIsLoading(false);
+      setError(null);
+    }
+  }, [initialTeam]);
+
   async function loadTeam() {
     setIsLoading(true);
     setError(null);
@@ -86,7 +95,6 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
       loadTeam();
     }
   }, [teamId]);
-
   if (isLoading && !team) {
     return (
       <div className="max-w-7xl mx-auto space-y-6 p-4 md:p-6">
@@ -96,7 +104,9 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
             <div className="w-20 h-20 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-4 animate-pulse shadow-2xl shadow-cyan-500/30">
               <Shield className="w-10 h-10 text-white" />
             </div>
-            <p className="text-slate-300 font-bold text-xl">⚡ Loading team data...</p>
+            <p className="text-slate-300 font-bold text-xl">
+              ⚡ Loading team data...
+            </p>
           </div>
         </div>
       </div>
@@ -134,11 +144,17 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
 
   const upcomingMatches = allMatches
     .filter((m) => m.status === "UPCOMING" || m.status === "LIVE")
-    .sort((a, b) => new Date(a.kickoffTime).getTime() - new Date(b.kickoffTime).getTime());
+    .sort(
+      (a, b) =>
+        new Date(a.kickoffTime).getTime() - new Date(b.kickoffTime).getTime(),
+    );
 
   const pastMatches = allMatches
     .filter((m) => m.status === "FINISHED")
-    .sort((a, b) => new Date(b.kickoffTime).getTime() - new Date(a.kickoffTime).getTime());
+    .sort(
+      (a, b) =>
+        new Date(b.kickoffTime).getTime() - new Date(a.kickoffTime).getTime(),
+    );
 
   const wins = pastMatches.filter((m) => {
     if (!m.score) return false;
@@ -155,10 +171,10 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
     return home === away;
   }).length;
 
-  const losses = pastMatches.length - wins - draws;
-  const winRate = pastMatches.length > 0
-    ? Math.round((wins / pastMatches.length) * 100)
-    : 0;
+  const scoredMatches = pastMatches.filter((m) => m.score != null).length;
+  const losses = scoredMatches - wins - draws;
+  const winRate =
+    scoredMatches > 0 ? Math.round((wins / scoredMatches) * 100) : 0;
 
   const lastFiveResults = pastMatches
     .slice(0, 5)
@@ -218,7 +234,9 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
         <div className="w-9 h-9 flex items-center justify-center rounded-lg bg-slate-800/70 group-hover:bg-gradient-to-br group-hover:from-cyan-600 group-hover:to-blue-600 transition-all duration-300 shadow-lg">
           <ArrowLeft className="w-5 h-5 group-hover:-translate-x-0.5 transition-transform" />
         </div>
-        <span className="text-sm font-bold uppercase tracking-wide">Back to Teams</span>
+        <span className="text-sm font-bold uppercase tracking-wide">
+          Back to Teams
+        </span>
       </Link>
 
       {/* Team Hero Section */}
@@ -236,7 +254,11 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
               <div className="relative">
                 {team.logo ? (
                   <div className="w-32 h-32 md:w-40 md:h-40 bg-slate-900/90 backdrop-blur-sm rounded-2xl p-6 border-2 border-cyan-500/50 shadow-2xl flex items-center justify-center">
-                    <img src={team.logo} alt={team.name} className="w-full h-full object-contain" />
+                    <img
+                      src={team.logo}
+                      alt={team.name}
+                      className="w-full h-full object-contain"
+                    />
                   </div>
                 ) : (
                   <div className="w-32 h-32 md:w-40 md:h-40 bg-slate-900/90 backdrop-blur-sm rounded-2xl flex items-center justify-center border-2 border-cyan-500/50 shadow-2xl">
@@ -254,10 +276,16 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
               {team.league && (
                 <div className="inline-flex items-center gap-3 bg-slate-900/70 backdrop-blur-sm rounded-xl px-5 py-3 border border-cyan-500/30 mb-4">
                   {team.league.logo && (
-                    <img src={team.league.logo} alt={team.league.name} className="w-6 h-6 object-contain" />
+                    <img
+                      src={team.league.logo}
+                      alt={team.league.name}
+                      className="w-6 h-6 object-contain"
+                    />
                   )}
                   <div>
-                    <div className="text-sm font-black text-white">{team.league.name}</div>
+                    <div className="text-sm font-black text-white">
+                      {team.league.name}
+                    </div>
                     {team.league.country && (
                       <div className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
                         <MapPin className="w-3 h-3" />
@@ -270,7 +298,9 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
 
               {lastFiveResults.length > 0 && (
                 <div className="flex items-center gap-3 justify-center md:justify-start">
-                  <span className="text-sm text-slate-400 font-bold uppercase tracking-wide">Recent Form:</span>
+                  <span className="text-sm text-slate-400 font-bold uppercase tracking-wide">
+                    Recent Form:
+                  </span>
                   <div className="flex gap-2">
                     {lastFiveResults.map((result, i) => (
                       <div key={i}>{getResultBadge(result)}</div>
@@ -293,9 +323,12 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
               <AlertCircle className="w-6 h-6 text-yellow-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-lg font-black text-yellow-200 mb-2 uppercase tracking-wide">No Match Data Available</h3>
+              <h3 className="text-lg font-black text-yellow-200 mb-2 uppercase tracking-wide">
+                No Match Data Available
+              </h3>
               <p className="text-sm text-slate-400 leading-relaxed">
-                This team doesn't have any matches recorded yet. Statistics and match history will appear here once matches are added.
+                This team doesn't have any matches recorded yet. Statistics and
+                match history will appear here once matches are added.
               </p>
             </div>
           </div>
@@ -304,11 +337,36 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard icon={Trophy} value={wins} label="Wins" gradient="from-green-600 to-emerald-600" />
-        <StatCard icon={Activity} value={draws} label="Draws" gradient="from-yellow-600 to-orange-600" />
-        <StatCard icon={TrendingDown} value={losses} label="Losses" gradient="from-red-600 to-rose-600" />
-        <StatCard icon={Target} value={`${winRate}%`} label="Win Rate" gradient="from-blue-600 to-cyan-600" />
-        <StatCard icon={Flame} value={pastMatches.length} label="Played" gradient="from-purple-600 to-pink-600" />
+        <StatCard
+          icon={Trophy}
+          value={wins}
+          label="Wins"
+          gradient="from-green-600 to-emerald-600"
+        />
+        <StatCard
+          icon={Activity}
+          value={draws}
+          label="Draws"
+          gradient="from-yellow-600 to-orange-600"
+        />
+        <StatCard
+          icon={TrendingDown}
+          value={losses}
+          label="Losses"
+          gradient="from-red-600 to-rose-600"
+        />
+        <StatCard
+          icon={Target}
+          value={`${winRate}%`}
+          label="Win Rate"
+          gradient="from-blue-600 to-cyan-600"
+        />
+        <StatCard
+          icon={Flame}
+          value={scoredMatches}
+          label="Played"
+          gradient="from-purple-600 to-pink-600"
+        />
       </div>
 
       {/* Tabs */}
@@ -377,13 +435,6 @@ export function TeamDetailClient({ initialTeam, teamId }: Props) {
           )}
         </div>
       )}
-
-      <style jsx>{`
-        @keyframes shimmer {
-          0% { background-position: -1000px 0; }
-          100% { background-position: 1000px 0; }
-        }
-      `}</style>
     </div>
   );
 }
@@ -405,11 +456,15 @@ function StatCard({
     <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-slate-700/50 rounded-2xl p-6 shadow-xl group hover:border-cyan-500/30 transition-all duration-300">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(6,182,212,0.1),transparent)] opacity-0 group-hover:opacity-100 transition-opacity"></div>
       <div className="relative">
-        <div className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+        <div
+          className={`w-12 h-12 bg-gradient-to-br ${gradient} rounded-xl flex items-center justify-center mb-4 shadow-lg group-hover:scale-110 transition-transform duration-300`}
+        >
           <Icon className="w-6 h-6 text-white" />
         </div>
         <div className="text-3xl font-black text-white mb-1">{value}</div>
-        <div className="text-sm text-slate-400 font-semibold uppercase tracking-wide">{label}</div>
+        <div className="text-sm text-slate-400 font-semibold uppercase tracking-wide">
+          {label}
+        </div>
       </div>
     </div>
   );
@@ -431,9 +486,12 @@ function MatchCard({
   const getBorderColor = () => {
     if (!result) return "border-cyan-500/30";
     switch (result) {
-      case "W": return "border-green-500/50";
-      case "D": return "border-yellow-500/50";
-      case "L": return "border-red-500/50";
+      case "W":
+        return "border-green-500/50";
+      case "D":
+        return "border-yellow-500/50";
+      case "L":
+        return "border-red-500/50";
     }
   };
 
@@ -444,21 +502,27 @@ function MatchCard({
         return (
           <div className="px-3 py-1.5 rounded-lg bg-green-500/20 border border-green-500/30 flex items-center gap-2">
             <Trophy className="w-4 h-4 text-green-400" />
-            <span className="text-xs font-black text-green-400 uppercase">Win</span>
+            <span className="text-xs font-black text-green-400 uppercase">
+              Win
+            </span>
           </div>
         );
       case "D":
         return (
           <div className="px-3 py-1.5 rounded-lg bg-yellow-500/20 border border-yellow-500/30 flex items-center gap-2">
             <Activity className="w-4 h-4 text-yellow-400" />
-            <span className="text-xs font-black text-yellow-400 uppercase">Draw</span>
+            <span className="text-xs font-black text-yellow-400 uppercase">
+              Draw
+            </span>
           </div>
         );
       case "L":
         return (
           <div className="px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 flex items-center gap-2">
             <TrendingDown className="w-4 h-4 text-red-400" />
-            <span className="text-xs font-black text-red-400 uppercase">Loss</span>
+            <span className="text-xs font-black text-red-400 uppercase">
+              Loss
+            </span>
           </div>
         );
     }
@@ -475,7 +539,11 @@ function MatchCard({
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             {match.league?.logo && (
-              <img src={match.league.logo} alt={match.league.name} className="w-5 h-5 object-contain" />
+              <img
+                src={match.league.logo}
+                alt={match.league.name}
+                className="w-5 h-5 object-contain"
+              />
             )}
             <span className="text-sm font-bold text-slate-400">
               {match.league?.name || "Unknown League"}
@@ -488,38 +556,54 @@ function MatchCard({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
-              <span className="text-xs font-black text-red-400 uppercase">Live</span>
+              <span className="text-xs font-black text-red-400 uppercase">
+                Live
+              </span>
             </div>
           ) : isFinished && result ? (
             getResultBadge()
           ) : (
             <div className="px-3 py-1.5 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center gap-2">
               <Calendar className="w-4 h-4 text-blue-400" />
-              <span className="text-xs font-black text-blue-400 uppercase">Upcoming</span>
+              <span className="text-xs font-black text-blue-400 uppercase">
+                Upcoming
+              </span>
             </div>
           )}
         </div>
 
         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4">
           {/* Home Team */}
-          <div className={`flex items-center gap-3 ${isHome ? "" : "opacity-60"}`}>
+          <div
+            className={`flex items-center gap-3 ${isHome ? "" : "opacity-60"}`}
+          >
             {match.homeTeam.logo ? (
-              <img src={match.homeTeam.logo} alt={match.homeTeam.name} className="w-12 h-12 object-contain" />
+              <img
+                src={match.homeTeam.logo}
+                alt={match.homeTeam.name}
+                className="w-12 h-12 object-contain"
+              />
             ) : (
               <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
                 <Shield className="w-6 h-6 text-slate-600" />
               </div>
             )}
             <div className="flex-1 min-w-0">
-              <div className="font-bold text-white truncate">{match.homeTeam.name}</div>
-              {isHome && <div className="text-xs text-cyan-400 font-semibold">You</div>}
+              <div className="font-bold text-white truncate">
+                {match.homeTeam.name}
+              </div>
+              {isHome && (
+                <div className="text-xs text-cyan-400 font-semibold">You</div>
+              )}
             </div>
           </div>
 
           {/* Score or Time */}
           <div className="text-center min-w-[80px]">
             {isFinished && match.score ? (
-              <div className="text-2xl font-black text-white">{match.score}</div>
+              <div className="text-2xl font-black text-white">
+                {match.score}
+              </div>
             ) : isLive && match.score ? (
               <div className="text-2xl font-black bg-gradient-to-r from-red-400 to-orange-400 bg-clip-text text-transparent">
                 {match.score}
@@ -537,17 +621,27 @@ function MatchCard({
           </div>
 
           {/* Away Team */}
-          <div className={`flex items-center gap-3 flex-row-reverse ${!isHome ? "" : "opacity-60"}`}>
+          <div
+            className={`flex items-center gap-3 flex-row-reverse ${!isHome ? "" : "opacity-60"}`}
+          >
             {match.awayTeam.logo ? (
-              <img src={match.awayTeam.logo} alt={match.awayTeam.name} className="w-12 h-12 object-contain" />
+              <img
+                src={match.awayTeam.logo}
+                alt={match.awayTeam.name}
+                className="w-12 h-12 object-contain"
+              />
             ) : (
               <div className="w-12 h-12 bg-slate-800 rounded-lg flex items-center justify-center">
                 <Shield className="w-6 h-6 text-slate-600" />
               </div>
             )}
             <div className="flex-1 min-w-0 text-right">
-              <div className="font-bold text-white truncate">{match.awayTeam.name}</div>
-              {!isHome && <div className="text-xs text-cyan-400 font-semibold">You</div>}
+              <div className="font-bold text-white truncate">
+                {match.awayTeam.name}
+              </div>
+              {!isHome && (
+                <div className="text-xs text-cyan-400 font-semibold">You</div>
+              )}
             </div>
           </div>
         </div>
@@ -555,7 +649,9 @@ function MatchCard({
         {match.venue && (
           <div className="flex items-center justify-center gap-2 mt-4 pt-4 border-t border-slate-700/50">
             <MapPin className="w-4 h-4 text-slate-500" />
-            <span className="text-sm text-slate-400 font-semibold">{match.venue}</span>
+            <span className="text-sm text-slate-400 font-semibold">
+              {match.venue}
+            </span>
           </div>
         )}
       </div>
@@ -584,8 +680,12 @@ function EmptyState({
         <div className="w-24 h-24 bg-slate-800/70 rounded-2xl flex items-center justify-center mx-auto mb-6">
           {icon}
         </div>
-        <h3 className="text-xl font-black text-white mb-2 uppercase tracking-wide">{title}</h3>
-        <p className="text-sm text-slate-400 font-semibold max-w-md mx-auto">{description}</p>
+        <h3 className="text-xl font-black text-white mb-2 uppercase tracking-wide">
+          {title}
+        </h3>
+        <p className="text-sm text-slate-400 font-semibold max-w-md mx-auto">
+          {description}
+        </p>
       </div>
     </div>
   );

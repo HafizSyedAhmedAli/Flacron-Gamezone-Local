@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 // import { useRouter } from "next/navigation";
 import {
   Mail,
@@ -36,7 +36,24 @@ export default function ContactPage() {
   const [success, setSuccess] = useState<boolean>(false);
   const [mounted, setMounted] = useState(false);
 
-//   const router = useRouter();
+  //   const router = useRouter();
+
+  // FIX: Precompute particle styles once so positions are stable across
+  // re-renders. Math.random() must NOT be called during render directly —
+  // "use client" components still SSR, so the server and client would produce
+  // different random values and trigger React hydration mismatches.
+  // useMemo with [] runs only once on the client, guaranteeing a single
+  // consistent set of values for the component's lifetime.
+  const particleStyles = useMemo(
+    () =>
+      Array.from({ length: 15 }, () => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        "--float-duration": `${5 + Math.random() * 10}s`,
+        "--float-delay": `${Math.random() * 5}s`,
+      })),
+    [],
+  );
 
   const WEB3FORMS_ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
 
@@ -158,20 +175,25 @@ export default function ContactPage() {
         ></div>
       </div>
 
-      {/* Floating particles */}
+      {/* Floating particles
+          FIX 1: styled-jsx scopes keyframe names with a hash, so referencing the
+          keyframe by its original name inside an inline `style` prop won't work
+          — the browser can't resolve the scoped name. Instead we apply animation
+          via the `particle-float` className (which styled-jsx scopes consistently
+          alongside the keyframe) and pass per-particle timing through CSS custom
+          properties that the scoped rule reads with var().
+          FIX 2: Gated behind `mounted` and using precomputed `particleStyles`
+          (useMemo) so Math.random() is never called during SSR, preventing
+          server/client hydration mismatches. */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(15)].map((_, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-blue-400/20 rounded-full"
-            style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animation: `float ${5 + Math.random() * 10}s ease-in-out infinite`,
-              animationDelay: `${Math.random() * 5}s`,
-            }}
-          />
-        ))}
+        {mounted &&
+          particleStyles.map((style, i) => (
+            <div
+              key={i}
+              className="absolute w-1 h-1 bg-blue-400/20 rounded-full particle-float"
+              style={style as React.CSSProperties}
+            />
+          ))}
       </div>
 
       <div className="relative z-10 max-w-6xl mx-auto px-4 py-16">
@@ -491,7 +513,7 @@ export default function ContactPage() {
 
           {/* Additional Info Sidebar */}
           <div
-            className={`space-y-6 transition-all duration-1000 delay-400 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
+            className={`space-y-6 transition-all duration-1000 delay-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
           >
             {/* Office Hours */}
             <div className="bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6">
@@ -544,12 +566,11 @@ export default function ContactPage() {
               <h3 className="font-semibold text-white mb-4">Quick Links</h3>
               <div className="space-y-2">
                 <a
-                     href="/pricing?scroll=faq"
-                     className="block text-sm text-slate-400 hover:text-blue-400 transition-colors text-left w-full"
-                            >
-                    → FAQ & Help Center
+                  href="/pricing?scroll=faq"
+                  className="block text-sm text-slate-400 hover:text-blue-400 transition-colors text-left w-full"
+                >
+                  → FAQ & Help Center
                 </a>
-
                 <a
                   href="/terms"
                   className="block text-sm text-slate-400 hover:text-blue-400 transition-colors"
@@ -575,6 +596,18 @@ export default function ContactPage() {
       </div>
 
       <style jsx>{`
+        /*
+          FIX: The float keyframe is now only referenced via the .particle-float
+          className, which styled-jsx scopes consistently alongside the keyframe
+          name. Duration and delay are injected through CSS custom properties set
+          on each element's inline style, so every particle still gets its own
+          randomised timing without needing an inline animation string.
+        */
+        .particle-float {
+          animation: float var(--float-duration, 8s) ease-in-out infinite;
+          animation-delay: var(--float-delay, 0s);
+        }
+
         @keyframes float {
           0%,
           100% {

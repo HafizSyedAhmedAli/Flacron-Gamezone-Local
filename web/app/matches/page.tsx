@@ -41,7 +41,7 @@ async function getMatches() {
     });
 
     if (!res.ok) return [];
-    return res.json();
+    return await res.json();
   } catch {
     return [];
   }

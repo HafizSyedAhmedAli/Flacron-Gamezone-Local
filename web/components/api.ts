@@ -55,15 +55,18 @@ async function handleResponse<T>(response: Response): Promise<T> {
   return response.json();
 }
 
-export async function apiGet<T>(url: string): Promise<T> {
+export async function apiGet<T>(
+  url: string,
+  options?: { signal?: AbortSignal },
+): Promise<T> {
   const token = getToken();
-
   const response = await fetch(`${API_BASE}${url}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
       ...(token && { Authorization: `Bearer ${token}` }),
     },
+    signal: options?.signal,
   });
   return handleResponse<T>(response);
 }

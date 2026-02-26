@@ -23,16 +23,21 @@ export const metadata: Metadata = {
 
 export default async function LiveMatchesPage() {
   let initialMatches: Match[] = [];
+  let fetchError = false;
 
   try {
     initialMatches = await apiGet<Match[]>("/api/matches/live");
   } catch (error) {
     console.error("Initial live fetch failed:", error);
+    fetchError = true;
   }
 
   return (
     <Shell className="bg-[#0a0e27] flex flex-col">
-      <LiveMatchesClient initialMatches={initialMatches} />
+      <LiveMatchesClient
+        initialMatches={initialMatches}
+        initialError={fetchError}
+      />
     </Shell>
   );
 }
