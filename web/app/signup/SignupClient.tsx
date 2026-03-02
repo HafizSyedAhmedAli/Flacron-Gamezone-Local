@@ -27,7 +27,6 @@ const PARTICLES = Array.from({ length: 15 }, (_, i) => ({
 }));
 
 type FormErrors = {
-  name?: string;
   email?: string;
   password?: string;
   confirmPassword?: string;
@@ -37,13 +36,13 @@ type FormErrors = {
 
 export function SignupClient() {
   const [formData, setFormData] = useState({
-    name: "",
     email: "",
     password: "",
     confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState<boolean>(false);
   const [agreedToTerms, setAgreedToTerms] = useState<boolean>(false);
   const [error, setError] = useState<FormErrors>({});
   const [loading, setLoading] = useState<boolean>(false);
@@ -145,7 +144,6 @@ export function SignupClient() {
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
-
       {/* Animated background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div
@@ -188,7 +186,6 @@ export function SignupClient() {
           <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-blue-600 rounded-2xl opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500" />
 
           <div className="relative bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border border-slate-700/50 rounded-2xl p-8 shadow-2xl">
-
             {/* Logo */}
             <div className="text-center mb-8">
               <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-purple-500 via-purple-600 to-blue-600 mb-4 shadow-lg shadow-purple-500/50 relative group-hover:scale-110 transition-transform duration-500">
@@ -217,10 +214,12 @@ export function SignupClient() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-
               {/* Email */}
               <div className="space-y-2">
-                <label htmlFor="email" className="block text-sm font-medium text-slate-300">
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-slate-300"
+                >
                   Email Address
                 </label>
                 <div className="relative group">
@@ -243,7 +242,11 @@ export function SignupClient() {
                   />
                 </div>
                 {error.email && (
-                  <p id="email-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                  <p
+                    id="email-error"
+                    className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                    role="alert"
+                  >
                     <AlertCircle className="w-4 h-4" />
                     {error.email}
                   </p>
@@ -252,7 +255,10 @@ export function SignupClient() {
 
               {/* Password */}
               <div className="space-y-2">
-                <label htmlFor="password" className="block text-sm font-medium text-slate-300">
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-slate-300"
+                >
                   Password
                 </label>
                 <div className="relative group">
@@ -269,16 +275,24 @@ export function SignupClient() {
                     onChange={handleChange}
                     required
                     aria-invalid={Boolean(error.password)}
-                    aria-describedby={error.password ? "password-error" : undefined}
+                    aria-describedby={
+                      error.password ? "password-error" : undefined
+                    }
                     className="w-full pl-10 pr-12 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 hover:border-slate-600/50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((s) => !s)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-400 transition-all duration-300 hover:scale-110"
                   >
-                    {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
 
@@ -287,9 +301,15 @@ export function SignupClient() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-slate-400">Password strength</span>
-                      <span className={`font-semibold ${
-                        passwordStrength <= 1 ? "text-red-400" : passwordStrength <= 3 ? "text-yellow-400" : "text-green-400"
-                      }`}>
+                      <span
+                        className={`font-semibold ${
+                          passwordStrength <= 1
+                            ? "text-red-400"
+                            : passwordStrength <= 3
+                              ? "text-yellow-400"
+                              : "text-green-400"
+                        }`}
+                      >
                         {getPasswordStrengthText()}
                       </span>
                     </div>
@@ -303,7 +323,11 @@ export function SignupClient() {
                 )}
 
                 {error.password && (
-                  <p id="password-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                  <p
+                    id="password-error"
+                    className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                    role="alert"
+                  >
                     <AlertCircle className="w-4 h-4" />
                     {error.password}
                   </p>
@@ -312,7 +336,10 @@ export function SignupClient() {
 
               {/* Confirm Password */}
               <div className="space-y-2">
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300">
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-slate-300"
+                >
                   Confirm Password
                 </label>
                 <div className="relative group">
@@ -329,20 +356,34 @@ export function SignupClient() {
                     onChange={handleChange}
                     required
                     aria-invalid={Boolean(error.confirmPassword)}
-                    aria-describedby={error.confirmPassword ? "confirm-password-error" : undefined}
+                    aria-describedby={
+                      error.confirmPassword
+                        ? "confirm-password-error"
+                        : undefined
+                    }
                     className="w-full pl-10 pr-12 py-3 bg-slate-900/50 border border-slate-700/50 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all duration-300 hover:border-slate-600/50"
                   />
                   <button
                     type="button"
                     onClick={() => setShowConfirmPassword((s) => !s)}
-                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    aria-label={
+                      showConfirmPassword ? "Hide password" : "Show password"
+                    }
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-purple-400 transition-all duration-300 hover:scale-110"
                   >
-                    {showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    {showConfirmPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
                   </button>
                 </div>
                 {error.confirmPassword && (
-                  <p id="confirm-password-error" className="text-sm text-red-400 flex items-center gap-1 animate-slideIn" role="alert">
+                  <p
+                    id="confirm-password-error"
+                    className="text-sm text-red-400 flex items-center gap-1 animate-slideIn"
+                    role="alert"
+                  >
                     <AlertCircle className="w-4 h-4" />
                     {error.confirmPassword}
                   </p>
@@ -351,7 +392,10 @@ export function SignupClient() {
 
               {/* Terms checkbox */}
               <div className="space-y-2 pt-2">
-                <label htmlFor="terms-checkbox" className="flex items-start gap-3 cursor-pointer group">
+                <label
+                  htmlFor="terms-checkbox"
+                  className="flex items-start gap-3 cursor-pointer group"
+                >
                   <input
                     id="terms-checkbox"
                     type="checkbox"
@@ -361,17 +405,28 @@ export function SignupClient() {
                   />
                   <span className="text-sm text-slate-400 group-hover:text-slate-300 transition-colors select-none">
                     I agree to the{" "}
-                    <Link href="/terms" className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2" aria-label="Terms of Service">
+                    <Link
+                      href="/terms"
+                      className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2"
+                      aria-label="Terms of Service"
+                    >
                       Terms of Service
                     </Link>{" "}
                     and{" "}
-                    <Link href="/privacy" className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2" aria-label="Privacy Policy">
+                    <Link
+                      href="/privacy"
+                      className="text-purple-400 hover:text-purple-300 transition-colors underline underline-offset-2"
+                      aria-label="Privacy Policy"
+                    >
                       Privacy Policy
                     </Link>
                   </span>
                 </label>
                 {error.terms && (
-                  <p className="text-sm text-red-400 flex items-center gap-1 ml-7 animate-slideIn" role="alert">
+                  <p
+                    className="text-sm text-red-400 flex items-center gap-1 ml-7 animate-slideIn"
+                    role="alert"
+                  >
                     <AlertCircle className="w-4 h-4" />
                     {error.terms}
                   </p>
@@ -389,9 +444,24 @@ export function SignupClient() {
                 <div className="relative flex items-center justify-center gap-2 py-3 text-white font-semibold">
                   {loading ? (
                     <>
-                      <svg className="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      <svg
+                        className="animate-spin h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        />
                       </svg>
                       <span>Creating Account...</span>
                     </>
@@ -440,30 +510,66 @@ export function SignupClient() {
 
       <style jsx>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-20px) translateX(10px); }
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-20px) translateX(10px);
+          }
         }
         @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-5px); }
-          75% { transform: translateX(5px); }
+          0%,
+          100% {
+            transform: translateX(0);
+          }
+          25% {
+            transform: translateX(-5px);
+          }
+          75% {
+            transform: translateX(5px);
+          }
         }
         @keyframes slideIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
+          from {
+            opacity: 0;
+            transform: translateY(-10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
         }
         @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
         @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+          0%,
+          100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
         }
-        .animate-shake { animation: shake 0.4s ease-in-out; }
-        .animate-slideIn { animation: slideIn 0.3s ease-out; }
-        .animate-fadeIn { animation: fadeIn 1s ease-out 0.5s both; }
-        .animate-gradient { background-size: 200% auto; animation: gradient 3s ease infinite; }
+        .animate-shake {
+          animation: shake 0.4s ease-in-out;
+        }
+        .animate-slideIn {
+          animation: slideIn 0.3s ease-out;
+        }
+        .animate-fadeIn {
+          animation: fadeIn 1s ease-out 0.5s both;
+        }
+        .animate-gradient {
+          background-size: 200% auto;
+          animation: gradient 3s ease infinite;
+        }
       `}</style>
     </div>
   );

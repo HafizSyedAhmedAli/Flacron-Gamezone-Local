@@ -16,6 +16,9 @@ import {
   FileText,
   ChevronLeft,
 } from "lucide-react";
+// TODO: Update Privacy Email
+const LAST_UPDATED_DATE = "February 27, 2026";
+const PRIVACY_EMAIL = "privacy@youractualdomain.com";
 
 const sections = [
   {
@@ -186,11 +189,11 @@ const sections = [
       },
       {
         subtitle: "Effective Date",
-        text: "This Privacy Policy was last updated on February 27, 2026. The most current version will always be available on this page.",
+        text: `This Privacy Policy was last updated on ${LAST_UPDATED_DATE}. The most current version will always be available on this page.`,
       },
       {
         subtitle: "Contact Us",
-        text: "If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact our Data Protection team at privacy@yourplatform.com. We aim to respond within 48 hours.",
+        text: `If you have any questions, concerns, or requests regarding this Privacy Policy or your personal data, please contact our Data Protection team at ${PRIVACY_EMAIL}. We aim to respond within 48 hours.`,
       },
     ],
   },
@@ -220,9 +223,11 @@ export function PrivacyClient() {
         <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(6,182,212,0.03)_50%,transparent_75%)] bg-[length:250%_250%] animate-[shimmer_8s_linear_infinite]" />
 
         {/* Decorative grid */}
-        <div className="absolute inset-0 opacity-5"
+        <div
+          className="absolute inset-0 opacity-5"
           style={{
-            backgroundImage: "linear-gradient(rgba(6,182,212,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.5) 1px, transparent 1px)",
+            backgroundImage:
+              "linear-gradient(rgba(6,182,212,0.5) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.5) 1px, transparent 1px)",
             backgroundSize: "60px 60px",
           }}
         />
@@ -254,12 +259,13 @@ export function PrivacyClient() {
 
             <p className="text-slate-400 text-lg max-w-2xl mx-auto leading-relaxed font-medium">
               We are committed to protecting your privacy and being transparent
-              about how we collect, use, and safeguard your personal information.
+              about how we collect, use, and safeguard your personal
+              information.
             </p>
 
             <div className="flex items-center justify-center gap-2 mt-6 text-sm text-slate-500">
               <FileText className="w-4 h-4" />
-              <span>Last updated: February 27, 2026</span>
+              <span>Last updated: {LAST_UPDATED_DATE}</span>
             </div>
           </div>
         </div>
@@ -268,7 +274,6 @@ export function PrivacyClient() {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 py-16 space-y-8">
-
         {/* Quick nav */}
         <div className="relative overflow-hidden bg-slate-900/80 backdrop-blur-xl border-2 border-slate-700/50 rounded-2xl p-6 shadow-xl">
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_50%,_rgba(6,182,212,0.08),transparent)]" />
@@ -334,7 +339,9 @@ export function PrivacyClient() {
               <div className="relative p-8">
                 {/* Section header */}
                 <div className="flex items-center gap-4 mb-8">
-                  <div className={`w-12 h-12 bg-gradient-to-br ${section.gradient} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}>
+                  <div
+                    className={`w-12 h-12 bg-gradient-to-br ${section.gradient} rounded-xl flex items-center justify-center shadow-lg flex-shrink-0`}
+                  >
                     <Icon className="w-6 h-6 text-white" />
                   </div>
                   <h2 className="text-2xl font-black text-white uppercase tracking-tight">
@@ -346,7 +353,9 @@ export function PrivacyClient() {
                 <div className="space-y-6">
                   {section.content.map((block, i) => (
                     <div key={i} className="flex gap-4">
-                      <div className={`w-1 rounded-full bg-gradient-to-b ${section.gradient} flex-shrink-0 mt-1`} />
+                      <div
+                        className={`w-1 rounded-full bg-gradient-to-b ${section.gradient} flex-shrink-0 mt-1`}
+                      />
                       <div>
                         <h3 className="text-sm font-black text-white uppercase tracking-wider mb-2">
                           {block.subtitle}
@@ -360,7 +369,9 @@ export function PrivacyClient() {
                 </div>
               </div>
 
-              <div className={`absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-current to-transparent opacity-30`} />
+              <div
+                className={`absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-current to-transparent opacity-30`}
+              />
             </div>
           );
         })}
@@ -380,7 +391,7 @@ export function PrivacyClient() {
               respond within 48 hours.
             </p>
             <a
-              href="mailto:privacy@yourplatform.com"
+              href={`mailto:${PRIVACY_EMAIL}`}
               className="inline-flex items-center gap-2 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black px-8 py-4 rounded-xl shadow-lg shadow-cyan-500/30 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-cyan-500/40 uppercase tracking-wide text-sm"
             >
               <Mail className="w-5 h-5" />
@@ -389,13 +400,16 @@ export function PrivacyClient() {
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-blue-500 to-purple-500" />
         </div>
-
       </div>
 
       <style jsx>{`
         @keyframes shimmer {
-          0% { background-position: -1000px 0; }
-          100% { background-position: 1000px 0; }
+          0% {
+            background-position: -1000px 0;
+          }
+          100% {
+            background-position: 1000px 0;
+          }
         }
       `}</style>
     </Shell>
