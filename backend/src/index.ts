@@ -23,7 +23,7 @@ app.use(
     credentials: false,
   }),
 );
-
+app.set("trust proxy", 1);
 app.use(rateLimit({ windowMs: 60_000, limit: 200 }));
 
 // Stripe webhook needs raw body
