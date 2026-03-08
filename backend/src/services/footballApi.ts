@@ -9,7 +9,7 @@ const KEY = process.env.API_FOOTBALL_KEY || "";
 
 const client = axios.create({
   baseURL: BASE,
-  timeout: 12000,
+  timeout: 30000,
   headers: KEY ? { "x-apisports-key": KEY } : {},
 });
 

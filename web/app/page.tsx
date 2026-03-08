@@ -49,6 +49,12 @@ interface SearchResults {
   matches: Match[];
 }
 
+const Skeleton = ({ className = "" }: { className?: string }) => (
+  <div
+    className={`relative overflow-hidden bg-slate-800/60 rounded-xl before:absolute before:inset-0 before:-translate-x-full before:animate-[shimmer_1.5s_infinite] before:bg-gradient-to-r before:from-transparent before:via-slate-700/40 before:to-transparent ${className}`}
+  />
+);
+
 export default function Home() {
   const [featuredLeagues, setFeaturedLeagues] = useState<League[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
@@ -114,7 +120,7 @@ export default function Home() {
   async function refreshLiveMatches() {
     try {
       const liveRes = await apiGet<Match[]>("/api/matches/live");
-      setLiveMatches(liveRes.slice(0, 4));
+      setLiveMatches(Array.isArray(liveRes) ? liveRes.slice(0, 4) : []);
     } catch (error) {
       console.error("Error refreshing live matches:", error);
     }
@@ -172,9 +178,9 @@ export default function Home() {
                 className="absolute inset-0"
                 style={{
                   backgroundImage: `
-                  linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
-                  linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
-                `,
+                    linear-gradient(rgba(59, 130, 246, 0.3) 1px, transparent 1px),
+                    linear-gradient(90deg, rgba(59, 130, 246, 0.3) 1px, transparent 1px)
+                  `,
                   backgroundSize: "50px 50px",
                 }}
               ></div>
@@ -269,6 +275,7 @@ export default function Home() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search teams, leagues, or matches..."
+                aria-label="Search teams, leagues, or matches"
                 className="w-full bg-slate-800/50 backdrop-blur-sm border border-slate-700/50 rounded-2xl pl-14 pr-6 py-5 text-sm focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 transition-all placeholder:text-slate-500"
               />
               {isSearching && (
@@ -600,35 +607,46 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {featuredLeagues.map((league, idx) => (
-              <Link key={league.id} href={`/leagues/${league.id}`}>
-                <div
-                  className="group bg-gradient-to-b from-slate-900/40 to-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 cursor-pointer"
-                  style={{
-                    animation: `fadeInUp 0.4s ease-out ${idx * 0.05}s both`,
-                  }}
-                >
-                  <div className="relative mb-4 mx-auto w-20 h-20">
-                    <div className="w-20 h-20 rounded-xl bg-slate-800/50 flex items-center justify-center p-3 group-hover:scale-110 transition-transform">
-                      <img
-                        src={league.logo}
-                        alt={league.name}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
+            {loading
+              ? Array.from({ length: 8 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-gradient-to-b from-slate-900/40 to-slate-900/80 border border-slate-700/50 rounded-2xl p-6"
+                  >
+                    <Skeleton className="w-20 h-20 rounded-xl mx-auto mb-4" />
+                    <Skeleton className="h-3.5 w-3/4 mx-auto mb-2 rounded-lg" />
+                    <Skeleton className="h-3 w-1/2 mx-auto rounded-lg" />
                   </div>
-                  <div className="text-center space-y-1">
-                    <h3 className="font-semibold text-sm leading-tight line-clamp-1 group-hover:text-blue-400 transition-colors">
-                      {league.name}
-                    </h3>
-                    <div className="flex items-center justify-center gap-1 text-xs text-slate-500">
-                      <Globe className="w-3 h-3" />
-                      <span className="line-clamp-1">{league.country}</span>
+                ))
+              : featuredLeagues.map((league, idx) => (
+                  <Link key={league.id} href={`/leagues/${league.id}`}>
+                    <div
+                      className="group bg-gradient-to-b from-slate-900/40 to-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-2xl p-6 hover:border-blue-500/50 hover:shadow-xl hover:shadow-blue-500/5 transition-all duration-300 cursor-pointer"
+                      style={{
+                        animation: `fadeInUp 0.4s ease-out ${idx * 0.05}s both`,
+                      }}
+                    >
+                      <div className="relative mb-4 mx-auto w-20 h-20">
+                        <div className="w-20 h-20 rounded-xl bg-slate-800/50 flex items-center justify-center p-3 group-hover:scale-110 transition-transform">
+                          <img
+                            src={league.logo}
+                            alt={league.name}
+                            className="w-full h-full object-contain"
+                          />
+                        </div>
+                      </div>
+                      <div className="text-center space-y-1">
+                        <h3 className="font-semibold text-sm leading-tight line-clamp-1 group-hover:text-blue-400 transition-colors">
+                          {league.name}
+                        </h3>
+                        <div className="flex items-center justify-center gap-1 text-xs text-slate-500">
+                          <Globe className="w-3 h-3" />
+                          <span className="line-clamp-1">{league.country}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  </Link>
+                ))}
           </div>
         </div>
 
@@ -654,81 +672,104 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-3 gap-4">
-            {upcomingMatches.map((match) => (
-              <Link key={match.id} href={`/match/${match.id}`}>
-                <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-2xl p-5 transition-all duration-300 hover:scale-[1.02] cursor-pointer">
-                  <div className="flex items-center justify-center mb-4">
-                    {getStatusBadge(match.status)}
-                  </div>
-
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-3">
-                      {match.homeTeam.logo ? (
-                        <img
-                          src={match.homeTeam.logo}
-                          alt={match.homeTeam.name}
-                          className="w-8 h-8 object-contain"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-xs font-bold">
-                          {match.homeTeam.name.substring(0, 2)}
-                        </div>
-                      )}
-                      <span className="font-semibold text-sm truncate group-hover:text-blue-400 transition-colors">
-                        {match.homeTeam.name}
-                      </span>
+            {loading
+              ? Array.from({ length: 6 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="bg-gradient-to-br from-slate-900/90 to-slate-800/90 border border-slate-700/50 rounded-2xl p-5"
+                  >
+                    <Skeleton className="h-6 w-24 mx-auto rounded-full mb-4" />
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                        <Skeleton className="h-4 flex-1 rounded-lg" />
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="w-8 h-8 rounded-lg shrink-0" />
+                        <Skeleton className="h-4 flex-1 rounded-lg" />
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-3">
-                      {match.awayTeam.logo ? (
-                        <img
-                          src={match.awayTeam.logo}
-                          alt={match.awayTeam.name}
-                          className="w-8 h-8 object-contain"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-xs font-bold">
-                          {match.awayTeam.name.substring(0, 2)}
-                        </div>
-                      )}
-                      <span className="font-semibold text-sm truncate group-hover:text-purple-400 transition-colors">
-                        {match.awayTeam.name}
-                      </span>
+                    <div className="mt-4 pt-4 border-t border-slate-700/50 flex justify-between">
+                      <Skeleton className="h-3 w-16 rounded-lg" />
+                      <Skeleton className="h-3 w-12 rounded-lg" />
                     </div>
                   </div>
+                ))
+              : upcomingMatches.map((match) => (
+                  <Link key={match.id} href={`/match/${match.id}`}>
+                    <div className="group bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-2xl p-5 transition-all duration-300 hover:scale-[1.02] cursor-pointer">
+                      <div className="flex items-center justify-center mb-4">
+                        {getStatusBadge(match.status)}
+                      </div>
 
-                  <div className="mt-4 pt-4 border-t border-slate-700/50">
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {new Date(match.kickoffTime).toLocaleDateString(
-                          "en-US",
-                          {
-                            month: "short",
-                            day: "numeric",
-                          },
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          {match.homeTeam.logo ? (
+                            <img
+                              src={match.homeTeam.logo}
+                              alt={match.homeTeam.name}
+                              className="w-8 h-8 object-contain"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-xs font-bold">
+                              {match.homeTeam.name.substring(0, 2)}
+                            </div>
+                          )}
+                          <span className="font-semibold text-sm truncate group-hover:text-blue-400 transition-colors">
+                            {match.homeTeam.name}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          {match.awayTeam.logo ? (
+                            <img
+                              src={match.awayTeam.logo}
+                              alt={match.awayTeam.name}
+                              className="w-8 h-8 object-contain"
+                            />
+                          ) : (
+                            <div className="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center text-xs font-bold">
+                              {match.awayTeam.name.substring(0, 2)}
+                            </div>
+                          )}
+                          <span className="font-semibold text-sm truncate group-hover:text-purple-400 transition-colors">
+                            {match.awayTeam.name}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 pt-4 border-t border-slate-700/50">
+                        <div className="flex items-center justify-between text-xs text-slate-400">
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            {new Date(match.kickoffTime).toLocaleDateString(
+                              undefined,
+                              {
+                                month: "short",
+                                day: "numeric",
+                              },
+                            )}
+                          </div>
+                          <div>
+                            {new Date(match.kickoffTime).toLocaleTimeString(
+                              "en-US",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              },
+                            )}
+                          </div>
+                        </div>
+                        {match.league && (
+                          <div className="flex items-center gap-1 mt-2 text-xs text-slate-500">
+                            <Trophy className="w-3 h-3" />
+                            {match.league.name}
+                          </div>
                         )}
                       </div>
-                      <div>
-                        {new Date(match.kickoffTime).toLocaleTimeString(
-                          "en-US",
-                          {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
-                        )}
-                      </div>
                     </div>
-                    {match.league && (
-                      <div className="flex items-center gap-1 mt-2 text-xs text-slate-500">
-                        <Trophy className="w-3 h-3" />
-                        {match.league.name}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
+                  </Link>
+                ))}
           </div>
         </div>
 
@@ -769,6 +810,11 @@ export default function Home() {
           to {
             opacity: 1;
             transform: translateY(0);
+          }
+        }
+        @keyframes shimmer {
+          100% {
+            transform: translateX(100%);
           }
         }
       `}</style>
