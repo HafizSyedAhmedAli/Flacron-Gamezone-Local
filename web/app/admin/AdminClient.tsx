@@ -21,7 +21,7 @@ import { TeamsTab } from "@/components/ui/admin/TeamsTab";
 import { UsersTab } from "@/components/ui/admin/UsersTab";
 import { Button } from "@/components/ui/button";
 import { useRequireAdmin } from "@/hooks/useAuth";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Youtube, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface Pagination {
@@ -78,7 +78,6 @@ interface UsersResponse {
 
 type TabType = "leagues" | "teams" | "matches" | "users" | "streams";
 
-// ← Named export instead of default export
 export function AdminClient() {
   const [tab, setTab] = useState<TabType>("leagues");
 
@@ -97,6 +96,10 @@ export function AdminClient() {
     type: "success" | "error" | "info";
   } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // ── YouTube stream states ─────────────────────────────────────────────────
+  const [findingStreamFor, setFindingStreamFor] = useState<string | null>(null);
+  const [findingAllStreams, setFindingAllStreams] = useState(false);
 
   const [totalCounts, setTotalCounts] = useState({
     leagues: 0,
@@ -248,16 +251,68 @@ export function AdminClient() {
     }
   }
 
+  // ==================== YOUTUBE STREAMS ====================
+
+  async function handleFindStream(matchId: string) {
+    setFindingStreamFor(matchId);
+    try {
+      const res = await apiPost<{
+        success: boolean;
+        found: boolean;
+        title?: string;
+      }>(`/api/admin/matches/${matchId}/find-stream`, {});
+      if (res.found) {
+        setMsg({ text: `✅ Stream found: "${res.title}"`, type: "success" });
+        refreshAll();
+      } else {
+        setMsg({ text: "No live stream found on YouTube right now", type: "info" });
+      }
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: "Stream search failed", type: "error" });
+    } finally {
+      setFindingStreamFor(null);
+    }
+  }
+
+  async function handleFindAllStreams() {
+    const liveMatches = matches.filter((m) => m.status === "LIVE");
+    if (liveMatches.length === 0) {
+      setMsg({ text: "No live matches to search streams for", type: "info" });
+      return;
+    }
+    setFindingAllStreams(true);
+    setMsg({
+      text: `Searching YouTube for ${liveMatches.length} live match${liveMatches.length !== 1 ? "es" : ""}…`,
+      type: "info",
+    });
+    let found = 0;
+    let notFound = 0;
+    for (const match of liveMatches) {
+      try {
+        const res = await apiPost<{ success: boolean; found: boolean }>(
+          `/api/admin/matches/${match.id}/find-stream`,
+          {},
+        );
+        res.found ? found++ : notFound++;
+      } catch {
+        notFound++;
+      }
+      await new Promise((r) => setTimeout(r, 600));
+    }
+    setFindingAllStreams(false);
+    setMsg({
+      text: `Done — ${found} stream${found !== 1 ? "s" : ""} found, ${notFound} not found`,
+      type: found > 0 ? "success" : "info",
+    });
+    refreshAll();
+  }
+
   // ==================== LEAGUES ====================
 
   async function browseApiLeagues() {
     setBrowsingLeagues(true);
-    setLeagueBrowserPagination({
-      page: 1,
-      hasMore: false,
-      loading: false,
-      total: 0,
-    });
+    setLeagueBrowserPagination({ page: 1, hasMore: false, loading: false, total: 0 });
     try {
       const response = await apiGet<any>("/api/admin/leagues?page=1&limit=100");
       setApiLeagues(response.leagues || []);
@@ -385,10 +440,7 @@ export function AdminClient() {
         hasMore: response.pagination?.hasMore || false,
         loading: false,
       });
-      setMsg({
-        text: `Loaded ${response.leagues?.length || 0} more leagues`,
-        type: "success",
-      });
+      setMsg({ text: `Loaded ${response.leagues?.length || 0} more leagues`, type: "success" });
     } catch (err) {
       console.error(err);
       setMsg({ text: "Failed to load more leagues", type: "error" });
@@ -398,18 +450,9 @@ export function AdminClient() {
 
   // ==================== TEAMS ====================
 
-  // FIX: Accept explicit leagueId parameter so callers that reset state first
-  // (e.g. "Browse Teams" button) can pass the intended value directly instead
-  // of relying on the stale state snapshot that React batches during the same
-  // event handler.
   async function browseApiTeams(leagueId = selectedLeagueForTeams) {
     setBrowsingTeams(true);
-    setTeamBrowserPagination({
-      page: 1,
-      hasMore: false,
-      loading: false,
-      total: 0,
-    });
+    setTeamBrowserPagination({ page: 1, hasMore: false, loading: false, total: 0 });
     try {
       const url = leagueId
         ? `/api/admin/teams?leagueId=${leagueId}&page=1&limit=100`
@@ -459,12 +502,7 @@ export function AdminClient() {
 
   async function handleTeamLeagueChange(leagueId: string) {
     setSelectedLeagueForTeams(leagueId);
-    setTeamBrowserPagination({
-      page: 1,
-      hasMore: false,
-      loading: false,
-      total: 0,
-    });
+    setTeamBrowserPagination({ page: 1, hasMore: false, loading: false, total: 0 });
     setBrowsingTeams(true);
     try {
       const url = leagueId
@@ -576,10 +614,7 @@ export function AdminClient() {
         hasMore: response.pagination?.hasMore || false,
         loading: false,
       });
-      setMsg({
-        text: `Loaded ${response.teams?.length || 0} more teams`,
-        type: "success",
-      });
+      setMsg({ text: `Loaded ${response.teams?.length || 0} more teams`, type: "success" });
     } catch (err) {
       console.error(err);
       setMsg({ text: "Failed to load more teams", type: "error" });
@@ -592,22 +627,13 @@ export function AdminClient() {
   const matchesRequestIdRef = useRef(0);
   const activeMatchesRequestsRef = useRef(0);
 
-  // FIX: Accept explicit filter parameters so callers that reset state first
-  // (e.g. "Browse Matches" button) can pass the intended values directly instead
-  // of relying on stale state snapshots that React batches during the same
-  // event handler.
   async function browseApiMatches(
     leagueId = selectedLeagueForMatches,
     date = selectedDateForMatches,
     status = selectedStatusForMatches,
   ) {
     setBrowsingMatches(true);
-    setMatchBrowserPagination({
-      page: 1,
-      hasMore: false,
-      loading: false,
-      total: 0,
-    });
+    setMatchBrowserPagination({ page: 1, hasMore: false, loading: false, total: 0 });
     try {
       const params = new URLSearchParams();
       if (leagueId) params.append("leagueId", leagueId);
@@ -619,17 +645,12 @@ export function AdminClient() {
       if (!leagueId && !date && !status) {
         setApiMatches([]);
         setShowMatchBrowser(true);
-        setMsg({
-          text: "Please select filters to browse matches",
-          type: "info",
-        });
+        setMsg({ text: "Please select filters to browse matches", type: "info" });
         setBrowsingMatches(false);
         return;
       }
 
-      const response = await apiGet<any>(
-        `/api/admin/matches?${params.toString()}`,
-      );
+      const response = await apiGet<any>(`/api/admin/matches?${params.toString()}`);
       setApiMatches(response.matches || []);
       setMatchBrowserPagination({
         page: 1,
@@ -654,17 +675,13 @@ export function AdminClient() {
     });
     try {
       const params = new URLSearchParams();
-      if (selectedLeagueForMatches)
-        params.append("leagueId", selectedLeagueForMatches);
+      if (selectedLeagueForMatches) params.append("leagueId", selectedLeagueForMatches);
       if (selectedDateForMatches) params.append("date", selectedDateForMatches);
-      if (selectedStatusForMatches)
-        params.append("status", selectedStatusForMatches);
+      if (selectedStatusForMatches) params.append("status", selectedStatusForMatches);
       params.append("page", nextPage.toString());
       params.append("limit", "100");
 
-      const response = await apiGet<any>(
-        `/api/admin/matches?${params.toString()}`,
-      );
+      const response = await apiGet<any>(`/api/admin/matches?${params.toString()}`);
       setApiMatches((prev) => [...prev, ...(response.matches || [])]);
       setMatchBrowserPagination({
         page: nextPage,
@@ -681,53 +698,23 @@ export function AdminClient() {
 
   async function handleMatchLeagueChange(leagueId: string) {
     setSelectedLeagueForMatches(leagueId);
-    setMatchBrowserPagination({
-      page: 1,
-      hasMore: false,
-      loading: false,
-      total: 0,
-    });
+    setMatchBrowserPagination({ page: 1, hasMore: false, loading: false, total: 0 });
     const requestId = ++matchesRequestIdRef.current;
-    await refreshMatchesFromApi(
-      leagueId,
-      selectedDateForMatches,
-      selectedStatusForMatches,
-      requestId,
-    );
+    await refreshMatchesFromApi(leagueId, selectedDateForMatches, selectedStatusForMatches, requestId);
   }
 
   async function handleMatchDateChange(date: string) {
     setSelectedDateForMatches(date);
-    setMatchBrowserPagination({
-      page: 1,
-      hasMore: false,
-      loading: false,
-      total: 0,
-    });
+    setMatchBrowserPagination({ page: 1, hasMore: false, loading: false, total: 0 });
     const requestId = ++matchesRequestIdRef.current;
-    await refreshMatchesFromApi(
-      selectedLeagueForMatches,
-      date,
-      selectedStatusForMatches,
-      requestId,
-    );
+    await refreshMatchesFromApi(selectedLeagueForMatches, date, selectedStatusForMatches, requestId);
   }
 
   async function handleMatchStatusChange(status: string) {
     setSelectedStatusForMatches(status);
-    setMatchBrowserPagination({
-      page: 1,
-      hasMore: false,
-      loading: false,
-      total: 0,
-    });
+    setMatchBrowserPagination({ page: 1, hasMore: false, loading: false, total: 0 });
     const requestId = ++matchesRequestIdRef.current;
-    await refreshMatchesFromApi(
-      selectedLeagueForMatches,
-      selectedDateForMatches,
-      status,
-      requestId,
-    );
+    await refreshMatchesFromApi(selectedLeagueForMatches, selectedDateForMatches, status, requestId);
   }
 
   async function refreshMatchesFromApi(
@@ -739,7 +726,6 @@ export function AdminClient() {
     const myRequestId = requestId ?? ++matchesRequestIdRef.current;
     activeMatchesRequestsRef.current++;
     setBrowsingMatches(true);
-
     try {
       const params = new URLSearchParams();
       if (leagueId) params.append("leagueId", leagueId);
@@ -748,9 +734,7 @@ export function AdminClient() {
       params.append("page", "1");
       params.append("limit", "100");
 
-      const response = await apiGet<any>(
-        `/api/admin/matches?${params.toString()}`,
-      );
+      const response = await apiGet<any>(`/api/admin/matches?${params.toString()}`);
 
       if (myRequestId === matchesRequestIdRef.current) {
         setApiMatches(response.matches || []);
@@ -778,8 +762,6 @@ export function AdminClient() {
 
   async function addMatchFromApi(match: any) {
     try {
-      // Fetch all saved teams unpaginated so we don't miss teams that haven't
-      // been loaded into the client-side `teams` slice (which is capped at 12).
       const allTeamsRes = await apiGet<any>(
         "/api/admin/teams/saved?page=1&limit=10000",
       );
@@ -796,10 +778,7 @@ export function AdminClient() {
         ]
           .filter(Boolean)
           .join(", ");
-        setMsg({
-          text: `Please add ${missing} to your database first`,
-          type: "error",
-        });
+        setMsg({ text: `Please add ${missing} to your database first`, type: "error" });
         return;
       }
 
@@ -927,10 +906,7 @@ export function AdminClient() {
         hasMore: response.pagination?.hasMore || false,
         loading: false,
       });
-      setMsg({
-        text: `Loaded ${response.matches?.length || 0} more matches`,
-        type: "success",
-      });
+      setMsg({ text: `Loaded ${response.matches?.length || 0} more matches`, type: "success" });
     } catch (err) {
       console.error(err);
       setMsg({ text: "Failed to load more matches", type: "error" });
@@ -953,6 +929,8 @@ export function AdminClient() {
     return `Showing ${data.length} of ${total}`;
   };
 
+  const liveMatchCount = matches.filter((m) => m.status === "LIVE").length;
+
   return (
     <Shell>
       {isChecking ? (
@@ -974,9 +952,7 @@ export function AdminClient() {
               variant="outline"
               className="gap-2"
             >
-              <RefreshCw
-                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
+              <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
           </div>
@@ -989,8 +965,6 @@ export function AdminClient() {
                 setSelectedLeagueForMatches("");
                 setSelectedDateForMatches("");
                 setSelectedStatusForMatches("");
-                // FIX: Pass explicit empty strings so browseApiMatches doesn't
-                // read the stale state values that React hasn't flushed yet.
                 browseApiMatches("", "", "");
               }}
               className="gap-2"
@@ -1002,8 +976,6 @@ export function AdminClient() {
             <Button
               onClick={() => {
                 setSelectedLeagueForTeams("");
-                // FIX: Pass explicit empty string so browseApiTeams doesn't
-                // read the stale state value that React hasn't flushed yet.
                 browseApiTeams("");
               }}
               className="gap-2"
@@ -1022,6 +994,21 @@ export function AdminClient() {
             </Button>
             <Button onClick={() => setTab("streams")} className="gap-2">
               Streams
+            </Button>
+            <Button
+              onClick={handleFindAllStreams}
+              disabled={findingAllStreams || liveMatchCount === 0}
+              variant="outline"
+              className="gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40"
+            >
+              {findingAllStreams ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Youtube className="w-4 h-4" />
+              )}
+              {findingAllStreams
+                ? "Searching YouTube…"
+                : `Find Streams (${liveMatchCount} live)`}
             </Button>
           </div>
 
@@ -1075,10 +1062,7 @@ export function AdminClient() {
           <LeagueEditModal
             isOpen={showEditLeagueModal}
             league={editingLeague}
-            onClose={() => {
-              setShowEditLeagueModal(false);
-              setEditingLeague(null);
-            }}
+            onClose={() => { setShowEditLeagueModal(false); setEditingLeague(null); }}
             onSave={saveEditingLeague}
             onChange={(field, value) =>
               setEditingLeague((s: any) => ({ ...s, [field]: value }))
@@ -1088,10 +1072,7 @@ export function AdminClient() {
           <TeamEditModal
             isOpen={showEditTeamModal}
             team={editingTeam}
-            onClose={() => {
-              setShowEditTeamModal(false);
-              setEditingTeam(null);
-            }}
+            onClose={() => { setShowEditTeamModal(false); setEditingTeam(null); }}
             onSave={saveEditingTeam}
             onChange={(field, value) =>
               setEditingTeam((s: any) => ({ ...s, [field]: value }))
@@ -1102,10 +1083,7 @@ export function AdminClient() {
           <MatchEditModal
             isOpen={showEditMatchModal}
             match={editingMatch}
-            onClose={() => {
-              setShowEditMatchModal(false);
-              setEditingMatch(null);
-            }}
+            onClose={() => { setShowEditMatchModal(false); setEditingMatch(null); }}
             onSave={saveEditingMatch}
             onChange={(field, value) =>
               setEditingMatch((s: any) => ({ ...s, [field]: value }))
@@ -1119,10 +1097,7 @@ export function AdminClient() {
             title="Confirm delete"
             message={`Are you sure you want to delete ${leagueToDelete?.name}? This action cannot be undone.`}
             onConfirm={confirmDeleteLeague}
-            onCancel={() => {
-              setShowDeleteLeagueConfirm(false);
-              setLeagueToDelete(null);
-            }}
+            onCancel={() => { setShowDeleteLeagueConfirm(false); setLeagueToDelete(null); }}
             isDeleting={deletingLeague}
           />
           <DeleteConfirmModal
@@ -1130,10 +1105,7 @@ export function AdminClient() {
             title="Confirm delete"
             message={`Are you sure you want to delete ${teamToDelete?.name}? This action cannot be undone.`}
             onConfirm={confirmDeleteTeam}
-            onCancel={() => {
-              setShowDeleteTeamConfirm(false);
-              setTeamToDelete(null);
-            }}
+            onCancel={() => { setShowDeleteTeamConfirm(false); setTeamToDelete(null); }}
             isDeleting={deletingTeam}
           />
           <DeleteConfirmModal
@@ -1141,24 +1113,18 @@ export function AdminClient() {
             title="Confirm delete"
             message="Are you sure you want to delete this match? This action cannot be undone."
             onConfirm={confirmDeleteMatch}
-            onCancel={() => {
-              setShowDeleteMatchConfirm(false);
-              setMatchToDelete(null);
-            }}
+            onCancel={() => { setShowDeleteMatchConfirm(false); setMatchToDelete(null); }}
             isDeleting={deletingMatch}
           />
 
-          {/* Tabs */}
-          {/* Mobile: select dropdown */}
+          {/* Mobile tab select */}
           <div className="sm:hidden mt-4">
             <select
               value={tab}
               onChange={(e) => setTab(e.target.value as TabType)}
               className="w-full bg-slate-800 border border-slate-600/50 rounded-lg px-3 py-2 text-sm font-medium text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
             >
-              {(
-                ["leagues", "teams", "matches", "users", "streams"] as const
-              ).map((t) => (
+              {(["leagues", "teams", "matches", "users", "streams"] as const).map((t) => (
                 <option key={t} value={t} className="bg-slate-900">
                   {t[0].toUpperCase() + t.slice(1)}
                   {t !== "users" && t !== "streams" && totalCounts[t] > 0
@@ -1168,31 +1134,30 @@ export function AdminClient() {
               ))}
             </select>
           </div>
-          {/* Desktop: button row */}
+
+          {/* Desktop tab buttons */}
           <div className="hidden sm:flex gap-2 mt-4">
-            {(["leagues", "teams", "matches", "users", "streams"] as const).map(
-              (t) => (
-                <button
-                  key={t}
-                  onClick={() => setTab(t)}
-                  className={tabButtonClass(tab === t)}
-                >
-                  {t[0].toUpperCase() + t.slice(1)}
-                  {t !== "users" && t !== "streams" && (
-                    <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-slate-700 text-slate-200">
-                      {totalCounts[t]}
-                    </span>
-                  )}
-                </button>
-              ),
-            )}
+            {(["leagues", "teams", "matches", "users", "streams"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setTab(t)}
+                className={tabButtonClass(tab === t)}
+              >
+                {t[0].toUpperCase() + t.slice(1)}
+                {t !== "users" && t !== "streams" && (
+                  <span className="ml-1.5 px-2 py-0.5 text-xs rounded-full bg-slate-700 text-slate-200">
+                    {totalCounts[t]}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
 
           {/* Tab Content */}
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+                <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
                 <p className="text-slate-400">Loading data...</p>
               </div>
             </div>
@@ -1201,9 +1166,7 @@ export function AdminClient() {
               {tab === "leagues" && (
                 <>
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-slate-400">
-                      {getPaginationInfo("leagues")}
-                    </p>
+                    <p className="text-sm text-slate-400">{getPaginationInfo("leagues")}</p>
                   </div>
                   <LeaguesTab
                     leagues={leagues}
@@ -1221,10 +1184,7 @@ export function AdminClient() {
                         className="gap-2"
                       >
                         {leaguesPagination.loading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                            Loading...
-                          </>
+                          <><div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />Loading...</>
                         ) : (
                           `Load More (${Math.max(0, totalCounts.leagues - leagues.length)} remaining)`
                         )}
@@ -1233,22 +1193,17 @@ export function AdminClient() {
                   )}
                 </>
               )}
+
               {tab === "teams" && (
                 <>
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-slate-400">
-                      {getPaginationInfo("teams")}
-                    </p>
+                    <p className="text-sm text-slate-400">{getPaginationInfo("teams")}</p>
                   </div>
                   <TeamsTab
                     teams={teams}
                     onEdit={openEditTeamModal}
                     onDelete={openDeleteTeamConfirm}
-                    onBrowse={() => {
-                      setSelectedLeagueForTeams("");
-                      // FIX: Pass explicit empty string to avoid stale state read.
-                      browseApiTeams("");
-                    }}
+                    onBrowse={() => { setSelectedLeagueForTeams(""); browseApiTeams(""); }}
                   />
                   {teamsPagination.hasMore && (
                     <div className="flex justify-center mt-6">
@@ -1260,10 +1215,7 @@ export function AdminClient() {
                         className="gap-2"
                       >
                         {teamsPagination.loading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                            Loading...
-                          </>
+                          <><div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />Loading...</>
                         ) : (
                           `Load More (${Math.max(0, totalCounts.teams - teams.length)} remaining)`
                         )}
@@ -1272,12 +1224,11 @@ export function AdminClient() {
                   )}
                 </>
               )}
+
               {tab === "matches" && (
                 <>
                   <div className="flex items-center justify-between mb-4">
-                    <p className="text-sm text-slate-400">
-                      {getPaginationInfo("matches")}
-                    </p>
+                    <p className="text-sm text-slate-400">{getPaginationInfo("matches")}</p>
                   </div>
                   <MatchesTab
                     matches={matches}
@@ -1287,10 +1238,11 @@ export function AdminClient() {
                       setSelectedLeagueForMatches("");
                       setSelectedDateForMatches("");
                       setSelectedStatusForMatches("");
-                      // FIX: Pass explicit empty strings to avoid stale state read.
                       browseApiMatches("", "", "");
                     }}
                     onSetStatus={handleSetStatus}
+                    onFindStream={handleFindStream}
+                    findingStreamFor={findingStreamFor}
                   />
                   {matchesPagination.hasMore && (
                     <div className="flex justify-center mt-6">
@@ -1302,10 +1254,7 @@ export function AdminClient() {
                         className="gap-2"
                       >
                         {matchesPagination.loading ? (
-                          <>
-                            <div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />
-                            Loading...
-                          </>
+                          <><div className="w-4 h-4 border-2 border-slate-400 border-t-transparent rounded-full animate-spin" />Loading...</>
                         ) : (
                           `Load More (${Math.max(0, totalCounts.matches - matches.length)} remaining)`
                         )}
@@ -1314,9 +1263,11 @@ export function AdminClient() {
                   )}
                 </>
               )}
+
               {tab === "users" && (
                 <UsersTab users={users} stats={userStats || undefined} />
               )}
+
               {tab === "streams" && (
                 <div className="pt-4">
                   <AdminStreamsManagement />
