@@ -9,6 +9,7 @@ import {
   generateMatchPreview,
   generateMatchSummary,
 } from "../services/ai-service.js";
+import { findAndSaveStreamForMatch } from "../services/youtubeStreamService.js";
 
 const LEAGUES_CACHE_KEY = "football:leagues";
 const TEAMS_CACHE_KEY = "football:teams";
@@ -950,25 +951,64 @@ const streamSchema = z.object({
   type: z.enum(["EMBED", "NONE"]),
   provider: z.string().optional().nullable(),
   url: z.string().url().optional().nullable(),
+  youtubeVideoId: z.string().optional().nullable(),
   isActive: z.boolean().optional(),
+});
+
+/**
+ * POST /api/admin/matches/:matchId/find-stream
+ * Manually trigger YouTube search for a specific match
+ */
+adminRouter.post("/matches/:matchId/find-stream", async (req, res) => {
+  try {
+    const stream = await findAndSaveStreamForMatch(req.params.matchId);
+
+    if (stream?.isActive && stream?.url) {
+      res.json({
+        success: true,
+        found: true,
+        videoId: (stream as any).youtubeVideoId,
+        title: (stream as any).streamTitle,
+        embedUrl: stream.url,
+      });
+    } else {
+      res.json({
+        success: true,
+        found: false,
+        message: "No live stream found on YouTube",
+      });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Stream search failed" });
+  }
 });
 
 adminRouter.post("/stream", validateBody(streamSchema), async (req, res) => {
   const data = (req as any).validated;
+
+  // Build embed URL from video ID if provided
+  const resolvedUrl = data.youtubeVideoId
+    ? `https://www.youtube.com/embed/${data.youtubeVideoId}?autoplay=1&rel=0`
+    : (data.url ?? null);
+
   const stream = await prisma.stream.upsert({
     where: { matchId: data.matchId },
     create: {
       matchId: data.matchId,
       type: data.type,
-      provider: data.provider ?? null,
-      url: data.url ?? null,
+      provider: data.provider ?? (data.youtubeVideoId ? "youtube" : null),
+      url: resolvedUrl,
       isActive: data.isActive ?? data.type === "EMBED",
+      ...(data.youtubeVideoId && { youtubeVideoId: data.youtubeVideoId }),
     },
     update: {
       type: data.type,
-      provider: data.provider ?? null,
-      url: data.url ?? null,
+      provider: data.provider ?? (data.youtubeVideoId ? "youtube" : null),
+      url: resolvedUrl,
       isActive: data.isActive ?? data.type === "EMBED",
+      ...(data.youtubeVideoId && { youtubeVideoId: data.youtubeVideoId }),
+      lastCheckedAt: new Date(),
     },
   });
   res.json(stream);

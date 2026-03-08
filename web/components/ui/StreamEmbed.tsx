@@ -1,62 +1,154 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Play,
   Tv,
-  ExternalLink,
   AlertTriangle,
   Maximize2,
   Volume2,
+  RefreshCw,
+  Youtube,
 } from "lucide-react";
 
+interface Stream {
+  type: "EMBED" | "NONE";
+  provider: string | null;
+  url: string | null;
+  isActive: boolean;
+  // New YouTube fields from youtubeStreamService
+  youtubeVideoId?: string | null;
+  streamTitle?: string | null;
+  lastCheckedAt?: string | null;
+}
+
 interface StreamEmbedProps {
-  stream: {
-    type: "EMBED" | "NONE";
-    provider: string | null;
-    url: string | null;
-    isActive: boolean;
-  } | null;
+  stream: Stream | null;
   matchStatus: "UPCOMING" | "LIVE" | "FINISHED";
   homeTeam: string;
   awayTeam: string;
+  matchId: string; // needed for polling
 }
 
 export default function StreamEmbed({
-  stream,
+  stream: initialStream,
   matchStatus,
   homeTeam,
   awayTeam,
+  matchId,
 }: StreamEmbedProps) {
+  const [stream, setStream] = useState<Stream | null>(initialStream);
   const [showEmbed, setShowEmbed] = useState(false);
   const [embedError, setEmbedError] = useState(false);
+  const [checking, setChecking] = useState(false);
 
-  // No stream or score-only mode
+  // ── Auto-poll every 60s while LIVE and no active stream ──────────────────
+  useEffect(() => {
+    if (matchStatus !== "LIVE") return;
+    if (stream?.isActive && stream?.url) return;
+
+    const poll = async () => {
+      try {
+        const res = await fetch(`/api/match/${matchId}/stream-status`);
+        const data = await res.json();
+        if (data.found && data.stream) {
+          setStream({
+            type: "EMBED",
+            provider: "youtube",
+            url: data.stream.url,
+            isActive: true,
+            youtubeVideoId: data.stream.youtubeVideoId,
+            streamTitle: data.stream.streamTitle,
+          });
+        }
+      } catch {}
+    };
+
+    poll(); // check immediately on mount
+    const interval = setInterval(poll, 60_000);
+    return () => clearInterval(interval);
+  }, [matchId, matchStatus, stream?.isActive, stream?.url]);
+
+  const handleManualCheck = async () => {
+    setChecking(true);
+    try {
+      const res = await fetch(`/api/match/${matchId}/stream-status`);
+      const data = await res.json();
+      if (data.found && data.stream) {
+        setStream({
+          type: "EMBED",
+          provider: "youtube",
+          url: data.stream.url,
+          isActive: true,
+          youtubeVideoId: data.stream.youtubeVideoId,
+          streamTitle: data.stream.streamTitle,
+        });
+      }
+    } catch {}
+    setTimeout(() => setChecking(false), 1500);
+  };
+
+  // ── No stream / score-only ────────────────────────────────────────────────
   if (!stream || stream.type === "NONE" || !stream.isActive) {
     return (
       <div className="relative overflow-hidden bg-slate-900/90 backdrop-blur-xl border-2 border-slate-700/50 rounded-2xl p-8 text-center">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(100,116,139,0.1),transparent)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(100,116,139,0.1),transparent)]" />
         <div className="relative">
           <div className="w-20 h-20 bg-slate-800/70 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <Tv className="w-10 h-10 text-slate-600" />
+            {matchStatus === "LIVE" ? (
+              <Youtube className="w-10 h-10 text-slate-600" />
+            ) : (
+              <Tv className="w-10 h-10 text-slate-600" />
+            )}
           </div>
-          <h3 className="text-xl font-black text-white mb-2 uppercase tracking-wide">
-            Score-Only Mode
-          </h3>
-          <p className="text-sm text-slate-400 font-semibold max-w-md mx-auto">
-            No video stream is available for this match. Follow the live score
-            updates above.
-          </p>
+
+          {matchStatus === "LIVE" ? (
+            <>
+              <h3 className="text-xl font-black text-white mb-2 uppercase tracking-wide">
+                Searching for Stream…
+              </h3>
+              <p className="text-sm text-slate-400 font-semibold max-w-md mx-auto mb-6">
+                Automatically checking YouTube every 60 seconds.
+              </p>
+              <button
+                onClick={handleManualCheck}
+                disabled={checking}
+                className="inline-flex items-center gap-2 px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600/50 rounded-xl text-sm font-bold text-slate-300 hover:text-white transition-all disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`w-4 h-4 ${checking ? "animate-spin" : ""}`}
+                />
+                {checking ? "Checking…" : "Check Now"}
+              </button>
+            </>
+          ) : (
+            <>
+              <h3 className="text-xl font-black text-white mb-2 uppercase tracking-wide">
+                Score-Only Mode
+              </h3>
+              <p className="text-sm text-slate-400 font-semibold max-w-md mx-auto">
+                No video stream is available for this match. Follow the live
+                score updates above.
+              </p>
+            </>
+          )}
         </div>
       </div>
     );
   }
 
-  // Stream is available but not yet activated by user
+  // ── Stream available — pre-click gate ────────────────────────────────────
   if (!showEmbed) {
+    // Prefer YouTube video title, fall back to provider string
+    const displayProvider = stream.streamTitle
+      ? stream.streamTitle.length > 55
+        ? stream.streamTitle.substring(0, 55) + "…"
+        : stream.streamTitle
+      : (stream.provider ?? "YouTube");
+
     return (
       <div className="relative overflow-hidden bg-gradient-to-br from-slate-900/95 to-cyan-900/30 border-2 border-cyan-500/30 rounded-2xl p-8 text-center shadow-xl">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_rgba(6,182,212,0.15),transparent)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_rgba(6,182,212,0.15),transparent)]" />
         <div className="relative">
           <div className="w-24 h-24 bg-gradient-to-br from-cyan-600 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
             <Play className="w-12 h-12 text-white" />
@@ -67,14 +159,17 @@ export default function StreamEmbed({
           <p className="text-sm text-cyan-300 font-semibold mb-2">
             {homeTeam} vs {awayTeam}
           </p>
-          {stream.provider && (
-            <div className="inline-flex items-center gap-2 bg-cyan-500/20 backdrop-blur-sm rounded-lg px-4 py-2 mb-6">
+
+          <div className="inline-flex items-center gap-2 bg-cyan-500/20 backdrop-blur-sm rounded-lg px-4 py-2 mb-6">
+            {stream.provider === "youtube" ? (
+              <Youtube className="w-4 h-4 text-red-400" />
+            ) : (
               <Volume2 className="w-4 h-4 text-cyan-400" />
-              <span className="text-sm font-bold text-cyan-400">
-                Provided by {stream.provider}
-              </span>
-            </div>
-          )}
+            )}
+            <span className="text-sm font-bold text-cyan-400 text-left">
+              {displayProvider}
+            </span>
+          </div>
 
           <div className="space-y-3 max-w-md mx-auto">
             <button
@@ -109,33 +204,46 @@ export default function StreamEmbed({
     );
   }
 
-  // Show the embedded stream
+  // ── Embedded stream ───────────────────────────────────────────────────────
   return (
     <div className="relative overflow-hidden bg-slate-900/95 backdrop-blur-xl border-2 border-cyan-500/30 rounded-2xl shadow-2xl">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_rgba(6,182,212,0.1),transparent)]"></div>
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,_rgba(6,182,212,0.1),transparent)]" />
 
       {/* Header */}
       <div className="relative flex items-center justify-between p-4 bg-slate-950/50 border-b border-cyan-500/20">
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <span className="flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
-            </span>
-          </div>
+          <span className="flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
+          </span>
           <div>
             <div className="text-sm font-black text-white uppercase tracking-wide">
               Live Stream
             </div>
-            {stream.provider && (
-              <div className="text-xs text-cyan-400 font-semibold">
-                {stream.provider}
-              </div>
-            )}
+            <div className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+              {stream.provider === "youtube" && (
+                <Youtube className="w-3 h-3 text-red-400" />
+              )}
+              {stream.streamTitle
+                ? stream.streamTitle.length > 40
+                  ? stream.streamTitle.substring(0, 40) + "…"
+                  : stream.streamTitle
+                : (stream.provider ?? "YouTube")}
+            </div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          {stream.youtubeVideoId && (
+            <a
+              href={`https://www.youtube.com/watch?v=${stream.youtubeVideoId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 bg-slate-700/80 hover:bg-slate-600 text-slate-300 hover:text-white rounded-lg transition-all text-xs font-semibold"
+            >
+              YouTube ↗
+            </a>
+          )}
           <button
             onClick={() => setShowEmbed(false)}
             className="px-3 py-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-all text-sm font-semibold"
@@ -145,38 +253,45 @@ export default function StreamEmbed({
         </div>
       </div>
 
-      {/* Stream Container */}
+      {/* Player */}
       <div className="relative bg-black" style={{ paddingBottom: "56.25%" }}>
         {embedError ? (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
             <div className="text-center p-8">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
               <h4 className="text-lg font-black text-white mb-2">
-                Stream Error
+                Stream Ended
               </h4>
               <p className="text-sm text-slate-400 mb-4">
-                Unable to load the embedded stream
+                The stream may have ended or been removed.
               </p>
+              {stream.youtubeVideoId && (
+                <a
+                  href={`https://www.youtube.com/watch?v=${stream.youtubeVideoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-red-600/20 hover:bg-red-600/30 border border-red-500/30 rounded-xl text-sm font-bold text-red-400 transition-all"
+                >
+                  <Youtube className="w-4 h-4" /> Watch on YouTube
+                </a>
+              )}
             </div>
           </div>
         ) : stream.url ? (
           <iframe
             src={stream.url}
             className="absolute inset-0 w-full h-full"
-            onError={() => setEmbedError(true)}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
+            onError={() => setEmbedError(true)}
             title={`${homeTeam} vs ${awayTeam} - Live Stream`}
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center bg-slate-900">
             <div className="text-center p-8">
               <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
-              <h4 className="text-lg font-black text-white mb-2">
-                URL Error
-              </h4>
-              <p className="text-sm text-slate-400 mb-4">
-                Stream URL unavailable
-              </p>
+              <h4 className="text-lg font-black text-white mb-2">URL Error</h4>
+              <p className="text-sm text-slate-400">Stream URL unavailable</p>
             </div>
           </div>
         )}
@@ -186,7 +301,7 @@ export default function StreamEmbed({
       <div className="relative p-4 bg-slate-950/50 border-t border-cyan-500/20">
         <div className="flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+            <span className="w-2 h-2 bg-green-500 rounded-full" />
             <span className="font-semibold">
               Streaming: {homeTeam} vs {awayTeam}
             </span>
