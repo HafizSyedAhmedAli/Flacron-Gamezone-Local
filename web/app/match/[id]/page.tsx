@@ -534,6 +534,7 @@ export default function MatchDetail({ params }: { params: { id: string } }) {
           <PremiumGate isPremium={isPremium} feature="Live Stream">
             <StreamEmbed
               stream={match.stream}
+              matchId={match.id}
               matchStatus={match.status}
               homeTeam={match.homeTeam.name}
               awayTeam={match.awayTeam.name}

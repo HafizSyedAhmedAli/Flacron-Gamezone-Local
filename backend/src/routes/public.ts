@@ -2,6 +2,10 @@ import { Router } from "express";
 import jwt from "jsonwebtoken";
 import { prisma } from "../lib/prisma.js";
 import { getLiveFixturesCached } from "../services/footballApi.js";
+import {
+  findAndSaveStreamForMatch,
+  refreshAllLiveStreams,
+} from "../services/youtubeStreamService.js";
 
 export const publicRouter = Router();
 
@@ -410,7 +414,7 @@ publicRouter.get("/matches/live", async (_req, res) => {
         const league = leagueData?.id
           ? await prisma.league.upsert({
               where: { apiLeagueId: leagueData.id },
-              update: {}, // No changes needed if it exists
+              update: {},
               create: {
                 name: leagueData.name || "Unknown League",
                 country: leagueData.country,
@@ -425,7 +429,7 @@ publicRouter.get("/matches/live", async (_req, res) => {
         const homeTeam = homeTeamData?.id
           ? await prisma.team.upsert({
               where: { apiTeamId: homeTeamData.id },
-              update: { leagueId: league?.id }, // ensure league assigned
+              update: { leagueId: league?.id },
               create: {
                 name: homeTeamData.name || "Unknown Home",
                 logo: homeTeamData.logo,
@@ -440,7 +444,7 @@ publicRouter.get("/matches/live", async (_req, res) => {
         const awayTeam = awayTeamData?.id
           ? await prisma.team.upsert({
               where: { apiTeamId: awayTeamData.id },
-              update: { leagueId: league?.id }, // ensure league assigned
+              update: { leagueId: league?.id },
               create: {
                 name: awayTeamData.name || "Unknown Away",
                 logo: awayTeamData.logo,
@@ -456,7 +460,7 @@ publicRouter.get("/matches/live", async (_req, res) => {
             where: { apiFixtureId: fixtureId },
             update: {
               status: "LIVE",
-              score: `${fixture.goals?.home || 0}-${fixture.goals?.away || 0}`,
+              score: `${fixture.goals?.home ?? 0}-${fixture.goals?.away ?? 0}`,
             },
             create: {
               apiFixtureId: fixtureId,
@@ -465,11 +469,10 @@ publicRouter.get("/matches/live", async (_req, res) => {
               awayTeamId: awayTeam.id,
               kickoffTime: new Date(fixture.fixture.date),
               status: "LIVE",
-              score: `${fixture.goals?.home || 0}-${fixture.goals?.away || 0}`,
+              score: `${fixture.goals?.home ?? 0}-${fixture.goals?.away ?? 0}`,
               venue: fixture.fixture?.venue?.name,
             },
           });
-
           liveMatchIds.push(match.id);
         }
       } catch (error) {
@@ -477,40 +480,68 @@ publicRouter.get("/matches/live", async (_req, res) => {
       }
     }
 
-    // Mark matches as FINISHED if they're no longer live
+    // Mark stale LIVE matches as FINISHED
     await prisma.match.updateMany({
-      where: {
-        status: "LIVE",
-        id: { notIn: liveMatchIds }, // any LIVE match not in API response
-      },
+      where: { status: "LIVE", id: { notIn: liveMatchIds } },
       data: { status: "FINISHED" },
     });
 
-    // Fetch live matches with relations
+    // ✅ NEW: Auto-search YouTube streams for all live matches without one
+    // Fire-and-forget — don't await so the response isn't delayed
+    refreshAllLiveStreams().catch((e) =>
+      console.error("[YouTube] refreshAllLiveStreams error:", e),
+    );
+
+    // Fetch and return live matches
     const liveMatches = await prisma.match.findMany({
-      where: {
-        OR: [{ status: "LIVE" }, { id: { in: liveMatchIds } }],
-      },
-      include: {
-        league: true,
-        homeTeam: true,
-        awayTeam: true,
-        stream: true,
-      },
+      where: { OR: [{ status: "LIVE" }, { id: { in: liveMatchIds } }] },
+      include: { league: true, homeTeam: true, awayTeam: true, stream: true },
       orderBy: { kickoffTime: "asc" },
     });
 
     res.json(liveMatches);
   } catch (error: any) {
     console.error("Error fetching live matches:", error);
-
+    // Fallback to DB
     const liveMatches = await prisma.match.findMany({
       where: { status: "LIVE" },
       include: { league: true, homeTeam: true, awayTeam: true, stream: true },
       orderBy: { kickoffTime: "asc" },
     });
-
     res.json(liveMatches);
+  }
+});
+
+// ─── ADD this new endpoint for frontend polling ───────────────────────────────
+
+publicRouter.get("/match/:id/stream-status", async (req, res) => {
+  try {
+    const match = await prisma.match.findUnique({
+      where: { id: req.params.id },
+      include: { stream: true },
+    });
+
+    if (!match) return res.status(404).json({ error: "Not found" });
+
+    // If no active stream, trigger a fresh YouTube search
+    if (!match.stream?.isActive || !match.stream?.url) {
+      if (match.status === "LIVE") {
+        // Fire a search — client will poll again in 60s to pick it up
+        findAndSaveStreamForMatch(match.id).catch(console.error);
+      }
+      return res.json({ found: false });
+    }
+
+    res.json({
+      found: true,
+      stream: {
+        url: match.stream.url,
+        youtubeVideoId: match.stream.youtubeVideoId,
+        streamTitle: match.stream.streamTitle,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 

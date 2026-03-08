@@ -20,7 +20,7 @@ import { TeamsTab } from "@/components/ui/admin/TeamsTab";
 import { UsersTab } from "@/components/ui/admin/UsersTab";
 import { Button } from "@/components/ui/button";
 import { useRequireAdmin } from "@/hooks/useAuth";
-import { Search, RefreshCw } from "lucide-react";
+import { Search, RefreshCw, Youtube, Loader2 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 interface Pagination {
@@ -134,6 +134,12 @@ export default function AdminPage() {
     type: "success" | "error" | "info";
   } | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // ── YouTube stream states (NEW) ──────────────────────────────────────────
+  // Tracks which matchId is currently having a stream searched
+  const [findingStreamFor, setFindingStreamFor] = useState<string | null>(null);
+  // Tracks bulk "find all streams" operation
+  const [findingAllStreams, setFindingAllStreams] = useState(false);
 
   // Total counts from database
   const [totalCounts, setTotalCounts] = useState({
@@ -273,7 +279,6 @@ export default function AdminPage() {
         loading: false,
       });
 
-      // Store total counts from database
       setTotalCounts({
         leagues: leaguesRes.pagination?.total || 0,
         teams: teamsRes.pagination?.total || 0,
@@ -294,6 +299,79 @@ export default function AdminPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  // ==================== YOUTUBE STREAMS (NEW) ====================
+
+  /**
+   * Trigger YouTube search for a single match.
+   * Called from a "Find Stream" button on each match row in MatchesTab.
+   */
+  async function handleFindStream(matchId: string) {
+    setFindingStreamFor(matchId);
+    try {
+      const res = await apiPost<{
+        success: boolean;
+        found: boolean;
+        title?: string;
+      }>(`/api/admin/matches/${matchId}/find-stream`, {});
+      if (res.found) {
+        setMsg({ text: `✅ Stream found: "${res.title}"`, type: "success" });
+        refreshAll(); // refresh so stream badge updates on the match row
+      } else {
+        setMsg({
+          text: "No live stream found on YouTube right now",
+          type: "info",
+        });
+      }
+    } catch (err) {
+      console.error(err);
+      setMsg({ text: "Stream search failed", type: "error" });
+    } finally {
+      setFindingStreamFor(null);
+    }
+  }
+
+  /**
+   * Trigger YouTube search for ALL live matches at once.
+   * Useful when multiple matches are live and you want to populate streams in bulk.
+   */
+  async function handleFindAllStreams() {
+    const liveMatches = matches.filter((m) => m.status === "LIVE");
+    if (liveMatches.length === 0) {
+      setMsg({ text: "No live matches to search streams for", type: "info" });
+      return;
+    }
+
+    setFindingAllStreams(true);
+    setMsg({
+      text: `Searching YouTube for ${liveMatches.length} live match${liveMatches.length !== 1 ? "es" : ""}…`,
+      type: "info",
+    });
+
+    let found = 0;
+    let notFound = 0;
+
+    for (const match of liveMatches) {
+      try {
+        const res = await apiPost<{ success: boolean; found: boolean }>(
+          `/api/admin/matches/${match.id}/find-stream`,
+          {},
+        );
+        res.found ? found++ : notFound++;
+      } catch {
+        notFound++;
+      }
+      // Small delay to avoid hammering YouTube quota
+      await new Promise((r) => setTimeout(r, 600));
+    }
+
+    setFindingAllStreams(false);
+    setMsg({
+      text: `Done — ${found} stream${found !== 1 ? "s" : ""} found, ${notFound} not found`,
+      type: found > 0 ? "success" : "info",
+    });
+    refreshAll();
   }
 
   // ==================== LEAGUES ====================
@@ -331,7 +409,6 @@ export default function AdminPage() {
       const response = await apiGet<any>(
         `/api/admin/leagues?page=${nextPage}&limit=100`,
       );
-
       setApiLeagues((prev) => [...prev, ...(response.leagues || [])]);
       setLeagueBrowserPagination({
         page: nextPage,
@@ -422,14 +499,12 @@ export default function AdminPage() {
       const response = await apiGet<any>(
         `/api/admin/leagues/saved?page=${nextPage}&limit=12`,
       );
-
       setLeagues((prev) => [...prev, ...(response.leagues || [])]);
       setLeaguesPagination({
         page: nextPage,
         hasMore: response.pagination?.hasMore || false,
         loading: false,
       });
-
       setMsg({
         text: `Loaded ${response.leagues?.length || 0} more leagues`,
         type: "success",
@@ -463,9 +538,7 @@ export default function AdminPage() {
         loading: false,
         total: response.pagination?.total || 0,
       });
-      if (response.message) {
-        setMsg({ text: response.message, type: "info" });
-      }
+      if (response.message) setMsg({ text: response.message, type: "info" });
       setShowTeamBrowser(true);
     } catch (err) {
       console.error(err);
@@ -483,7 +556,6 @@ export default function AdminPage() {
         ? `/api/admin/teams?leagueId=${selectedLeagueForTeams}&page=${nextPage}&limit=100`
         : `/api/admin/teams?page=${nextPage}&limit=100`;
       const response = await apiGet<any>(url);
-
       setApiTeams((prev) => [...prev, ...(response.teams || [])]);
       setTeamBrowserPagination({
         page: nextPage,
@@ -519,9 +591,7 @@ export default function AdminPage() {
         loading: false,
         total: response.pagination?.total || 0,
       });
-      if (response.message) {
-        setMsg({ text: response.message, type: "info" });
-      }
+      if (response.message) setMsg({ text: response.message, type: "info" });
     } catch (err) {
       console.error(err);
       setMsg({ text: "Failed to load teams", type: "error" });
@@ -610,14 +680,12 @@ export default function AdminPage() {
       const response = await apiGet<any>(
         `/api/admin/teams/saved?page=${nextPage}&limit=12`,
       );
-
       setTeams((prev) => [...prev, ...(response.teams || [])]);
       setTeamsPagination({
         page: nextPage,
         hasMore: response.pagination?.hasMore || false,
         loading: false,
       });
-
       setMsg({
         text: `Loaded ${response.teams?.length || 0} more teams`,
         type: "success",
@@ -641,23 +709,14 @@ export default function AdminPage() {
     });
     try {
       const params = new URLSearchParams();
-
-      // Only apply filters if they're set
-      if (selectedLeagueForMatches) {
+      if (selectedLeagueForMatches)
         params.append("leagueId", selectedLeagueForMatches);
-      }
-      if (selectedDateForMatches) {
-        params.append("date", selectedDateForMatches);
-      }
-      if (selectedStatusForMatches) {
+      if (selectedDateForMatches) params.append("date", selectedDateForMatches);
+      if (selectedStatusForMatches)
         params.append("status", selectedStatusForMatches);
-      }
-
-      // Add pagination params
       params.append("page", "1");
       params.append("limit", "100");
 
-      // If no filters at all, show a message
       if (
         !selectedLeagueForMatches &&
         !selectedDateForMatches &&
@@ -673,8 +732,7 @@ export default function AdminPage() {
         return;
       }
 
-      const url = `/api/admin/matches?${params.toString()}`;
-      const response = await apiGet<any>(url);
+      const response = await apiGet<any>(`/api/admin/matches?${params}`);
       setApiMatches(response.matches || []);
       setMatchBrowserPagination({
         page: 1,
@@ -696,23 +754,15 @@ export default function AdminPage() {
     try {
       const nextPage = matchBrowserPagination.page + 1;
       const params = new URLSearchParams();
-
-      if (selectedLeagueForMatches) {
+      if (selectedLeagueForMatches)
         params.append("leagueId", selectedLeagueForMatches);
-      }
-      if (selectedDateForMatches) {
-        params.append("date", selectedDateForMatches);
-      }
-      if (selectedStatusForMatches) {
+      if (selectedDateForMatches) params.append("date", selectedDateForMatches);
+      if (selectedStatusForMatches)
         params.append("status", selectedStatusForMatches);
-      }
-
       params.append("page", nextPage.toString());
       params.append("limit", "100");
 
-      const url = `/api/admin/matches?${params.toString()}`;
-      const response = await apiGet<any>(url);
-
+      const response = await apiGet<any>(`/api/admin/matches?${params}`);
       setApiMatches((prev) => [...prev, ...(response.matches || [])]);
       setMatchBrowserPagination({
         page: nextPage,
@@ -727,7 +777,6 @@ export default function AdminPage() {
     }
   }
 
-  // Request sequencing refs to avoid out-of-order responses overwriting state
   const matchesRequestIdRef = useRef(0);
   const activeMatchesRequestsRef = useRef(0);
 
@@ -797,15 +846,11 @@ export default function AdminPage() {
       if (leagueId) params.append("leagueId", leagueId);
       if (date) params.append("date", date);
       if (status) params.append("status", status);
-
-      // Add pagination - always reset to page 1 when filters change
       params.append("page", "1");
       params.append("limit", "100");
 
-      const url = `/api/admin/matches?${params.toString()}`;
-      const response = await apiGet<any>(url);
+      const response = await apiGet<any>(`/api/admin/matches?${params}`);
 
-      // Only update state if this response corresponds to the latest request
       if (myRequestId === matchesRequestIdRef.current) {
         setApiMatches(response.matches || []);
         setMatchBrowserPagination({
@@ -815,17 +860,11 @@ export default function AdminPage() {
           total: response.pagination?.total || 0,
         });
         setShowMatchBrowser(true);
-      } else {
-        // Outdated response - ignore
-        console.log("Ignored outdated matches response", myRequestId);
       }
     } catch (err) {
-      // Only surface error for the latest request
       if (myRequestId === matchesRequestIdRef.current) {
         console.error(err);
         setMsg({ text: "Failed to load matches", type: "error" });
-      } else {
-        console.log("Ignored matches error from outdated request", myRequestId);
       }
     } finally {
       activeMatchesRequestsRef.current--;
@@ -838,7 +877,6 @@ export default function AdminPage() {
 
   async function addMatchFromApi(match: any) {
     try {
-      // Find team IDs from saved teams by matching API IDs
       const homeTeam = teams.find((t) => t.apiTeamId === match.homeTeam.id);
       const awayTeam = teams.find((t) => t.apiTeamId === match.awayTeam.id);
       const league = leagues.find((l) => l.apiLeagueId === match.leagueId);
@@ -866,7 +904,7 @@ export default function AdminPage() {
         score: match.score,
         venue: match.venue,
       });
-      setMsg({ text: `Added match to your database`, type: "success" });
+      setMsg({ text: "Added match to your database", type: "success" });
       refreshAll();
     } catch (err) {
       console.error(err);
@@ -939,38 +977,23 @@ export default function AdminPage() {
 
   async function handleDeleteMatch(matchId: string) {
     const match = matches.find((m) => m.id === matchId);
-    if (match) {
-      openDeleteMatchConfirm(match);
-    }
+    if (match) openDeleteMatchConfirm(match);
   }
 
   async function handleSetStatus(matchId: string, status: string) {
     setMatches((prev) =>
       prev.map((m) => (m.id === matchId ? { ...m, status } : m)),
     );
-
     try {
       await apiPut(`/api/admin/match/${matchId}`, { status });
-
-      setMsg({
-        text: `Match status updated to ${status}`,
-        type: "success",
-      });
-
+      setMsg({ text: `Match status updated to ${status}`, type: "success" });
       await refreshAll();
     } catch (err) {
       console.error("Failed to update match status", err);
-
       try {
         await refreshAll();
-      } catch {
-        // ignore errors from refreshAll here
-      }
-
-      setMsg({
-        text: "Failed to update match status",
-        type: "error",
-      });
+      } catch {}
+      setMsg({ text: "Failed to update match status", type: "error" });
     }
   }
 
@@ -981,14 +1004,12 @@ export default function AdminPage() {
       const response = await apiGet<any>(
         `/api/admin/matches/saved?page=${nextPage}&limit=12`,
       );
-
       setMatches((prev) => [...prev, ...(response.matches || [])]);
       setMatchesPagination({
         page: nextPage,
         hasMore: response.pagination?.hasMore || false,
         loading: false,
       });
-
       setMsg({
         text: `Loaded ${response.matches?.length || 0} more matches`,
         type: "success",
@@ -1007,19 +1028,16 @@ export default function AdminPage() {
       isActive ? "bg-accent dark:bg-accent/50 text-white" : ""
     }`;
 
-  // Get pagination info text
   const getPaginationInfo = (type: "leagues" | "teams" | "matches") => {
     const data =
       type === "leagues" ? leagues : type === "teams" ? teams : matches;
     const total = totalCounts[type];
-
     if (total === 0) return "No items";
-
-    const showing = data.length;
-    return `Showing ${showing} of ${total}`;
+    return `Showing ${data.length} of ${total}`;
   };
 
-  // Protect admin route - automatically redirects non-admin users
+  const liveMatchCount = matches.filter((m) => m.status === "LIVE").length;
+
   const { isChecking } = useRequireAdmin();
 
   return (
@@ -1028,7 +1046,6 @@ export default function AdminPage() {
         <LoadingSpinner size="lg" fullScreen />
       ) : (
         <div className="space-y-8">
-          {/* Scroll to Top Button */}
           <ScrollToTop />
 
           {/* Header */}
@@ -1052,7 +1069,6 @@ export default function AdminPage() {
             </Button>
           </div>
 
-          {/* Alert Message */}
           <AlertMessage message={msg} />
 
           {/* Action Buttons */}
@@ -1089,9 +1105,25 @@ export default function AdminPage() {
               <Search className="w-4 h-4" />
               {browsingLeagues ? "Loading..." : "Browse Leagues"}
             </Button>
-
             <Button onClick={() => setTab("streams")} className="gap-2">
               Streams
+            </Button>
+
+            {/* ── Find All Streams button (NEW) ── */}
+            <Button
+              onClick={handleFindAllStreams}
+              disabled={findingAllStreams || liveMatchCount === 0}
+              variant="outline"
+              className="gap-2 border-red-500/40 text-red-400 hover:bg-red-500/10 hover:text-red-300 disabled:opacity-40"
+            >
+              {findingAllStreams ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Youtube className="w-4 h-4" />
+              )}
+              {findingAllStreams
+                ? "Searching YouTube…"
+                : `Find Streams (${liveMatchCount} live)`}
             </Button>
           </div>
 
@@ -1108,7 +1140,6 @@ export default function AdminPage() {
             pagination={leagueBrowserPagination}
             onLoadMore={loadMoreApiLeagues}
           />
-
           <TeamBrowser
             isOpen={showTeamBrowser}
             onClose={() => setShowTeamBrowser(false)}
@@ -1124,7 +1155,6 @@ export default function AdminPage() {
             pagination={teamBrowserPagination}
             onLoadMore={loadMoreApiTeams}
           />
-
           <MatchBrowser
             isOpen={showMatchBrowser}
             onClose={() => setShowMatchBrowser(false)}
@@ -1144,7 +1174,6 @@ export default function AdminPage() {
             pagination={matchBrowserPagination}
             onLoadMore={loadMoreApiMatches}
           />
-
           <LeagueEditModal
             isOpen={showEditLeagueModal}
             league={editingLeague}
@@ -1158,7 +1187,6 @@ export default function AdminPage() {
             }
             isSaving={savingLeague}
           />
-
           <TeamEditModal
             isOpen={showEditTeamModal}
             team={editingTeam}
@@ -1173,7 +1201,6 @@ export default function AdminPage() {
             isSaving={savingTeam}
             leagues={leagues}
           />
-
           <MatchEditModal
             isOpen={showEditMatchModal}
             match={editingMatch}
@@ -1189,7 +1216,6 @@ export default function AdminPage() {
             leagues={leagues}
             teams={teams}
           />
-
           <DeleteConfirmModal
             isOpen={showDeleteLeagueConfirm}
             title="Confirm delete"
@@ -1201,7 +1227,6 @@ export default function AdminPage() {
             }}
             isDeleting={deletingLeague}
           />
-
           <DeleteConfirmModal
             isOpen={showDeleteTeamConfirm}
             title="Confirm delete"
@@ -1213,11 +1238,10 @@ export default function AdminPage() {
             }}
             isDeleting={deletingTeam}
           />
-
           <DeleteConfirmModal
             isOpen={showDeleteMatchConfirm}
             title="Confirm delete"
-            message={`Are you sure you want to delete this match? This action cannot be undone.`}
+            message="Are you sure you want to delete this match? This action cannot be undone."
             onConfirm={confirmDeleteMatch}
             onCancel={() => {
               setShowDeleteMatchConfirm(false);
@@ -1226,7 +1250,7 @@ export default function AdminPage() {
             isDeleting={deletingMatch}
           />
 
-          {/* Tab Selector with Count Badges */}
+          {/* Tab Selector */}
           <div className="flex gap-2 mt-4">
             {(["leagues", "teams", "matches", "users", "streams"] as const).map(
               (t) => (
@@ -1250,7 +1274,7 @@ export default function AdminPage() {
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="text-center">
-                <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4"></div>
+                <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
                 <p className="text-slate-400">Loading data...</p>
               </div>
             </div>
@@ -1349,6 +1373,9 @@ export default function AdminPage() {
                       browseApiMatches();
                     }}
                     onSetStatus={handleSetStatus}
+                    // ── NEW props for YouTube stream search ──
+                    onFindStream={handleFindStream}
+                    findingStreamFor={findingStreamFor}
                   />
                   {matchesPagination.hasMore && (
                     <div className="flex justify-center mt-6">
@@ -1385,7 +1412,6 @@ export default function AdminPage() {
             </>
           )}
 
-          {/* Stats Cards */}
           <StatsCards
             matchesCount={totalCounts.matches}
             teamsCount={totalCounts.teams}
