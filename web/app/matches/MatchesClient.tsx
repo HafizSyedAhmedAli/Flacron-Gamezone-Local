@@ -345,7 +345,7 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
 
           {matches.map((m) => (
             <Link key={m.id} href={`/match/${m.id}`}>
-              <div className="group relative bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-xl p-4 transition-all duration-500 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer isolate my-8">
+              <div className="group relative bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/50 rounded-xl p-4 transition-all duration-500 hover:scale-[1.01] hover:shadow-xl hover:shadow-blue-500/10 cursor-pointer isolate my-2">
                 <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500 rounded-xl -z-10"></div>
 
                 <div className="relative">

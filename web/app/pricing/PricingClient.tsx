@@ -13,6 +13,12 @@ import {
   HelpCircle,
   Star,
   Loader2,
+  ChevronDown,
+  Tv,
+  BarChart2,
+  Users,
+  Headphones,
+  X,
 } from "lucide-react";
 import { createCheckoutSession } from "@/components/billingApi";
 import { useRouter } from "next/navigation";
@@ -21,7 +27,6 @@ import { Shell } from "@/components/layout";
 import { useSearchParams } from "next/navigation";
 import { ScrollToTop } from "@/components/ui/ScrollToTop";
 
-// Deterministic particle positions to avoid SSR hydration mismatch
 const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
   left: `${(i * 5.3) % 100}%`,
   top: `${(i * 7.1) % 100}%`,
@@ -29,26 +34,85 @@ const PARTICLES = Array.from({ length: 20 }, (_, i) => ({
   delay: `${i % 5}s`,
 }));
 
+const FAQS = [
+  {
+    question: "Can I cancel anytime?",
+    answer:
+      "Yes, you can cancel your subscription at any time with no questions asked. You'll continue to have full premium access until the end of your current billing period.",
+  },
+  {
+    question: "Is there a free trial?",
+    answer:
+      "Yes! New Flacron GameZone users get 7 days of premium access completely free. Experience all premium features with no credit card required to start your trial.",
+  },
+  {
+    question: "What payment methods are accepted?",
+    answer:
+      "We accept all major credit cards (Visa, Mastercard, American Express, Discover), PayPal, and popular digital wallets through our secure Stripe payment gateway.",
+  },
+  {
+    question: "Can I upgrade or downgrade anytime?",
+    answer:
+      "Absolutely! You can change your plan at any time from your dashboard. Changes take effect immediately, and we'll prorate any charges.",
+  },
+  {
+    question: "Do you offer student or team discounts?",
+    answer:
+      "Yes! We offer special pricing for students (with valid .edu email) and team subscriptions. Contact our support team at billing@flacrongamezone.com for custom pricing.",
+  },
+];
+
+const PREMIUM_GROUPS = [
+  {
+    label: "Streaming",
+    icon: <Tv className="w-4 h-4 text-blue-400" />,
+    features: ["Live tournament streaming in HD"],
+  },
+  {
+    label: "Analysis",
+    icon: <BarChart2 className="w-4 h-4 text-purple-400" />,
+    features: [
+      "AI-powered match analysis & predictions",
+      "Advanced AI preview",
+    ],
+  },
+  {
+    label: "Matchmaking",
+    icon: <Users className="w-4 h-4 text-cyan-400" />,
+    features: [
+      "Priority matchmaking queue",
+      "Exclusive premium tournaments",
+      
+    ],
+  },
+  {
+    label: "Support",
+    icon: <Headphones className="w-4 h-4 text-green-400" />,
+    features: ["24/7 priority support"],
+  },
+];
+
 export function PricingClient() {
   const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [loading, setLoading] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [openFaq, setOpenFaq] = useState<number | null>(0);
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const monthlyPrice = 47.99;
+  const yearlyPrice = +(monthlyPrice * 12 * 0.83).toFixed(2);
+  const yearlyMonthlyEquivalent = (yearlyPrice / 12).toFixed(2);
+  const yearlySavings = (monthlyPrice * 12 - yearlyPrice).toFixed(2);
+
+  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     if (!mounted) return;
     const timeoutId = setTimeout(() => {
       if (searchParams.get("scroll") === "faq") {
-        const faqSection = document.getElementById("faq-section");
-        if (faqSection) {
-          faqSection.scrollIntoView({ behavior: "smooth" });
-        }
+        document.getElementById("faq-section")?.scrollIntoView({ behavior: "smooth" });
       }
     }, 600);
     return () => clearTimeout(timeoutId);
@@ -56,16 +120,8 @@ export function PricingClient() {
 
   const handleCheckout = async (plan: "free" | "premium") => {
     const token = getToken();
-    if (!token) {
-      router.push("/login?redirect=/pricing");
-      return;
-    }
-
-    if (plan === "free") {
-      router.push("/dashboard");
-      return;
-    }
-
+    if (!token) { router.push("/login?redirect=/pricing"); return; }
+    if (plan === "free") { router.push("/dashboard"); return; }
     try {
       setLoading(plan);
       setError(null);
@@ -79,111 +135,81 @@ export function PricingClient() {
     }
   };
 
-  const monthlyPrice = 9.99;
-  const yearlyPrice = 99.99;
-  const yearlyMonthlyEquivalent = (yearlyPrice / 12).toFixed(2);
-
   return (
     <Shell className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
       <ScrollToTop />
 
-      {/* Animated background blobs */}
+      {/* Background blobs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div
-          className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "4s" }}
-        />
-        <div
-          className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "6s", animationDelay: "1s" }}
-        />
-        <div
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "8s", animationDelay: "2s" }}
-        />
+        <div className="absolute top-20 left-10 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "4s" }} />
+        <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "6s", animationDelay: "1s" }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl animate-pulse" style={{ animationDuration: "8s", animationDelay: "2s" }} />
       </div>
 
-      {/* Floating particles — deterministic positions */}
+      {/* Particles */}
       <div className="absolute inset-0 pointer-events-none">
         {PARTICLES.map((p, i) => (
-          <div
-            key={i}
-            className="absolute w-1 h-1 bg-blue-400/20 rounded-full"
-            style={{
-              left: p.left,
-              top: p.top,
-              animation: `float ${p.duration} ease-in-out infinite`,
-              animationDelay: p.delay,
-            }}
-          />
+          <div key={i} className="absolute w-1 h-1 bg-blue-400/20 rounded-full"
+            style={{ left: p.left, top: p.top, animation: `float ${p.duration} ease-in-out infinite`, animationDelay: p.delay }} />
         ))}
       </div>
 
       <div className="relative z-10 max-w-7xl mx-auto px-4 py-16">
 
         {/* Header */}
-        <div
-          className={`text-center mb-16 transition-all duration-1000 ${
-            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-        >
+        <div className={`text-center mb-16 transition-all duration-1000 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
           <div className="inline-flex items-center gap-2 bg-blue-500/10 border border-blue-500/30 rounded-full px-4 py-2 mb-6">
             <Crown className="w-4 h-4 text-blue-400" />
-            <span className="text-sm text-blue-400 font-semibold">
-              Premium Gaming Experience
-            </span>
+            <span className="text-sm text-blue-400 font-semibold">Premium Football Experience</span>
           </div>
           <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-purple-400 to-cyan-400 bg-clip-text text-transparent animate-gradient">
-            Level Up Your Gaming
+            Choose Your Plan
           </h1>
           <p className="text-xl text-slate-400 max-w-2xl mx-auto">
-            Choose the perfect plan for your Flacron GameZone experience. Unlock
-            exclusive features and dominate the competition.
+            Start free or unlock full access to live matches, AI analysis, and everything football.
           </p>
         </div>
 
-        {/* Error Message */}
+        {/* Error */}
         {error && (
-          <div className="max-w-2xl mx-auto mb-8 bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center">
+          <div className="max-w-2xl mx-auto mb-8 bg-red-500/10 border border-red-500/30 rounded-xl p-4 text-center flex items-center justify-between gap-4">
             <p className="text-red-400">{error}</p>
+            <button onClick={() => setError(null)} className="text-red-400 hover:text-red-300 flex-shrink-0"><X className="w-4 h-4" /></button>
           </div>
         )}
 
         {/* Billing Toggle */}
-        <div
-          className={`flex justify-center mb-12 transition-all duration-1000 delay-150 ${
-            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-        >
-          <div className="inline-flex items-center bg-slate-800/50 border border-slate-700/50 rounded-xl p-1.5 backdrop-blur-xl shadow-lg">
-            <button
-              onClick={() => setBillingCycle("monthly")}
-              disabled={loading !== null}
-              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 ${
-                billingCycle === "monthly"
-                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                  : "text-slate-400 hover:text-white hover:bg-slate-700/30"
-              }`}
-            >
-              Monthly
-            </button>
-            <button
-              onClick={() => setBillingCycle("yearly")}
-              disabled={loading !== null}
-              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all duration-300 relative ${
-                billingCycle === "yearly"
-                  ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg scale-105"
-                  : "text-slate-400 hover:text-white hover:bg-slate-700/30"
-              }`}
-            >
-              Yearly
-              <span
-                className="absolute -top-2 -right-2 bg-green-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold animate-bounce"
-                style={{ animationDuration: "2s" }}
+        <div className={`flex justify-center mb-12 transition-all duration-1000 delay-150 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+          <div className="inline-flex flex-col items-center gap-3">
+            <div className="inline-flex items-center bg-slate-800/80 border border-slate-700/50 rounded-2xl p-2 backdrop-blur-xl shadow-xl gap-2">
+              <button
+                onClick={() => setBillingCycle("monthly")}
+                disabled={loading !== null}
+                className={`px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                  billingCycle === "monthly"
+                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25"
+                    : "text-slate-400 hover:text-white hover:bg-slate-700/40"
+                }`}
               >
-                Save 17%
-              </span>
-            </button>
+                Monthly
+              </button>
+              <button
+                onClick={() => setBillingCycle("yearly")}
+                disabled={loading !== null}
+                className={`px-8 py-3 rounded-xl text-sm font-semibold transition-all duration-300 ${
+                  billingCycle === "yearly"
+                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25"
+                    : "text-slate-400 hover:text-white hover:bg-slate-700/40"
+                }`}
+              >
+                Yearly
+              </button>
+            </div>
+            <div className={`text-sm font-medium transition-all duration-300 ${billingCycle === "yearly" ? "text-green-400" : "text-slate-500"}`}>
+              {billingCycle === "yearly"
+                ? `🎉 You're saving $${yearlySavings}/year (17% off)`
+                : "Switch to yearly and save 17%"}
+            </div>
           </div>
         </div>
 
@@ -191,40 +217,37 @@ export function PricingClient() {
         <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-16">
 
           {/* Free Plan */}
-          <div
-            className={`relative group transition-all duration-1000 delay-300 ${
-              mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-            }`}
-          >
+          <div className={`relative group transition-all duration-1000 delay-300 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
             <div className="absolute -inset-0.5 bg-gradient-to-r from-slate-600 to-slate-700 rounded-2xl opacity-0 group-hover:opacity-30 blur-xl transition-opacity duration-500" />
-            <div className="relative bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border border-slate-700/50 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-2">
+            <div className="relative bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border border-slate-700/50 rounded-2xl p-8 shadow-xl hover:shadow-2xl transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center shadow-lg">
                   <Zap className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Free Tier</h2>
-                  <p className="text-sm text-slate-400">Perfect for casual gamers</p>
+                  <h2 className="text-2xl font-bold text-white">Free</h2>
+                  <p className="text-sm text-slate-400">Basic access, no commitment</p>
                 </div>
               </div>
 
-              <div className="mb-8">
+              <div className="mb-6">
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-bold text-white">$0</span>
                   <span className="text-slate-400">/month</span>
                 </div>
-                <p className="text-sm text-slate-500 mt-2">Free forever</p>
+                <p className="text-sm text-slate-500 mt-1">Free forever — no credit card needed</p>
               </div>
 
               <button
                 onClick={() => handleCheckout("free")}
                 disabled={loading === "free"}
-                className="w-full py-3 px-6 rounded-xl border-2 border-slate-600 text-white font-semibold hover:bg-slate-700/50 hover:border-slate-500 transition-all duration-300 mb-8 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-3 px-6 rounded-xl border-2 border-slate-600 text-white font-semibold hover:bg-slate-700/50 hover:border-slate-500 transition-all duration-300 mb-8 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading === "free" ? "Processing..." : "Get Started Free"}
               </button>
 
-              <div className="space-y-4">
+              <div className="space-y-3 flex-1">
+                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">What's included</p>
                 {[
                   "Browse game lobbies & tournaments",
                   "Basic player statistics",
@@ -232,15 +255,19 @@ export function PricingClient() {
                   "Community chat access",
                   "Standard matchmaking",
                 ].map((feature, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 text-slate-300 animate-slideIn"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
+                  <div key={index} className="flex items-center gap-3 text-slate-300">
                     <div className="flex-shrink-0 w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center">
                       <Check className="w-3 h-3 text-green-400" />
                     </div>
-                    <span>{feature}</span>
+                    <span className="text-sm">{feature}</span>
+                  </div>
+                ))}
+                {["HD live streaming", "AI match analysis", "Advanced stats"].map((missing, i) => (
+                  <div key={i} className="flex items-center gap-3 text-slate-600">
+                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-slate-700/50 flex items-center justify-center">
+                      <X className="w-3 h-3 text-slate-600" />
+                    </div>
+                    <span className="text-sm line-through">{missing}</span>
                   </div>
                 ))}
               </div>
@@ -248,96 +275,95 @@ export function PricingClient() {
           </div>
 
           {/* Premium Plan */}
-          <div
-            className={`relative group transition-all duration-1000 delay-400 ${
-              mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-            }`}
-          >
-            {/* Popular Badge */}
+          <div className={`relative group transition-all duration-1000 delay-400 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
             <div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10">
-              <div
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2 animate-pulse"
-                style={{ animationDuration: "2s" }}
-              >
+              <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-6 py-2 rounded-full text-sm font-bold shadow-lg flex items-center gap-2">
                 <Star className="w-4 h-4" />
                 MOST POPULAR
               </div>
             </div>
 
             <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl opacity-20 group-hover:opacity-40 blur-xl transition-opacity duration-500" />
-            <div className="relative bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border-2 border-blue-500/50 rounded-2xl p-8 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-2">
+            <div className="relative bg-gradient-to-b from-slate-800/95 to-slate-900/95 backdrop-blur-2xl border-2 border-blue-500/50 rounded-2xl p-8 shadow-2xl shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-300 hover:-translate-y-1 h-full flex flex-col">
               <div className="flex items-center gap-3 mb-4 mt-4">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg relative">
                   <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-400 to-purple-500 blur-md opacity-50" />
                   <Sparkles className="w-6 h-6 text-white relative z-10" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Premium Tier</h2>
-                  <p className="text-sm text-slate-400">For competitive players</p>
+                  <h2 className="text-2xl font-bold text-white">Premium</h2>
+                  <p className="text-sm text-blue-400 font-medium">Best for serious football fans</p>
                 </div>
               </div>
 
-              <div className="mb-8">
+              <div className="mb-2">
                 <div className="flex items-baseline gap-2">
                   <span className="text-5xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                    ${billingCycle === "monthly" ? monthlyPrice : yearlyMonthlyEquivalent}
+                    ${billingCycle === "monthly" ? monthlyPrice.toFixed(2) : yearlyMonthlyEquivalent}
                   </span>
                   <span className="text-slate-400">/month</span>
                 </div>
-                {billingCycle === "yearly" && (
-                  <p className="text-sm text-green-400 mt-2 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3" />${yearlyPrice}/year — Save $
-                    {(monthlyPrice * 12 - yearlyPrice).toFixed(2)} annually
-                  </p>
-                )}
+                <div className="mt-2 text-sm">
+                  {billingCycle === "monthly" ? (
+                    <span className="text-slate-500">${monthlyPrice.toFixed(2)} billed monthly</span>
+                  ) : (
+                    <span className="text-green-400 flex items-center gap-1">
+                      <Sparkles className="w-3 h-3" />
+                      ${yearlyPrice}/year — save ${yearlySavings} (17% off)
+                    </span>
+                  )}
+                </div>
               </div>
+
+              <p className="text-slate-400 text-sm mb-5 mt-1">
+                🏆 Full access to live matches, AI analytics & priority features
+              </p>
 
               <button
                 onClick={() => handleCheckout("premium")}
                 disabled={loading === "premium"}
-                className="relative w-full group/btn overflow-hidden mb-8 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="relative w-full group/btn overflow-hidden mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl transition-transform duration-300 group-hover/btn:scale-105" />
-                <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-700 rounded-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
-                <div className="relative flex items-center justify-center gap-2 py-3 text-white font-semibold">
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl" />
+                <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-purple-500 rounded-xl opacity-0 group-hover/btn:opacity-100 transition-opacity duration-300" />
+                <div className="relative flex items-center justify-center gap-2 py-3.5 text-white font-bold text-base">
                   {loading === "premium" ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>Redirecting to checkout...</span>
-                    </>
+                    <><Loader2 className="w-5 h-5 animate-spin" /><span>Redirecting to checkout...</span></>
                   ) : (
-                    <>
-                      <span>Upgrade to Premium</span>
-                      <Crown className="w-5 h-5 group-hover/btn:rotate-12 transition-transform" />
-                    </>
+                    <><Crown className="w-5 h-5" /><span>Get Premium Access</span></>
                   )}
                 </div>
               </button>
 
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 text-white font-semibold pb-2 border-b border-slate-700/50">
-                  <Check className="w-5 h-5 text-blue-400 flex-shrink-0" />
-                  <span>Everything in Free, plus:</span>
+              <div className="flex items-center justify-center gap-4 text-xs text-slate-500 mb-6">
+                <span className="flex items-center gap-1"><Shield className="w-3 h-3" /> Secure payment</span>
+                <span>·</span>
+                <span className="flex items-center gap-1"><Clock className="w-3 h-3" /> Cancel anytime</span>
+                <span>·</span>
+                <span className="flex items-center gap-1"><Sparkles className="w-3 h-3" /> 7-day free trial</span>
+              </div>
+
+              <div className="space-y-5 flex-1">
+                <div className="flex items-center gap-2 pb-2 border-b border-slate-700/50">
+                  <Check className="w-4 h-4 text-blue-400 flex-shrink-0" />
+                  <span className="text-white text-sm font-semibold">Everything in Free, plus:</span>
                 </div>
-                {[
-                  "Live tournament streaming in HD",
-                  "AI-powered match analysis & predictions",
-                  "Advanced player stats & heatmaps",
-                  "Ad-free gaming experience",
-                  "Priority matchmaking queue",
-                  "Exclusive premium tournaments",
-                  "Custom player profiles & badges",
-                  "24/7 priority support",
-                ].map((feature, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 text-slate-300 animate-slideIn"
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center">
-                      <Check className="w-3 h-3 text-blue-400" />
+                {PREMIUM_GROUPS.map((group) => (
+                  <div key={group.label}>
+                    <div className="flex items-center gap-2 mb-2">
+                      {group.icon}
+                      <span className="text-xs font-bold uppercase tracking-wider text-slate-500">{group.label}</span>
                     </div>
-                    <span>{feature}</span>
+                    <div className="space-y-2 pl-1">
+                      {group.features.map((f) => (
+                        <div key={f} className="flex items-center gap-3 text-slate-300">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-r from-blue-500/20 to-purple-500/20 flex items-center justify-center">
+                            <Check className="w-3 h-3 text-blue-400" />
+                          </div>
+                          <span className="text-sm">{f}</span>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -345,70 +371,43 @@ export function PricingClient() {
           </div>
         </div>
 
-        {/* FAQ Section */}
+        {/* FAQ — Accordion */}
         <div
           id="faq-section"
-          className={`max-w-3xl mx-auto transition-all duration-1000 delay-500 ${
-            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
+          className={`max-w-3xl mx-auto transition-all duration-1000 delay-500 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}
         >
           <h2 className="text-3xl font-bold text-center mb-8 text-white flex items-center justify-center gap-3">
             <HelpCircle className="w-8 h-8 text-blue-400" />
             Frequently Asked Questions
           </h2>
-          <div className="space-y-4">
-            {[
-              {
-                question: "Can I upgrade or downgrade anytime?",
-                answer:
-                  "Absolutely! You can change your plan at any time from your dashboard. Changes take effect immediately, and we'll prorate any charges to ensure you only pay for what you use.",
-              },
-              {
-                question: "Is there a free trial for Premium?",
-                answer:
-                  "Yes! New Flacron GameZone users get 7 days of premium access completely free. Experience all premium features with no credit card required to start your trial.",
-              },
-              {
-                question: "What payment methods do you accept?",
-                answer:
-                  "We accept all major credit cards (Visa, Mastercard, American Express, Discover), PayPal, and popular digital wallets through our secure Stripe payment gateway.",
-              },
-              {
-                question: "Can I cancel my subscription anytime?",
-                answer:
-                  "Yes, you can cancel your subscription at any time with no questions asked. You'll continue to have full premium access until the end of your current billing period.",
-              },
-              {
-                question: "Do you offer student or team discounts?",
-                answer:
-                  "Yes! We offer special pricing for students (with valid .edu email) and team subscriptions. Contact our support team at billing@flacrongamezone.com for custom pricing options.",
-              },
-            ].map((faq, index) => (
+          <div className="space-y-3">
+            {FAQS.map((faq, index) => (
               <div
                 key={index}
-                className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 hover:border-blue-500/30 transition-all duration-300 hover:-translate-y-1 group"
+                className={`bg-slate-800/50 backdrop-blur-xl border rounded-xl overflow-hidden transition-all duration-300 ${
+                  openFaq === index ? "border-blue-500/40" : "border-slate-700/50 hover:border-slate-600/60"
+                }`}
               >
-                <h3 className="font-semibold text-lg text-white mb-2 flex items-center gap-2 group-hover:text-blue-400 transition-colors">
-                  <div className="w-6 h-6 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0">
-                    <span className="text-blue-400 text-sm">?</span>
-                  </div>
-                  {faq.question}
-                </h3>
-                <p className="text-slate-400 pl-8">{faq.answer}</p>
+                <button
+                  onClick={() => setOpenFaq(openFaq === index ? null : index)}
+                  className="w-full flex items-center justify-between px-6 py-5 text-left gap-4"
+                >
+                  <span className={`font-semibold text-base transition-colors duration-200 ${openFaq === index ? "text-blue-400" : "text-white"}`}>
+                    {faq.question}
+                  </span>
+                  <ChevronDown className={`w-5 h-5 text-slate-400 flex-shrink-0 transition-transform duration-300 ${openFaq === index ? "rotate-180 text-blue-400" : ""}`} />
+                </button>
+                <div className={`overflow-hidden transition-all duration-300 ease-in-out ${openFaq === index ? "max-h-48 opacity-100" : "max-h-0 opacity-0"}`}>
+                  <p className="px-6 pb-5 text-slate-400 text-sm leading-relaxed">{faq.answer}</p>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Trust indicators */}
-        <div
-          className={`mt-16 text-center transition-all duration-1000 delay-700 ${
-            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"
-          }`}
-        >
-          <p className="text-slate-500 text-sm mb-6">
-            Trusted by over 50,000 Football Lovers worldwide
-          </p>
+        {/* Trust Indicators */}
+        <div className={`mt-16 text-center transition-all duration-1000 delay-700 ${mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-8"}`}>
+          <p className="text-slate-500 text-sm mb-6">Trusted by over 50,000 Football Fans worldwide</p>
           <div className="flex justify-center gap-8 items-center flex-wrap">
             <div className="flex items-center gap-2 text-slate-400 hover:text-green-400 transition-colors group">
               <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -438,15 +437,10 @@ export function PricingClient() {
           0%, 100% { transform: translateY(0px) translateX(0px); }
           50% { transform: translateY(-20px) translateX(10px); }
         }
-        @keyframes slideIn {
-          from { opacity: 0; transform: translateX(-10px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
         @keyframes gradient {
           0%, 100% { background-position: 0% 50%; }
           50% { background-position: 100% 50%; }
         }
-        .animate-slideIn { animation: slideIn 0.5s ease-out both; }
         .animate-gradient { background-size: 200% auto; animation: gradient 3s ease infinite; }
       `}</style>
     </Shell>
