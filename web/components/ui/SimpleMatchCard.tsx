@@ -51,6 +51,7 @@ export function SimpleMatchCard({
               alt={homeTeam.name}
               width={32}
               height={32}
+              style={{ height: "auto" }}
               className="rounded"
             />
           )}
@@ -98,6 +99,7 @@ export function SimpleMatchCard({
               alt={awayTeam.name}
               width={32}
               height={32}
+              style={{ height: "auto" }}
               className="rounded"
             />
           )}

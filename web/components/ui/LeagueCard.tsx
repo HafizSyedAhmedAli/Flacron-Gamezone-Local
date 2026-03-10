@@ -51,6 +51,7 @@ export function LeagueCard({
                     alt={name}
                     width={64}
                     height={64}
+                    style={{ height: "auto" }}
                     className="object-contain drop-shadow-lg"
                   />
                 </div>

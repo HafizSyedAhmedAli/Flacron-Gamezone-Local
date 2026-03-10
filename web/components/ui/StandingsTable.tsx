@@ -61,6 +61,7 @@ export function StandingsTable({
             alt={standing.team.name}
             width={24}
             height={24}
+            style={{ height: "auto" }}
             className="rounded"
           />
         )}

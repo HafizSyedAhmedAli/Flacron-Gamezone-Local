@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Youtube,
 } from "lucide-react";
+import { apiGet } from "../api";
 
 interface Stream {
   type: "EMBED" | "NONE";
@@ -28,6 +29,15 @@ interface StreamEmbedProps {
   homeTeam: string;
   awayTeam: string;
   matchId: string; // needed for polling
+}
+
+interface StreamStatusResponse {
+  found: boolean;
+  stream: {
+    url: string;
+    youtubeVideoId: string | null;
+    streamTitle: string | null;
+  } | null;
 }
 
 export default function StreamEmbed({
@@ -49,8 +59,9 @@ export default function StreamEmbed({
 
     const poll = async () => {
       try {
-        const res = await fetch(`/api/match/${matchId}/stream-status`);
-        const data = await res.json();
+        const data = await apiGet<StreamStatusResponse>(
+          `/api/match/${matchId}/stream-status`,
+        );
         if (data.found && data.stream) {
           setStream({
             type: "EMBED",
@@ -72,8 +83,9 @@ export default function StreamEmbed({
   const handleManualCheck = async () => {
     setChecking(true);
     try {
-      const res = await fetch(`/api/match/${matchId}/stream-status`);
-      const data = await res.json();
+      const data = await apiGet<StreamStatusResponse>(
+        `/api/match/${matchId}/stream-status`,
+      );
       if (data.found && data.stream) {
         setStream({
           type: "EMBED",
