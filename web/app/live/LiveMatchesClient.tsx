@@ -91,9 +91,7 @@ export default function LiveMatchesClient({
       }
     }
 
-    if (initialMatches.length === 0) {
-      loadMatches();
-    }
+    loadMatches();
 
     const interval = setInterval(() => {
       loadMatches();

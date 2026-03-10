@@ -498,7 +498,6 @@ publicRouter.get("/matches/live", async (_req, res) => {
       include: { league: true, homeTeam: true, awayTeam: true, stream: true },
       orderBy: { kickoffTime: "asc" },
     });
-
     res.json(liveMatches);
   } catch (error: any) {
     console.error("Error fetching live matches:", error);

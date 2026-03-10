@@ -1,3 +1,4 @@
+export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { apiGet } from "@/components/api";
 import { Shell } from "@/components/layout";
