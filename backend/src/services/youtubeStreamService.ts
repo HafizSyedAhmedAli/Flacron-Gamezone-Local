@@ -188,44 +188,54 @@ export async function findAndSaveStreamForMatch(matchId: string) {
  * "Eligible" = no active stream AND cooldown has expired.
  * Stops the entire loop the moment quota is hit.
  */
+let bulkRefreshRunning = false;
+
 export async function refreshAllLiveStreams() {
+  if (bulkRefreshRunning) {
+    console.log("[YouTube] Bulk refresh already in progress — skipping");
+    return;
+  }
   if (quotaExceeded) {
     console.log("[YouTube] Quota exceeded — skipping bulk refresh");
     return;
   }
 
-  const cooldownCutoff = new Date(Date.now() - COOLDOWN_MS);
+  bulkRefreshRunning = true; // 🔒 Lock
 
-  // Only fetch matches that actually need a search — DB does the filtering
-  const eligible = await prisma.match.findMany({
-    where: {
-      status: "LIVE",
-      OR: [
-        // No stream row at all
-        { stream: null },
-        // Has a stream row but it's inactive and cooldown has expired
-        {
-          stream: {
-            isActive: false,
-            lastCheckedAt: { lt: cooldownCutoff },
+  try {
+    const cooldownCutoff = new Date(Date.now() - COOLDOWN_MS);
+
+    const eligible = await prisma.match.findMany({
+      where: {
+        status: "LIVE",
+        OR: [
+          { stream: null },
+          {
+            stream: {
+              isActive: false,
+              lastCheckedAt: { lt: cooldownCutoff },
+            },
           },
-        },
-      ],
-    },
-    select: { id: true },
-  });
+        ],
+      },
+      select: { id: true },
+    });
 
-  if (eligible.length === 0) return;
-  console.log(
-    `[YouTube] ${eligible.length} match(es) eligible for stream search`,
-  );
+    if (eligible.length === 0) return; // ✅ safe to return here now
 
-  for (const { id } of eligible) {
-    if (quotaExceeded) {
-      console.warn("[YouTube] Quota hit mid-loop — stopping bulk refresh");
-      break;
+    console.log(
+      `[YouTube] ${eligible.length} match(es) eligible for stream search`,
+    );
+
+    for (const { id } of eligible) {
+      if (quotaExceeded) {
+        console.warn("[YouTube] Quota hit mid-loop — stopping bulk refresh");
+        break;
+      }
+      await findAndSaveStreamForMatch(id);
+      await new Promise((r) => setTimeout(r, 1_000));
     }
-    await findAndSaveStreamForMatch(id);
-    await new Promise((r) => setTimeout(r, 1_000)); // 1s gap between calls
+  } finally {
+    bulkRefreshRunning = false; // 🔓 ALWAYS unlocks — return, break, or throw
   }
 }

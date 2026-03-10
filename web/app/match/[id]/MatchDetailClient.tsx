@@ -555,6 +555,7 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
             matchStatus={match.status}
             homeTeam={match.homeTeam.name}
             awayTeam={match.awayTeam.name}
+            matchId={match.id}
           />
         </PremiumGate>
 

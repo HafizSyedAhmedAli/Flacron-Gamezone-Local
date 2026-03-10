@@ -185,6 +185,7 @@ export default function LiveMatchesClient({
                             alt={match.league.name}
                             width={32}
                             height={32}
+                            style={{ height: "auto" }}
                             className="object-contain"
                           />
                         ) : (
@@ -212,6 +213,7 @@ export default function LiveMatchesClient({
                             alt={match.homeTeam.name}
                             width={32}
                             height={32}
+                            style={{ height: "auto" }}
                             className="object-contain"
                           />
                         )}
@@ -233,6 +235,7 @@ export default function LiveMatchesClient({
                             alt={match.awayTeam.name}
                             width={32}
                             height={32}
+                            style={{ height: "auto" }}
                             className="object-contain"
                           />
                         )}

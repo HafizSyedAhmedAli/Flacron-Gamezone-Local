@@ -86,6 +86,7 @@ export function LeagueHeader({ name, country, logo }: LeagueHeaderProps) {
                       alt={name}
                       width={128}
                       height={128}
+                      style={{ height: "auto" }}
                       className="object-contain drop-shadow-2xl"
                     />
                   </div>
