@@ -113,7 +113,7 @@ export default function AdminStreamsManagement() {
   async function loadAllSavedMatches() {
     try {
       setLoadingMatchesList(true);
-      const resp = await apiGet<any>("/api/admin/matches/saved");
+      const resp = await apiGet<any>("/api/admin/matches");
       let matchesData: Match[] = [];
       if (!resp) matchesData = [];
       else if (Array.isArray(resp)) matchesData = resp;

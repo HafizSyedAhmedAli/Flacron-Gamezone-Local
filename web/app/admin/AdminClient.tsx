@@ -203,9 +203,9 @@ export function AdminClient() {
     setLoading(true);
     try {
       const [leaguesRes, teamsRes, matchesRes] = await Promise.all([
-        apiGet<any>("/api/admin/leagues/saved?page=1&limit=12"),
-        apiGet<any>("/api/admin/teams/saved?page=1&limit=12"),
-        apiGet<any>("/api/admin/matches/saved?page=1&limit=12"),
+        apiGet<any>("/api/admin/leagues?page=1&limit=12"),
+        apiGet<any>("/api/admin/teams?page=1&limit=12"),
+        apiGet<any>("/api/admin/matches?page=1&limit=12"),
       ]);
 
       setLeagues(leaguesRes.leagues || []);
@@ -432,7 +432,7 @@ export function AdminClient() {
     });
     try {
       const response = await apiGet<any>(
-        `/api/admin/leagues/saved?page=${nextPage}&limit=12`,
+        `/api/admin/leagues?page=${nextPage}&limit=12`,
       );
       setLeagues((prev) => [...prev, ...(response.leagues || [])]);
       setLeaguesPagination({
@@ -606,7 +606,7 @@ export function AdminClient() {
     });
     try {
       const response = await apiGet<any>(
-        `/api/admin/teams/saved?page=${nextPage}&limit=12`,
+        `/api/admin/teams?page=${nextPage}&limit=12`,
       );
       setTeams((prev) => [...prev, ...(response.teams || [])]);
       setTeamsPagination({
@@ -763,7 +763,7 @@ export function AdminClient() {
   async function addMatchFromApi(match: any) {
     try {
       const allTeamsRes = await apiGet<any>(
-        "/api/admin/teams/saved?page=1&limit=10000",
+        "/api/admin/teams?page=1&limit=10000",
       );
       const allTeams: any[] = allTeamsRes.teams || [];
 
@@ -898,7 +898,7 @@ export function AdminClient() {
     });
     try {
       const response = await apiGet<any>(
-        `/api/admin/matches/saved?page=${nextPage}&limit=12`,
+        `/api/admin/matches?page=${nextPage}&limit=12`,
       );
       setMatches((prev) => [...prev, ...(response.matches || [])]);
       setMatchesPagination({
