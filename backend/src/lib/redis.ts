@@ -1,7 +1,7 @@
 import Redis from "ioredis";
+import { config } from "../config/index.js";
 
-const url = process.env.REDIS_URL || "redis://localhost:6379";
-export const redis = new Redis(url);
+export const redis = new Redis(config.redis.url);
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
   const raw = await redis.get(key);
@@ -17,6 +17,10 @@ export async function cacheSet(
   key: string,
   value: unknown,
   ttlSeconds: number
-) {
+): Promise<void> {
   await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
+}
+
+export async function cacheDel(key: string): Promise<void> {
+  await redis.del(key);
 }
