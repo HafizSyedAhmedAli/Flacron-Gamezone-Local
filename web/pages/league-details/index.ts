@@ -1,1 +1,0 @@
-export { default as LeagueDetailsClient } from "./ui/LeagueDetailsClient";
