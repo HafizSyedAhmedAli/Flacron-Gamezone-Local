@@ -1,15 +1,16 @@
-import { Metadata } from "next";
-import { AdminClientLoader } from "./AdminClientLoader";
+import dynamic from "next/dynamic";
+import LoadingSpinner from "@/shared/ui/LoadingSpinner";
 
-export const metadata: Metadata = {
-  title: "Admin Panel",
-  description: "Admin panel for managing matches, teams, and leagues.",
-  robots: {
-    index: false,
-    follow: false,
+const AdminPanel = dynamic(
+  () => import("@/pages/admin/ui/AdminPanel").then((m) => m.AdminPanel),
+  {
+    ssr: false,
+    loading: () => (
+      <LoadingSpinner fullScreen size="lg" message="Loading admin panel…" />
+    ),
   },
-};
+);
 
 export default function AdminPage() {
-  return <AdminClientLoader />;
+  return <AdminPanel />;
 }
