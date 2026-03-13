@@ -15,8 +15,7 @@ import {
   Mail,
   CheckCircle,
 } from "lucide-react";
-import { Shell } from "@/components/layout";
-import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { ScrollToTop } from "@/shared/ui/ScrollToTop";
 import Link from "next/link";
 
 // Deterministic particle positions — avoids React hydration mismatch
@@ -94,7 +93,8 @@ const sections = [
     icon: Link2,
     color: "green",
     title: "Links and Third-Party Content",
-    content: "Flacrom Gamezone may contain links to third-party websites, streaming platforms, or gaming services. We are not responsible for:",
+    content:
+      "Flacrom Gamezone may contain links to third-party websites, streaming platforms, or gaming services. We are not responsible for:",
     thirdParty: [
       "The content, privacy practices, or security of third-party sites",
       "Availability, quality, or latency of third-party game servers or streams",
@@ -139,17 +139,51 @@ const sections = [
     icon: Mail,
     color: "purple",
     title: "Contact Information",
-    content: "If you have any questions about these Terms of Service, need clarification on any provisions, or wish to report a violation, please",
+    content:
+      "If you have any questions about these Terms of Service, need clarification on any provisions, or wish to report a violation, please",
   },
 ];
 
-const COLOR_CLASSES: Record<string, { gradient: string; text: string; bg: string; border: string }> = {
-  purple: { gradient: "from-purple-500 to-purple-600", text: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/30" },
-  blue:   { gradient: "from-blue-500 to-blue-600",     text: "text-blue-400",   bg: "bg-blue-500/10",   border: "border-blue-500/30"   },
-  amber:  { gradient: "from-amber-500 to-amber-600",   text: "text-amber-400",  bg: "bg-amber-500/10",  border: "border-amber-500/30"  },
-  orange: { gradient: "from-orange-500 to-orange-600", text: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/30" },
-  green:  { gradient: "from-green-500 to-green-600",   text: "text-green-400",  bg: "bg-green-500/10",  border: "border-green-500/30"  },
-  red:    { gradient: "from-red-500 to-red-600",       text: "text-red-400",    bg: "bg-red-500/10",    border: "border-red-500/30"    },
+const COLOR_CLASSES: Record<
+  string,
+  { gradient: string; text: string; bg: string; border: string }
+> = {
+  purple: {
+    gradient: "from-purple-500 to-purple-600",
+    text: "text-purple-400",
+    bg: "bg-purple-500/10",
+    border: "border-purple-500/30",
+  },
+  blue: {
+    gradient: "from-blue-500 to-blue-600",
+    text: "text-blue-400",
+    bg: "bg-blue-500/10",
+    border: "border-blue-500/30",
+  },
+  amber: {
+    gradient: "from-amber-500 to-amber-600",
+    text: "text-amber-400",
+    bg: "bg-amber-500/10",
+    border: "border-amber-500/30",
+  },
+  orange: {
+    gradient: "from-orange-500 to-orange-600",
+    text: "text-orange-400",
+    bg: "bg-orange-500/10",
+    border: "border-orange-500/30",
+  },
+  green: {
+    gradient: "from-green-500 to-green-600",
+    text: "text-green-400",
+    bg: "bg-green-500/10",
+    border: "border-green-500/30",
+  },
+  red: {
+    gradient: "from-red-500 to-red-600",
+    text: "text-red-400",
+    bg: "bg-red-500/10",
+    border: "border-red-500/30",
+  },
 };
 
 export function TermsClient() {
@@ -162,7 +196,7 @@ export function TermsClient() {
   }, []);
 
   return (
-    <Shell className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
+    <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 relative overflow-hidden">
       <ScrollToTop />
 
       {/* Animated background blobs */}
@@ -198,7 +232,6 @@ export function TermsClient() {
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-4 py-16">
-
         {/* Header */}
         <div
           className={`text-center mb-12 transition-all duration-1000 ${
@@ -248,7 +281,9 @@ export function TermsClient() {
                     <div className="flex-1">
                       <h2 className="text-2xl font-bold text-white flex items-center gap-3">
                         {section.title}
-                        <span className={`text-sm font-semibold px-3 py-1 rounded-full ${c.text} ${c.bg} border ${c.border}`}>
+                        <span
+                          className={`text-sm font-semibold px-3 py-1 rounded-full ${c.text} ${c.bg} border ${c.border}`}
+                        >
                           {index + 1}
                         </span>
                       </h2>
@@ -264,7 +299,10 @@ export function TermsClient() {
                         {section.title === "Contact Information" && (
                           <>
                             {" "}
-                            <Link href="/contact" className="text-blue-400 font-semibold hover:underline">
+                            <Link
+                              href="/contact"
+                              className="text-blue-400 font-semibold hover:underline"
+                            >
                               contact us here
                             </Link>
                             .
@@ -275,7 +313,10 @@ export function TermsClient() {
 
                     {/* Restrictions */}
                     {section.restrictions?.map((item, i) => (
-                      <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-red-500/30 transition-all">
+                      <div
+                        key={i}
+                        className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-red-500/30 transition-all"
+                      >
                         <div className="flex items-start gap-3">
                           <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                           <span className="text-slate-300">{item}</span>
@@ -285,7 +326,10 @@ export function TermsClient() {
 
                     {/* Responsibilities */}
                     {section.responsibilities?.map((item, i) => (
-                      <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-blue-500/30 transition-all">
+                      <div
+                        key={i}
+                        className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-blue-500/30 transition-all"
+                      >
                         <div className="flex items-start gap-3">
                           <CheckCircle className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
                           <span className="text-slate-300">{item}</span>
@@ -295,12 +339,17 @@ export function TermsClient() {
 
                     {/* Additional note after responsibilities */}
                     {section.additional && (
-                      <p className="text-slate-400 italic pt-2">{section.additional}</p>
+                      <p className="text-slate-400 italic pt-2">
+                        {section.additional}
+                      </p>
                     )}
 
                     {/* Third-party items */}
                     {section.thirdParty?.map((item, i) => (
-                      <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-green-500/30 transition-all">
+                      <div
+                        key={i}
+                        className="bg-slate-900/50 border border-slate-700/50 rounded-lg p-4 hover:border-green-500/30 transition-all"
+                      >
                         <div className="flex items-start gap-3">
                           <AlertTriangle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                           <span className="text-slate-300">{item}</span>
@@ -310,12 +359,17 @@ export function TermsClient() {
 
                     {/* Note */}
                     {section.note && (
-                      <p className="text-slate-400 italic pt-2">{section.note}</p>
+                      <p className="text-slate-400 italic pt-2">
+                        {section.note}
+                      </p>
                     )}
 
                     {/* Violations */}
                     {section.violations?.map((item, i) => (
-                      <div key={i} className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-red-500/30 transition-all">
+                      <div
+                        key={i}
+                        className="bg-slate-900/50 border border-slate-700/50 rounded-xl p-4 hover:border-red-500/30 transition-all"
+                      >
                         <div className="flex items-start gap-3">
                           <XCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
                           <span className="text-slate-300">{item}</span>
@@ -342,18 +396,28 @@ export function TermsClient() {
 
       <style jsx>{`
         @keyframes float {
-          0%, 100% { transform: translateY(0px) translateX(0px); }
-          50% { transform: translateY(-20px) translateX(10px); }
+          0%,
+          100% {
+            transform: translateY(0px) translateX(0px);
+          }
+          50% {
+            transform: translateY(-20px) translateX(10px);
+          }
         }
         @keyframes gradient {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
+          0%,
+          100% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
         }
         .animate-gradient {
           background-size: 200% auto;
           animation: gradient 3s ease infinite;
         }
       `}</style>
-    </Shell>
+    </div>
   );
 }

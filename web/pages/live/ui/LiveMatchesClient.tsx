@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/components/api";
+import { apiGet } from "@/shared/api/base";
 import Link from "next/link";
 import Image from "next/image";
 import {
@@ -14,27 +14,24 @@ import {
   PlayCircle,
   Radio,
 } from "lucide-react";
-import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { ScrollToTop } from "@/shared/ui/ScrollToTop";
 
 interface Team {
   id: string;
   name: string;
   logo: string | null;
 }
-
 interface League {
   id: string;
   name: string;
   country: string | null;
   logo: string | null;
 }
-
 interface Stream {
   type: "EMBED" | "NONE";
   provider: string | null;
   isActive: boolean;
 }
-
 interface Match {
   id: string;
   homeTeam: Team;
@@ -71,10 +68,8 @@ export default function LiveMatchesClient({
     let currentController: AbortController | null = null;
 
     async function loadMatches() {
-      // Abort any previous in-flight request before starting a new one
       if (currentController) currentController.abort();
       currentController = new AbortController();
-
       try {
         setError("");
         const data = await apiGet<Match[]>("/api/matches/live", {
@@ -84,7 +79,6 @@ export default function LiveMatchesClient({
         setLastUpdate(new Date());
       } catch (e: any) {
         if ((e as Error).name === "AbortError") return;
-        console.error("Error loading live matches:", e);
         setError(e?.message || "Failed to load live matches");
       } finally {
         setLoading(false);
@@ -92,11 +86,7 @@ export default function LiveMatchesClient({
     }
 
     loadMatches();
-
-    const interval = setInterval(() => {
-      loadMatches();
-    }, 45000);
-
+    const interval = setInterval(loadMatches, 45000);
     return () => {
       clearInterval(interval);
       if (currentController) currentController.abort();
@@ -125,7 +115,6 @@ export default function LiveMatchesClient({
       <ScrollToTop />
       <div className="flex-1 p-4 md:p-6">
         <div className="max-w-7xl mx-auto space-y-6">
-          {/* Header */}
           <div className="bg-gradient-to-br from-slate-900/95 to-red-900/50 border-2 border-red-500/50 rounded-2xl p-6">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
@@ -141,7 +130,6 @@ export default function LiveMatchesClient({
                   </p>
                 </div>
               </div>
-
               <div className="text-right">
                 <div className="text-xs text-slate-400 font-semibold">
                   Last Update
@@ -155,7 +143,6 @@ export default function LiveMatchesClient({
             </div>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="bg-red-900/30 border-2 border-red-500/50 rounded-2xl p-5">
               <div className="flex items-center gap-3">
@@ -165,7 +152,6 @@ export default function LiveMatchesClient({
             </div>
           )}
 
-          {/* Matches */}
           {matches.length > 0 ? (
             <div className="grid gap-6">
               {matches.map((match) => (
@@ -201,9 +187,7 @@ export default function LiveMatchesClient({
                         </div>
                       </div>
                     )}
-
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-6">
-                      {/* Home Team */}
                       <div className="flex items-center justify-end gap-3">
                         {match.homeTeam.logo && (
                           <Image
@@ -219,13 +203,9 @@ export default function LiveMatchesClient({
                           {match.homeTeam.name}
                         </span>
                       </div>
-
-                      {/* Score */}
                       <div className="text-3xl font-black text-cyan-400 text-center">
                         {match.score ?? "vs"}
                       </div>
-
-                      {/* Away Team */}
                       <div className="flex items-center justify-start gap-3">
                         {match.awayTeam.logo && (
                           <Image
@@ -242,7 +222,6 @@ export default function LiveMatchesClient({
                         </span>
                       </div>
                     </div>
-
                     <div className="flex items-center justify-between text-sm text-slate-400 border-t pt-3">
                       {match.venue && (
                         <div className="flex items-center gap-2">
@@ -250,7 +229,6 @@ export default function LiveMatchesClient({
                           {match.venue}
                         </div>
                       )}
-
                       {match.stream?.type === "EMBED" &&
                       match.stream.isActive ? (
                         <div className="flex items-center gap-2 text-green-400 ml-auto">

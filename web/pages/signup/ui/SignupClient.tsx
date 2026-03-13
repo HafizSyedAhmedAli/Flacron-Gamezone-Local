@@ -14,7 +14,7 @@ import {
   Shield,
   UserPlus,
 } from "lucide-react";
-import { apiAuthPost, setToken } from "@/components/api";
+import { apiAuthPost, setToken } from "@/shared/api/base";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 

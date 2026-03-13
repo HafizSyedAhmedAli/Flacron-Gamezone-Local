@@ -1,6 +1,5 @@
 "use client";
 
-import { Shell } from "@/components/layout";
 import Link from "next/link";
 import {
   Shield,
@@ -201,7 +200,7 @@ const sections = [
 
 export function PrivacyClient() {
   return (
-    <Shell className="bg-[#0a0e27]">
+    <div className="bg-[#0a0e27]">
       {/* Back Button */}
       <div className="max-w-5xl mx-auto px-6 pt-6">
         <Link
@@ -412,6 +411,6 @@ export function PrivacyClient() {
           }
         }
       `}</style>
-    </Shell>
+    </div>
   );
 }

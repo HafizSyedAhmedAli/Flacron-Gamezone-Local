@@ -1,30 +1,20 @@
-// app/matches/page.tsx
 import { Metadata } from "next";
-import { Shell } from "@/components/layout";
-import { MatchesClient } from "./MatchesClient";
+import { MatchesClient } from "@/pages/matches/ui/MatchesClient";
 
 export const metadata: Metadata = {
   title: "Football Matches | Watch Live & Upcoming Games",
   description:
-    "Stream live football matches, track real-time scores, and browse upcoming fixtures across all major leagues. Never miss a moment of the action.",
+    "Stream live football matches, track real-time scores, and browse upcoming fixtures.",
   keywords: [
     "live football",
     "football matches",
     "live scores",
     "upcoming fixtures",
-    "football streaming",
   ],
   openGraph: {
     title: "Football Matches | Watch Live & Upcoming Games",
-    description:
-      "Stream live football matches, track real-time scores, and browse upcoming fixtures across all major leagues.",
+    description: "Stream live football matches and track real-time scores.",
     type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Football Matches | Watch Live & Upcoming Games",
-    description:
-      "Stream live football matches, track real-time scores, and browse upcoming fixtures.",
   },
 };
 
@@ -35,11 +25,9 @@ async function getMatches() {
       (process.env.VERCEL_URL
         ? `https://${process.env.VERCEL_URL}`
         : "http://localhost:3000");
-
     const res = await fetch(`${baseUrl}/api/matches`, {
-      next: { revalidate: 60 }, // ISR: revalidate every 60 seconds
+      next: { revalidate: 60 },
     });
-
     if (!res.ok) return [];
     return await res.json();
   } catch {
@@ -49,10 +37,5 @@ async function getMatches() {
 
 export default async function MatchesPage() {
   const initialMatches = await getMatches();
-
-  return (
-    <Shell>
-      <MatchesClient initialMatches={initialMatches} />
-    </Shell>
-  );
+  return <MatchesClient initialMatches={initialMatches} />;
 }

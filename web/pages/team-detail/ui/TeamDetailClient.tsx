@@ -1,8 +1,7 @@
-// app/teams/[teamId]/TeamDetailClient.tsx
 "use client";
 
 import { useEffect, useState } from "react";
-import { apiGet } from "@/components/api";
+import { apiGet } from "@/shared/api/base";
 import {
   Trophy,
   Clock,

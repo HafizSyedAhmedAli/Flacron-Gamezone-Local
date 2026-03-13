@@ -1,9 +1,8 @@
-// app/teams/TeamsClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { apiGet } from "../../components/api";
-import { PaginationControls } from "@/components/ui/PaginationControls";
+import { apiGet } from "@/shared/api/base";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 import {
   Search,
   Trophy,
