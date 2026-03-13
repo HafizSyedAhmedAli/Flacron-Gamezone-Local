@@ -1,1 +1,0 @@
-export { default as LeaguesClient } from "./ui/LeaguesClient";
