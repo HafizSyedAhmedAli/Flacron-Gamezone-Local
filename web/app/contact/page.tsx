@@ -1,21 +1,14 @@
 import type { Metadata } from "next";
-import ContactClient from "./ContactClient";
+import ContactPage from "@/pages/contact/ui/ContactPage";
 
 export const metadata: Metadata = {
   title: "Contact Us | Flacrom Gamezone",
   description:
-    "Need help with Flacrom Gamezone? Contact our support team for assistance with tournaments, accounts, pricing, or technical issues.",
-  keywords: [
-    "Flacrom Gamezone contact",
-    "gaming support",
-    "esports support",
-    "contact gaming platform",
-  ],
-  // TODO: Replace placeholder URLs before shipping.
+    "Need help with Flacrom Gamezone? Contact our support team for assistance.",
+  keywords: ["Flacrom Gamezone contact", "gaming support", "esports support"],
   openGraph: {
     title: "Contact Flacrom Gamezone",
-    description:
-      "Reach out to the Flacrom Gamezone support team. We're here to help.",
+    description: "Reach out to the Flacrom Gamezone support team.",
     url: "https://yourdomain.com/contact",
     siteName: "Flacrom Gamezone",
     type: "website",
@@ -23,14 +16,11 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Contact Flacrom Gamezone",
-    description:
-      "Get in touch with Flacrom Gamezone support for help and inquiries.",
+    description: "Get in touch with Flacrom Gamezone support.",
   },
-  alternates: {
-    canonical: "https://yourdomain.com/contact",
-  },
+  alternates: { canonical: "https://yourdomain.com/contact" },
 };
 
-export default function ContactPage() {
-  return <ContactClient />;
+export default function ContactRoute() {
+  return <ContactPage />;
 }

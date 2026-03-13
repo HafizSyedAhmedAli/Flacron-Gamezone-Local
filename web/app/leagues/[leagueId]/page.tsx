@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
-import { apiGet } from "@/components/api";
-import { Shell } from "@/components/layout";
-import { BackButton } from "@/components/ui/BackButton";
-import { LeagueHeader } from "@/components/ui/LeagueHeader";
-import { ErrorState } from "@/components/ui/LoadingErrorStates";
-import LeagueDetailsClient from "./LeagueDetailsClient";
+import { apiGet } from "@/shared/api/base";
+import { BackButton } from "@/shared/ui/BackButton";
+import { LeagueHeader } from "@/entities/league/ui/LeagueHeader";
+import { ErrorState } from "@/shared/ui/LoadingErrorStates";
+import LeagueDetailsClient from "@/pages/league-details/ui/LeagueDetailsClient";
 
 interface Team {
   id: string;
@@ -12,7 +11,6 @@ interface Team {
   logo: string | null;
   apiTeamId: number | null;
 }
-
 interface Match {
   id: string;
   homeTeam: Team;
@@ -22,7 +20,6 @@ interface Match {
   score: string | null;
   venue: string | null;
 }
-
 interface StandingTeam {
   team: Team;
   played: number;
@@ -34,7 +31,6 @@ interface StandingTeam {
   goalDifference: number;
   points: number;
 }
-
 interface LeagueDetailsResponse {
   league: {
     id: string;
@@ -51,22 +47,19 @@ interface LeagueDetailsPageProps {
   params: { leagueId: string };
 }
 
-export async function generateMetadata(
-  { params }: LeagueDetailsPageProps
-): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: LeagueDetailsPageProps): Promise<Metadata> {
   try {
     const data = await apiGet<LeagueDetailsResponse>(
-      `/api/leagues/${params.leagueId}`
+      `/api/leagues/${params.leagueId}`,
     );
-
     return {
       title: `${data.league.name} Standings & Fixtures | Flacron Gamezone`,
       description: `View standings, fixtures and results for ${data.league.name}.`,
     };
   } catch {
-    return {
-      title: "League Details | Flacron Gamezone",
-    };
+    return { title: "League Details | Flacron Gamezone" };
   }
 }
 
@@ -78,35 +71,28 @@ export default async function LeagueDetailsPage({
 
   try {
     data = await apiGet<LeagueDetailsResponse>(
-      `/api/leagues/${params.leagueId}`
+      `/api/leagues/${params.leagueId}`,
     );
   } catch (error) {
-    console.error("Failed to fetch league details", error);
     fetchError =
-      error instanceof Error
-        ? error.message
-        : "Failed to load league details";
+      error instanceof Error ? error.message : "Failed to load league details";
   }
 
   return (
-    <Shell>
-      <div className="space-y-6">
-        <BackButton href="/leagues" label="Back to Leagues" />
-
-        {fetchError ? (
-          <ErrorState error={fetchError} />
-        ) : data ? (
-          <>
-            <LeagueHeader
-              name={data.league.name}
-              country={data.league.country}
-              logo={data.league.logo}
-            />
-
-            <LeagueDetailsClient data={data} />
-          </>
-        ) : null}
-      </div>
-    </Shell>
+    <div className="space-y-6">
+      <BackButton href="/leagues" label="Back to Leagues" />
+      {fetchError ? (
+        <ErrorState error={fetchError} />
+      ) : data ? (
+        <>
+          <LeagueHeader
+            name={data.league.name}
+            country={data.league.country}
+            logo={data.league.logo}
+          />
+          <LeagueDetailsClient data={data} />
+        </>
+      ) : null}
+    </div>
   );
 }

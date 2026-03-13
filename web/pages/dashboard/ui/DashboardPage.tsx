@@ -28,11 +28,10 @@ import {
   cancelSubscription,
   reactivateSubscription,
   createPortalSession,
-} from "@/components/billingApi";
+} from "@/shared/api/billing";
 import { useRouter } from "next/navigation";
-import { Shell } from "@/components/layout";
-import { DeleteConfirmModal } from "@/components/ui/admin/DeleteConfirmModal";
-import { getToken } from "@/components/api";
+import { DeleteConfirmModal } from "@/shared/ui/DeleteConfirmModal";
+import { getToken } from "@/shared/api/base";
 import Link from "next/link";
 
 interface Subscription {
@@ -102,13 +101,12 @@ const FREE_FEATURES = [
   },
 ];
 
-// ── Quick action cards shown at the top ──────────────────────────────────────
 const QUICK_ACTIONS = [
   {
     label: "Search",
     desc: "Find leagues, teams & matches",
     icon: Search,
-    href: null, // handled by onClick to open search overlay
+    href: null,
     action: "search",
     gradient: "from-blue-600 to-cyan-500",
     shadow: "shadow-cyan-500/20",
@@ -150,9 +148,8 @@ export default function DashboardPage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const router = useRouter();
-
-  // Decode a simple display name from the JWT (no extra API call needed)
   const [userEmail, setUserEmail] = useState<string | null>(null);
+
   useEffect(() => {
     try {
       const token = getToken();
@@ -243,7 +240,7 @@ export default function DashboardPage() {
       );
     if (status === "past_due")
       return (
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-lg shadow-amber-500/30">
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-gradient-to-r from-amber-500 to-orange-500 text-white">
           <AlertCircle className="w-3 h-3" />
           PAST DUE
         </span>
@@ -274,13 +271,12 @@ export default function DashboardPage() {
   }
 
   return (
-    <Shell className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
-      <div className="space-y-6 max-w-5xl mx-auto">
-        {/* ── Hero Banner ── */}
+    <div className="bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 min-h-screen">
+      <div className="space-y-6 max-w-5xl mx-auto px-4 py-8">
+        {/* Hero Banner */}
         <div className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900/30 to-purple-900/30 border border-slate-700/50 rounded-2xl shadow-2xl">
           <div className="absolute top-0 right-0 w-72 h-72 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
           <div className="absolute bottom-0 left-1/3 w-56 h-56 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-
           <div className="relative z-10 p-8 md:p-12">
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
               <div className="max-w-xl">
@@ -299,7 +295,6 @@ export default function DashboardPage() {
                     </span>
                   </div>
                 )}
-
                 <h1 className="text-4xl md:text-5xl font-black mb-3 bg-gradient-to-r from-white via-blue-200 to-purple-300 bg-clip-text text-transparent leading-tight">
                   Account
                   <br />
@@ -309,8 +304,6 @@ export default function DashboardPage() {
                   Manage your subscription, billing, and account preferences.
                 </p>
               </div>
-
-              {/* Account info pill */}
               {userEmail && (
                 <div className="flex items-center gap-3 bg-slate-800/60 border border-slate-700/40 rounded-xl px-4 py-3 backdrop-blur-sm self-start">
                   <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg flex-shrink-0">
@@ -327,8 +320,6 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-
-            {/* Quick stats */}
             <div className="flex flex-wrap gap-5 mt-6">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -354,11 +345,10 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-
           <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
         </div>
 
-        {/* ── Quick Actions ── */}
+        {/* Quick Actions */}
         <div>
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
             <LayoutDashboard className="w-3.5 h-3.5" /> Quick Actions
@@ -380,23 +370,19 @@ export default function DashboardPage() {
                   <ChevronRight className="absolute top-4 right-4 w-4 h-4 text-slate-600 group-hover:text-slate-400 group-hover:translate-x-0.5 transition-all" />
                 </div>
               );
-
-              if (action.href) {
+              if (action.href)
                 return (
                   <Link key={action.label} href={action.href}>
                     {inner}
                   </Link>
                 );
-              }
-              // Search — dispatch a custom event that the layout's overlay listens to
               return (
                 <button
                   key={action.label}
                   className="text-left h-full"
-                  onClick={() => {
-                    // Trigger the search overlay via a custom event
-                    window.dispatchEvent(new CustomEvent("fgz:open-search"));
-                  }}
+                  onClick={() =>
+                    window.dispatchEvent(new CustomEvent("fgz:open-search"))
+                  }
                 >
                   {inner}
                 </button>
@@ -405,7 +391,7 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Notifications ── */}
+        {/* Notifications */}
         {success && (
           <div className="flex items-center gap-3 bg-emerald-900/30 border border-emerald-700/50 rounded-xl p-4 text-emerald-400 text-sm backdrop-blur-xl">
             <CheckCircle className="w-4 h-4 shrink-0" />
@@ -419,14 +405,10 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ── Main Grid ── */}
+        {/* Main Grid */}
         <div className="grid lg:grid-cols-5 gap-6">
-          {/* Subscription card — 3 cols */}
           <div className="lg:col-span-3">
             <div className="group relative bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 hover:border-blue-500/40 rounded-xl p-6 transition-all duration-500 hover:shadow-xl hover:shadow-blue-500/10 h-full">
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-hover:from-blue-500/5 group-hover:via-purple-500/5 group-hover:to-pink-500/5 transition-all duration-500 rounded-xl pointer-events-none" />
-
-              {/* Card header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="relative">
@@ -452,10 +434,9 @@ export default function DashboardPage() {
                 <StatusBadge status={subscription?.status || "inactive"} />
               </div>
 
-              {/* Details rows */}
               {hasPlan && (
                 <div className="space-y-2 mb-6">
-                  <div className="flex items-center justify-between bg-slate-800/70 backdrop-blur-sm border border-slate-600/30 rounded-lg px-4 py-3">
+                  <div className="flex items-center justify-between bg-slate-800/70 border border-slate-600/30 rounded-lg px-4 py-3">
                     <div className="flex items-center gap-2 text-slate-400 text-sm">
                       <CreditCard className="w-4 h-4" />
                       Billing Cycle
@@ -465,7 +446,7 @@ export default function DashboardPage() {
                     </span>
                   </div>
                   {subscription!.currentPeriodStart && (
-                    <div className="flex items-center justify-between bg-slate-800/70 backdrop-blur-sm border border-slate-600/30 rounded-lg px-4 py-3">
+                    <div className="flex items-center justify-between bg-slate-800/70 border border-slate-600/30 rounded-lg px-4 py-3">
                       <div className="flex items-center gap-2 text-slate-400 text-sm">
                         <Calendar className="w-4 h-4" />
                         Period Start
@@ -482,7 +463,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   {subscription!.currentPeriodEnd && (
-                    <div className="flex items-center justify-between bg-slate-800/70 backdrop-blur-sm border border-slate-600/30 rounded-lg px-4 py-3">
+                    <div className="flex items-center justify-between bg-slate-800/70 border border-slate-600/30 rounded-lg px-4 py-3">
                       <div className="flex items-center gap-2 text-slate-400 text-sm">
                         <Calendar className="w-4 h-4" />
                         {subscription!.cancelAtPeriodEnd
@@ -510,7 +491,6 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Free plan upsell */}
               {!hasPlan && (
                 <div className="mb-6 bg-blue-900/20 border border-blue-700/40 rounded-xl p-5">
                   <p className="text-slate-300 text-sm leading-relaxed mb-4">
@@ -527,10 +507,8 @@ export default function DashboardPage() {
                 </div>
               )}
 
-              {/* Action buttons */}
               {hasPlan && (isActive || isPastDue) && (
                 <div className="space-y-3">
-                  {/* Upgrade / change plan — most prominent */}
                   <button
                     onClick={() => router.push("/pricing")}
                     className="group w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold px-5 py-3 rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-[1.02]"
@@ -539,7 +517,6 @@ export default function DashboardPage() {
                     Upgrade / Change Plan
                     <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                   </button>
-
                   <div className="flex gap-3">
                     <button
                       onClick={handleManageBilling}
@@ -555,7 +532,6 @@ export default function DashboardPage() {
                         </>
                       )}
                     </button>
-
                     {subscription!.cancelAtPeriodEnd ? (
                       <button
                         onClick={handleReactivateSubscription}
@@ -591,17 +567,16 @@ export default function DashboardPage() {
               {hasPlan && isCanceled && (
                 <button
                   onClick={() => router.push("/pricing")}
-                  className="group w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold px-5 py-3 rounded-lg shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-[1.02]"
+                  className="group w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold px-5 py-3 rounded-lg shadow-lg transition-all duration-300 hover:scale-[1.02]"
                 >
                   <Crown className="w-4 h-4 group-hover:scale-110 transition-transform" />
                   Resubscribe
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  <ChevronRight className="w-4 h-4" />
                 </button>
               )}
             </div>
           </div>
 
-          {/* Features panel — 2 cols */}
           <div className="lg:col-span-2">
             <div className="relative bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-xl p-6 h-full">
               <div className="flex items-center gap-2 mb-5">
@@ -612,26 +587,24 @@ export default function DashboardPage() {
                   </span>
                 </div>
               </div>
-
               <ul className="space-y-2">
                 {features.map(({ icon: Icon, label, color }, i) => (
                   <li
                     key={i}
-                    className="group/item flex items-center gap-3 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/30 hover:border-slate-600/50 rounded-lg px-3 py-2.5 transition-all duration-300 cursor-default"
+                    className="group/item flex items-center gap-3 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/30 hover:border-slate-600/50 rounded-lg px-3 py-2.5 transition-all duration-300"
                   >
                     <div
-                      className={`w-7 h-7 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center shadow-md shrink-0 opacity-80 group-hover/item:opacity-100 transition-opacity`}
+                      className={`w-7 h-7 rounded-lg bg-gradient-to-br ${color} flex items-center justify-center shadow-md shrink-0 opacity-80 group-hover/item:opacity-100`}
                     >
                       <Icon className="w-3.5 h-3.5 text-white" />
                     </div>
                     <span className="text-slate-400 group-hover/item:text-slate-200 text-sm font-medium transition-colors flex-1">
                       {label}
                     </span>
-                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500/50 group-hover/item:text-emerald-400 shrink-0 transition-colors" />
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-500/50 group-hover/item:text-emerald-400 shrink-0" />
                   </li>
                 ))}
               </ul>
-
               {!isActive && (
                 <button
                   onClick={() => router.push("/pricing")}
@@ -655,6 +628,6 @@ export default function DashboardPage() {
         onCancel={() => setShowCancelModal(false)}
         isDeleting={actionLoading === "cancel"}
       />
-    </Shell>
+    </div>
   );
 }

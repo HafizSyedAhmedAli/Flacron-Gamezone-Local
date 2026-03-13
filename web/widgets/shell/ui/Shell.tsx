@@ -61,8 +61,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
         setSearchOpen(true);
       }
     };
+    const onOpenSearch = () => setSearchOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("fgz:open-search", onOpenSearch);
+
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("fgz:open-search", onOpenSearch);
+    };
   }, []);
 
   const isActive = (item: NavItem) =>

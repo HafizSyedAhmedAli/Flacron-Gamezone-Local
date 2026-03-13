@@ -1,7 +1,8 @@
 "use client";
+
 import { useState, useEffect } from "react";
-import { LeagueCard } from "@/components/ui/LeagueCard";
-import { PaginationControls } from "@/components/ui/PaginationControls";
+import { LeagueCard } from "@/entities/league/ui/LeagueCard";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 import { Trophy } from "lucide-react";
 
 interface League {
@@ -15,17 +16,14 @@ const ITEMS_PER_PAGE = 8;
 
 export default function LeaguesClient({ leagues }: { leagues: League[] }) {
   const [currentPage, setCurrentPage] = useState(0);
-
   const totalPages = Math.ceil(leagues.length / ITEMS_PER_PAGE);
 
-  // Reset to first page whenever the leagues list changes
   useEffect(() => {
     setCurrentPage(0);
   }, [leagues]);
 
   const startIndex = currentPage * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const currentLeagues = leagues.slice(startIndex, endIndex);
+  const currentLeagues = leagues.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
   return (
     <>

@@ -1,4 +1,3 @@
-// app/matches/MatchesClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -12,8 +11,8 @@ import {
   Play,
   TrendingUp,
 } from "lucide-react";
-import { apiGet } from "@/components/api";
-import { ScrollToTop } from "@/components/ui/ScrollToTop";
+import { apiGet } from "@/shared/api/base";
+import { ScrollToTop } from "@/shared/ui/ScrollToTop";
 
 interface Team {
   id: string;

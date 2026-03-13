@@ -1,20 +1,7 @@
 export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
-import { apiGet } from "@/components/api";
-import { Shell } from "@/components/layout";
-import LiveMatchesClient from "./LiveMatchesClient";
-
-interface Match {
-  id: string;
-  homeTeam: any;
-  awayTeam: any;
-  league: any;
-  kickoffTime: string;
-  status: string;
-  score: string | null;
-  venue: string | null;
-  stream: any;
-}
+import { apiGet } from "@/shared/api/base";
+import LiveMatchesClient from "@/pages/live/ui/LiveMatchesClient";
 
 export const metadata: Metadata = {
   title: "Live Football Matches | Flacron Gamezone",
@@ -23,22 +10,21 @@ export const metadata: Metadata = {
 };
 
 export default async function LiveMatchesPage() {
-  let initialMatches: Match[] = [];
+  let initialMatches: any[] = [];
   let fetchError = false;
 
   try {
-    initialMatches = await apiGet<Match[]>("/api/matches/live");
-  } catch (error) {
-    console.error("Initial live fetch failed:", error);
+    initialMatches = await apiGet<any[]>("/api/matches/live");
+  } catch {
     fetchError = true;
   }
 
   return (
-    <Shell className="bg-[#0a0e27] flex flex-col">
+    <div className="bg-[#0a0e27] flex flex-col min-h-screen">
       <LiveMatchesClient
         initialMatches={initialMatches}
         initialError={fetchError}
       />
-    </Shell>
+    </div>
   );
 }

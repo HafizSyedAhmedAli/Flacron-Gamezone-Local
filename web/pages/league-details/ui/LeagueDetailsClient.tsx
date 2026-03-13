@@ -1,9 +1,10 @@
 "use client";
+
 import { useState } from "react";
-import { StandingsTable } from "@/components/ui/StandingsTable";
-import { SimpleMatchCard } from "@/components/ui/SimpleMatchCard";
-import { Tabs } from "@/components/ui/Tabs";
-import { EmptyState } from "@/components/ui/LoadingErrorStates";
+import { StandingsTable } from "@/entities/team/ui/StandingsTable";
+import { SimpleMatchCard } from "@/entities/match/ui/SimpleMatchCard";
+import { Tabs } from "@/shared/ui/Tabs";
+import { EmptyState } from "@/shared/ui/LoadingErrorStates";
 import { Calendar, TrendingUp, Trophy } from "lucide-react";
 
 type TabId = "standings" | "fixtures" | "results";
@@ -14,7 +15,6 @@ interface Team {
   logo: string | null;
   apiTeamId: number | null;
 }
-
 interface Match {
   id: string;
   homeTeam: Team;
@@ -24,7 +24,6 @@ interface Match {
   score: string | null;
   venue: string | null;
 }
-
 interface StandingTeam {
   team: Team;
   played: number;
@@ -36,7 +35,6 @@ interface StandingTeam {
   goalDifference: number;
   points: number;
 }
-
 interface LeagueData {
   standings: StandingTeam[];
   upcomingMatches: Match[];
@@ -78,9 +76,7 @@ export default function LeagueDetailsClient({ data }: { data: LeagueData }) {
         activeTab={activeTab}
         onTabChange={(tabId) => setActiveTab(tabId as TabId)}
       />
-
       {activeTab === "standings" && <StandingsTable standings={standings} />}
-
       {activeTab === "fixtures" && (
         <div className="space-y-3">
           {upcomingMatches.length === 0 ? (
@@ -90,13 +86,12 @@ export default function LeagueDetailsClient({ data }: { data: LeagueData }) {
               description="There are no scheduled matches for this league yet."
             />
           ) : (
-            upcomingMatches.map((match: Match) => (
+            upcomingMatches.map((match) => (
               <SimpleMatchCard key={match.id} {...match} />
             ))
           )}
         </div>
       )}
-
       {activeTab === "results" && (
         <div className="space-y-3">
           {recentMatches.length === 0 ? (
@@ -106,7 +101,7 @@ export default function LeagueDetailsClient({ data }: { data: LeagueData }) {
               description="There are no finished matches for this league yet."
             />
           ) : (
-            recentMatches.map((match: Match) => (
+            recentMatches.map((match) => (
               <SimpleMatchCard key={match.id} {...match} />
             ))
           )}

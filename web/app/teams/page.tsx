@@ -1,29 +1,15 @@
 import { Metadata } from "next";
-import { Shell } from "@/components/layout";
 import dynamic from "next/dynamic";
 
 export const metadata: Metadata = {
   title: "Football Teams | Browse All Competing Teams",
   description:
-    "Browse all competing football teams, track their performance, win rates, and follow the action in real-time across all leagues.",
-  keywords: [
-    "football teams",
-    "soccer teams",
-    "team stats",
-    "win rate",
-    "football tournament",
-  ],
+    "Browse all competing football teams, track their performance and win rates.",
+  keywords: ["football teams", "soccer teams", "team stats"],
   openGraph: {
     title: "Football Teams | Browse All Competing Teams",
-    description:
-      "Browse all competing football teams, track their performance and win rates across all leagues.",
+    description: "Browse all competing football teams.",
     type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Football Teams | Browse All Competing Teams",
-    description:
-      "Browse all competing football teams and track their performance.",
   },
 };
 
@@ -37,19 +23,15 @@ async function getTeams() {
     const res = await fetch(`${baseUrl}/api/teams`, {
       next: { revalidate: 120 },
     });
-    if (!res.ok) {
-      console.error(`[getTeams] fetch failed: ${res.status} ${res.statusText}`);
-      return [];
-    }
+    if (!res.ok) return [];
     return res.json();
-  } catch (err) {
-    console.error("[getTeams] unexpected error:", err);
+  } catch {
     return [];
   }
 }
 
 const TeamsClient = dynamic(
-  () => import("./TeamsClient").then((m) => m.TeamsClient),
+  () => import("@/pages/teams/ui/TeamsClient").then((m) => m.TeamsClient),
   {
     ssr: false,
     loading: () => (
@@ -71,9 +53,5 @@ const TeamsClient = dynamic(
 
 export default async function TeamsPage() {
   const initialTeams = await getTeams();
-  return (
-    <Shell>
-      <TeamsClient initialTeams={initialTeams} />
-    </Shell>
-  );
+  return <TeamsClient initialTeams={initialTeams} />;
 }

@@ -1,4 +1,3 @@
-// app/match/[id]/MatchDetailClient.tsx
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -19,10 +18,10 @@ import {
   Crosshair,
   Lock,
 } from "lucide-react";
-import { apiGet, apiPost } from "@/components/api";
-import StreamEmbed from "@/components/ui/StreamEmbed";
-import { PremiumGate } from "@/components/ui/PremiumGate";
-import { useSubscription } from "@/hooks/useSubscription";
+import { apiGet, apiPost } from "@/shared/api/base";
+import StreamEmbed from "@/entities/stream/ui/StreamEmbed";
+import { PremiumGate } from "@/shared/ui/PremiumGate";
+import { useSubscription } from "@/features/subscription/hooks/useSubscription";
 
 interface Team {
   id: string;
