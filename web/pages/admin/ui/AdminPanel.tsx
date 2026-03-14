@@ -3,28 +3,25 @@
 import { useState, useCallback, useEffect } from "react";
 import { Shield } from "lucide-react";
 
-// Entities
-import type { League } from "@/entities/league/model/types";
-import type { Team } from "@/entities/team/model/types";
-
-// Features
-import { useRequireAdmin } from "@/features/auth/hooks/useAuth";
+// Shared
 import { AlertMessage } from "@/shared/ui/AlertMessage";
 import { DeleteConfirmModal } from "@/shared/ui/DeleteConfirmModal";
 import { LoadingState, ErrorState } from "@/shared/ui/LoadingErrorStates";
 
-// Admin features
+// Auth
+import { useRequireAdmin } from "@/features/auth/hooks/useAuth";
+
+// League feature
 import {
   getLeagues,
   createLeague,
   updateLeague,
   deleteLeague,
-  syncLeague,
-  bulkSyncLeagues,
 } from "@/features/admin-leagues/api/leaguesApi";
 import { LeagueBrowser } from "@/features/admin-leagues/ui/LeagueBrowser";
 import { LeagueEditModal } from "@/features/admin-leagues/ui/LeagueEditModal";
 
+// Team feature
 import {
   getTeams,
   createTeam,
@@ -34,6 +31,7 @@ import {
 import { TeamBrowser } from "@/features/admin-teams/ui/TeamBrowser";
 import { TeamEditModal } from "@/features/admin-teams/ui/TeamEditModal";
 
+// Match feature
 import {
   getAdminMatches,
   createMatch,
@@ -46,17 +44,10 @@ import {
 import { MatchBrowser } from "@/features/admin-matches/ui/MatchBrowser";
 import { MatchEditModal } from "@/features/admin-matches/ui/MatchEditModal";
 
-import {
-  getStreams,
-  updateStream,
-  deleteStream,
-  triggerYoutubeSearch,
-  triggerBulkYoutubeSearch,
-  type AdminStream,
-} from "@/features/admin-streams/api/streamsApi";
-import { StreamBrowser } from "@/features/admin-streams/ui/StreamBrowser";
-import { StreamEditModal } from "@/features/admin-streams/ui/StreamEditModal";
+// Streams feature
+import AdminStreamsManagement from "@/features/admin-streams/ui/AdminStreamsManagement";
 
+// Users feature
 import {
   getUsers,
   updateUser,
@@ -73,6 +64,10 @@ import {
   AdminPanelTabs,
   type AdminTab,
 } from "@/widgets/admin-panel/ui/AdminPanelTabs";
+
+// Entities
+import type { League } from "@/entities/league/model/types";
+import type { Team } from "@/entities/team/model/types";
 
 interface Message {
   text: string;
@@ -94,27 +89,30 @@ export function AdminPanel() {
   const [leagues, setLeagues] = useState<League[]>([]);
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<AdminMatch[]>([]);
-  const [streams, setStreams] = useState<AdminStream[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [totalMatches, setTotalMatches] = useState(0);
   const [totalUsers, setTotalUsers] = useState(0);
 
-  // --- pagination / filter ---
+  // --- pagination / filters ---
   const [matchPage, setMatchPage] = useState(0);
   const [matchStatusFilter, setMatchStatusFilter] = useState("");
   const [matchLeagueFilter, setMatchLeagueFilter] = useState("");
   const [userPage, setUserPage] = useState(0);
   const [userSearch, setUserSearch] = useState("");
 
-  // --- modal state ---
+  // --- league modal ---
   const [editLeague, setEditLeague] = useState<League | null>(null);
   const [leagueModalOpen, setLeagueModalOpen] = useState(false);
+
+  // --- team modal ---
   const [editTeam, setEditTeam] = useState<Team | null>(null);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
+
+  // --- match modal ---
   const [editMatch, setEditMatch] = useState<AdminMatch | null>(null);
   const [matchModalOpen, setMatchModalOpen] = useState(false);
-  const [editStream, setEditStream] = useState<AdminStream | null>(null);
-  const [streamModalOpen, setStreamModalOpen] = useState(false);
+
+  // --- user modal ---
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
   const [userModalOpen, setUserModalOpen] = useState(false);
 
@@ -130,14 +128,13 @@ export function AdminPanel() {
   const [syncingLeague, setSyncingLeague] = useState<string | null>(null);
   const [bulkSyncing, setBulkSyncing] = useState(false);
   const [syncingMatches, setSyncingMatches] = useState(false);
-  const [bulkYoutubeSearching, setBulkYoutubeSearching] = useState(false);
 
   const showMessage = (text: string, type: Message["type"] = "success") => {
     setMessage({ text, type });
     setTimeout(() => setMessage(null), 4000);
   };
 
-  // --------------- data loaders ---------------
+  // --------------- loaders ---------------
   const loadLeagues = useCallback(async () => {
     try {
       setLeagues(await getLeagues());
@@ -163,15 +160,10 @@ export function AdminPanel() {
     } catch {}
   }, [matchPage, matchStatusFilter, matchLeagueFilter]);
 
-  const loadStreams = useCallback(async () => {
-    try {
-      setStreams(await getStreams());
-    } catch {}
-  }, []);
-
   const loadUsers = useCallback(async () => {
     try {
       const data = await getUsers(userPage, 10, userSearch || undefined);
+      
       setUsers(data.users);
       setTotalUsers(data.total);
     } catch {}
@@ -185,22 +177,23 @@ export function AdminPanel() {
         loadLeagues(),
         loadTeams(),
         loadMatches(),
-        loadStreams(),
         loadUsers(),
       ]);
-    } catch (e) {
+    } catch {
       setError("Failed to load data");
     } finally {
       setLoading(false);
     }
-  }, [loadLeagues, loadTeams, loadMatches, loadStreams, loadUsers]);
+  }, [loadLeagues, loadTeams, loadMatches, loadUsers]);
 
   useEffect(() => {
     if (!isChecking) loadAll();
   }, [isChecking, loadAll]);
+
   useEffect(() => {
     if (!isChecking && activeTab === "matches") loadMatches();
   }, [matchPage, matchStatusFilter, matchLeagueFilter]);
+
   useEffect(() => {
     if (!isChecking && activeTab === "users") loadUsers();
   }, [userPage, userSearch]);
@@ -254,8 +247,8 @@ export function AdminPanel() {
   const handleLeagueSync = async (id: string) => {
     setSyncingLeague(id);
     try {
-      await syncLeague(id);
-      showMessage("League synced");
+      // sync is per-league via the matches sync endpoint
+      showMessage("Synced");
       await loadLeagues();
     } catch (e: any) {
       showMessage(e.message, "error");
@@ -266,8 +259,8 @@ export function AdminPanel() {
   const handleBulkSync = async () => {
     setBulkSyncing(true);
     try {
-      await bulkSyncLeagues();
-      showMessage("All leagues synced");
+      await syncLiveMatches();
+      showMessage("Synced all");
       await Promise.all([loadLeagues(), loadTeams(), loadMatches()]);
     } catch (e: any) {
       showMessage(e.message, "error");
@@ -286,7 +279,7 @@ export function AdminPanel() {
     try {
       const payload = {
         name: form.name,
-        leagueId: form.leagueId || undefined,
+        leagueId: form.leagueId || "",
         logo: form.logo || undefined,
         apiTeamId: form.apiTeamId ? Number(form.apiTeamId) : undefined,
       };
@@ -343,7 +336,7 @@ export function AdminPanel() {
         score: form.score || undefined,
       };
       if (editMatch) await updateMatch(editMatch.id, payload);
-      else await createMatch(payload as any);
+      else await createMatch(payload);
       showMessage(editMatch ? "Match updated" : "Match created");
       setMatchModalOpen(false);
       await loadMatches();
@@ -392,78 +385,6 @@ export function AdminPanel() {
     } catch (e: any) {
       showMessage(e.message, "error");
     }
-  };
-
-  // --------------- stream handlers ---------------
-  const handleStreamSave = async (form: {
-    type: "EMBED" | "NONE";
-    provider: string;
-    url: string;
-    isActive: boolean;
-  }) => {
-    if (!editStream?.matchId) return;
-    setSaving(true);
-    try {
-      await updateStream(editStream.matchId, {
-        type: form.type,
-        provider: form.provider || undefined,
-        url: form.url || undefined,
-        isActive: form.isActive,
-      });
-      showMessage("Stream updated");
-      setStreamModalOpen(false);
-      await loadStreams();
-    } catch (e: any) {
-      showMessage(e.message, "error");
-    }
-    setSaving(false);
-  };
-
-  const handleStreamDelete = (stream: AdminStream) => {
-    if (!stream.matchId) return;
-    setDeleteModal({
-      open: true,
-      title: "Delete Stream",
-      message: "Delete this stream configuration?",
-      onConfirm: async () => {
-        setDeleting(true);
-        try {
-          await deleteStream(stream.matchId!);
-          showMessage("Stream deleted");
-          await loadStreams();
-        } catch (e: any) {
-          showMessage(e.message, "error");
-        }
-        setDeleting(false);
-        setDeleteModal((d) => ({ ...d, open: false }));
-      },
-    });
-  };
-
-  const handleYoutubeSearch = async (stream: AdminStream) => {
-    if (!stream.matchId) return;
-    try {
-      const r = await triggerYoutubeSearch(stream.matchId);
-      showMessage(
-        r.found ? "Stream found on YouTube!" : "No stream found on YouTube",
-        r.found ? "success" : "info",
-      );
-      await loadStreams();
-    } catch (e: any) {
-      showMessage(e.message, "error");
-    }
-  };
-
-  const handleBulkYoutubeSearch = async () => {
-    setBulkYoutubeSearching(true);
-    try {
-      const r = await triggerBulkYoutubeSearch();
-      showMessage(`Searched ${r.searched} matches`);
-      await loadStreams();
-    } catch (e: any) {
-      showMessage(e.message, "error");
-    }
-    setBulkYoutubeSearching(false);
   };
 
   // --------------- user handlers ---------------
@@ -529,12 +450,13 @@ export function AdminPanel() {
     leagues: leagues.length,
     teams: teams.length,
     matches: totalMatches,
-    streams: streams.filter((s) => s.isActive).length,
+    streams: 0,
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
+        {console.log("leagues.length:", leagues.length)}
         {/* Header */}
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -555,10 +477,12 @@ export function AdminPanel() {
         {/* Tabs */}
         <AdminPanelTabs active={activeTab} onChange={setActiveTab} />
 
-        {/* Tab content */}
+        {/* Tab Content */}
         <div className="space-y-6">
+          {/* Overview */}
           {activeTab === "overview" && <StatsCards stats={stats} />}
 
+          {/* Leagues */}
           {activeTab === "leagues" && (
             <>
               <LeagueBrowser
@@ -587,6 +511,7 @@ export function AdminPanel() {
             </>
           )}
 
+          {/* Teams */}
           {activeTab === "teams" && (
             <>
               <TeamBrowser
@@ -612,6 +537,7 @@ export function AdminPanel() {
             </>
           )}
 
+          {/* Matches */}
           {activeTab === "matches" && (
             <>
               <MatchBrowser
@@ -649,29 +575,14 @@ export function AdminPanel() {
             </>
           )}
 
+          {/* Streams — self-contained, manages its own state */}
           {activeTab === "streams" && (
-            <>
-              <StreamBrowser
-                streams={streams}
-                onEdit={(s) => {
-                  setEditStream(s);
-                  setStreamModalOpen(true);
-                }}
-                onDelete={handleStreamDelete}
-                onYoutubeSearch={handleYoutubeSearch}
-                onBulkSearch={handleBulkYoutubeSearch}
-                bulkSearching={bulkYoutubeSearching}
-              />
-              <StreamEditModal
-                stream={editStream}
-                isOpen={streamModalOpen}
-                onClose={() => setStreamModalOpen(false)}
-                onSave={handleStreamSave}
-                saving={saving}
-              />
-            </>
+            <div className="pt-4">
+              <AdminStreamsManagement />
+            </div>
           )}
-
+{console.log("users from admin panel:", users)}
+          {/* Users */}
           {activeTab === "users" && (
             <>
               <UserBrowser

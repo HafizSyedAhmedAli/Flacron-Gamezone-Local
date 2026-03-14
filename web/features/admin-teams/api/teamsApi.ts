@@ -1,11 +1,14 @@
 import { apiGet, apiPost, apiPut, apiDelete } from "@/shared/api/base";
 import type { Team } from "@/entities/team/model/types";
 
-export const getTeams = () => apiGet<Team[]>("/api/teams");
+export const getTeams = () =>
+  apiGet<{ teams: Team[] } | Team[]>("/api/admin/teams").then((r) =>
+    Array.isArray(r) ? r : ((r as any).teams ?? []),
+  );
 
 export const createTeam = (data: {
   name: string;
-  leagueId?: string;
+  leagueId: string;
   logo?: string;
   apiTeamId?: number;
 }) => apiPost<Team>("/api/admin/teams", data);

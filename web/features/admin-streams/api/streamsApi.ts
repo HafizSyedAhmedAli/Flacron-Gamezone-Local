@@ -1,49 +1,36 @@
-import { apiGet, apiPut, apiPost, apiDelete } from "@/shared/api/base";
+import { apiGet, apiPost } from "@/shared/api/base";
 
-export interface AdminStream {
-  id?: string;
-  matchId?: string;
-  type: "EMBED" | "NONE";
-  provider: string | null;
-  url: string | null;
-  isActive: boolean;
-  youtubeVideoId?: string | null;
-  streamTitle?: string | null;
-  match?: {
+export interface StreamMatch {
+  id: string;
+  homeTeam: { id?: string; name: string; logo?: string | null };
+  awayTeam: { id?: string; name: string; logo?: string | null };
+  kickoffTime: string;
+  status: string;
+  league?: { id?: string; name?: string };
+  stream?: {
     id: string;
-    homeTeam: { name: string };
-    awayTeam: { name: string };
-    kickoffTime: string;
-    status: string;
-  };
+    matchId: string;
+    type: "EMBED";
+    provider: string | null;
+    url: string | null;
+    isActive: boolean;
+  } | null;
 }
 
-export const getStreams = () => apiGet<AdminStream[]>("/api/admin/streams");
+// Streams has no GET endpoint — load matches from /api/admin/matches instead
+export const getMatchesForStreams = () => apiGet<any>("/api/admin/matches");
 
-export const getStreamByMatchId = (matchId: string) =>
-  apiGet<AdminStream | null>(`/api/admin/streams/${matchId}`);
+export const upsertStream = (data: {
+  matchId: string;
+  type: "EMBED" | "NONE";
+  provider?: string | null;
+  url?: string | null;
+  youtubeVideoId?: string | null;
+  isActive?: boolean;
+}) => apiPost("/api/admin/streams", data);
 
-export const updateStream = (
-  matchId: string,
-  data: {
-    type?: string;
-    provider?: string;
-    url?: string;
-    isActive?: boolean;
-  },
-) => apiPut<AdminStream>(`/api/admin/streams/${matchId}`, data);
-
-export const deleteStream = (matchId: string) =>
-  apiDelete(`/api/admin/streams/${matchId}`);
-
-export const triggerYoutubeSearch = (matchId: string) =>
-  apiPost<{ found: boolean; stream: AdminStream | null }>(
-    `/api/admin/streams/${matchId}/youtube-search`,
-    {},
-  );
-
-export const triggerBulkYoutubeSearch = () =>
-  apiPost<{ message: string; searched: number }>(
-    "/api/admin/streams/bulk-youtube-search",
+export const findStreamForMatch = (matchId: string) =>
+  apiPost<{ found: boolean; stream: any }>(
+    `/api/admin/streams/${matchId}/find`,
     {},
   );

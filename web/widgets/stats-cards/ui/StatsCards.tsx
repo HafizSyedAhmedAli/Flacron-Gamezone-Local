@@ -85,7 +85,7 @@ export function StatsCards({ stats }: StatsCardsProps) {
               </div>
             </div>
             <div className="text-3xl font-bold text-white mb-1">
-              {stats[key].toLocaleString()}
+              {Number(stats[key]).toLocaleString()}
             </div>
             <div className={`text-sm font-medium ${c.text}`}>{label}</div>
           </div>

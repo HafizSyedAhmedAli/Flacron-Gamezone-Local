@@ -1,5 +1,4 @@
 import { apiGet, apiPost, apiPut, apiDelete } from "@/shared/api/base";
-import type { Match } from "@/entities/match/model/types";
 
 export interface AdminMatch {
   id: string;
@@ -51,6 +50,8 @@ export const createMatch = (data: {
   leagueId?: string;
   kickoffTime: string;
   venue?: string;
+  status?: string;
+  score?: string;
 }) => apiPost<AdminMatch>("/api/admin/matches", data);
 
 export const updateMatch = (
@@ -61,6 +62,8 @@ export const updateMatch = (
     status?: string;
     score?: string;
     leagueId?: string;
+    homeTeamId?: string;
+    awayTeamId?: string;
   },
 ) => apiPut<AdminMatch>(`/api/admin/matches/${id}`, data);
 
@@ -68,7 +71,10 @@ export const deleteMatch = (id: string) =>
   apiDelete(`/api/admin/matches/${id}`);
 
 export const syncLiveMatches = () =>
-  apiPost<{ message: string }>("/api/admin/matches/sync-live", {});
+  apiPost<{ message: string }>("/api/admin/matches/sync", {});
 
-export const generateMatchAISummary = (id: string) =>
-  apiPost(`/api/ai/match-summary`, { matchId: id });
+export const generateMatchAIPreview = (matchId: string, language = "en") =>
+  apiPost(`/api/admin/ai/preview`, { matchId, language });
+
+export const generateMatchAISummary = (matchId: string, language = "en") =>
+  apiPost(`/api/admin/ai/summary`, { matchId, language });
