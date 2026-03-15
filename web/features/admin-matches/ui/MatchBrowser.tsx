@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import type { AdminMatch } from "../api/matchesApi";
 import type { League } from "@/entities/league/model/types";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 interface MatchBrowserProps {
   matches: AdminMatch[];
@@ -29,6 +30,8 @@ interface MatchBrowserProps {
   leagueFilter: string;
   onStatusFilterChange: (v: string) => void;
   onLeagueFilterChange: (v: string) => void;
+  totalItems: number;
+  itemsPerPage: number;
 }
 
 export function MatchBrowser({
@@ -47,6 +50,8 @@ export function MatchBrowser({
   leagueFilter,
   onStatusFilterChange,
   onLeagueFilterChange,
+  totalItems,
+  itemsPerPage,
 }: MatchBrowserProps) {
   const [search, setSearch] = useState("");
 
@@ -207,25 +212,13 @@ export function MatchBrowser({
         </table>
       </div>
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 0}
-            className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm disabled:opacity-40"
-          >
-            ←
-          </button>
-          <span className="text-sm text-slate-400">
-            {currentPage + 1} / {totalPages}
-          </span>
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages - 1}
-            className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm disabled:opacity-40"
-          >
-            →
-          </button>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+        />
       )}
     </div>
   );

@@ -1,8 +1,51 @@
 import { prisma } from "../lib/prisma.js";
 
 export const streamRepository = {
+  findActiveStreams() {
+    return prisma.stream.findMany({
+      where: { isActive: true, type: "EMBED" },
+      include: {
+        match: {
+          include: { homeTeam: true, awayTeam: true },
+        },
+      },
+      orderBy: { lastCheckedAt: "desc" },
+    });
+  },
+
+  /** Returns all streams with their associated match for the admin panel. */
+  findAllWithMatch() {
+    return prisma.stream.findMany({
+      include: {
+        match: {
+          select: {
+            id: true,
+            kickoffTime: true,
+            status: true,
+            homeTeam: { select: { name: true } },
+            awayTeam: { select: { name: true } },
+          },
+        },
+      },
+      orderBy: { lastCheckedAt: "desc" },
+    });
+  },
+
   findByMatchId(matchId: string) {
-    return prisma.stream.findUnique({ where: { matchId } });
+    return prisma.stream.findUnique({
+      where: { matchId },
+      include: {
+        match: {
+          select: {
+            id: true,
+            kickoffTime: true,
+            status: true,
+            homeTeam: { select: { name: true } },
+            awayTeam: { select: { name: true } },
+          },
+        },
+      },
+    });
   },
 
   upsert(
@@ -15,68 +58,42 @@ export const streamRepository = {
       youtubeVideoId?: string | null;
       streamTitle?: string | null;
     },
-    update?: Partial<typeof create & { lastCheckedAt: Date }>,
+    update: {
+      type?: "EMBED" | "NONE";
+      provider?: string | null;
+      url?: string | null;
+      isActive?: boolean;
+      youtubeVideoId?: string | null;
+      streamTitle?: string | null;
+      lastCheckedAt?: Date;
+    },
   ) {
     return prisma.stream.upsert({
       where: { matchId },
       create: { matchId, ...create },
-      update: update ?? { ...create, lastCheckedAt: new Date() },
+      update,
     });
   },
 
-  saveYoutubeStream(matchId: string, videoId: string, title: string) {
-    const url = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
-    return prisma.stream.upsert({
-      where: { matchId },
-      update: {
-        url,
-        provider: "youtube",
-        type: "EMBED",
-        isActive: true,
-        youtubeVideoId: videoId,
-        streamTitle: title,
-        lastCheckedAt: new Date(),
-      },
-      create: {
-        matchId,
-        url,
-        provider: "youtube",
-        type: "EMBED",
-        isActive: true,
-        youtubeVideoId: videoId,
-        streamTitle: title,
-        lastCheckedAt: new Date(),
-      },
-    });
+  deleteByMatchId(matchId: string) {
+    return prisma.stream.delete({ where: { matchId } });
   },
 
-  markNoStream(matchId: string) {
-    return prisma.stream.upsert({
-      where: { matchId },
-      update: { isActive: false, lastCheckedAt: new Date() },
-      create: {
-        matchId,
-        type: "NONE",
-        isActive: false,
-        lastCheckedAt: new Date(),
-      },
-    });
-  },
-
-  findActiveStreams() {
+  findLiveEligibleForStream(cooldownCutoff: Date) {
     return prisma.match.findMany({
       where: {
-        status: { in: ["LIVE", "UPCOMING"] },
-        stream: { is: { type: "EMBED" } },
+        status: "LIVE",
+        OR: [
+          { stream: null },
+          {
+            stream: {
+              isActive: false,
+              lastCheckedAt: { lt: cooldownCutoff },
+            },
+          },
+        ],
       },
-      include: {
-        league: true,
-        homeTeam: true,
-        awayTeam: true,
-        stream: true,
-      },
-      orderBy: [{ status: "asc" }, { kickoffTime: "asc" }],
-      take: 200,
+      select: { id: true },
     });
   },
 };

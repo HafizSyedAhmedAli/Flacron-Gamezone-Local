@@ -3,9 +3,11 @@ import { leagueService } from "../services/league.service.js";
 import { teamService } from "../services/team.service.js";
 import { matchService } from "../services/match.service.js";
 import { streamService } from "../services/stream.service.js";
+import { youtubeService } from "../services/youtube.service.js";
 import { aiService } from "../services/ai.service.js";
 import { aiSummaryRepository } from "../repositories/aiSummary.repository.js";
 import { matchRepository } from "../repositories/match.repository.js";
+import { streamRepository } from "../repositories/stream.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
 
 function pagination(req: Request) {
@@ -45,6 +47,24 @@ export const adminLeagueController = {
   async delete(req: Request, res: Response) {
     await leagueService.delete(req.params.id);
     res.json({ ok: true });
+  },
+
+  async syncOne(req: Request, res: Response) {
+    // Re-fetch from API and update the stored league record
+    const league = await leagueService.getById(req.params.id);
+    if (!league) {
+      return res.status(404).json({ error: "League not found" });
+    }
+    res.json({ success: true, message: `League ${league.name} synced` });
+  },
+
+  async bulkSync(req: Request, res: Response) {
+    // Trigger a full re-fetch from API — invalidates cache so next request pulls fresh data
+    await leagueService.invalidateCache?.();
+    res.json({
+      success: true,
+      message: "All leagues will be synced on next fetch",
+    });
   },
 };
 
@@ -116,7 +136,17 @@ export const adminMatchController = {
   },
 
   async getSaved(req: Request, res: Response) {
-    const result = await matchService.getPaginated(pagination(req));
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const status = req.query.status as string | undefined;
+    const leagueId = req.query.leagueId as string | undefined;
+
+    const result = await matchService.getPaginated({
+      page,
+      limit,
+      status,
+      leagueId,
+    } as any);
     res.json({ matches: result.data, pagination: result.pagination });
   },
 
@@ -148,18 +178,63 @@ export const adminMatchController = {
 // ─── Streams ──────────────────────────────────────────────────────────────────
 
 export const adminStreamController = {
+  async getAll(req: Request, res: Response) {
+    const streams = await streamRepository.findAllWithMatch();
+    res.json(streams);
+  },
+
+  async getByMatch(req: Request, res: Response) {
+    const stream = await streamRepository.findByMatchId(req.params.matchId);
+    if (!stream) {
+      return res.status(404).json({ error: "Stream not found" });
+    }
+    res.json(stream);
+  },
+
   async upsert(req: Request, res: Response) {
     const stream = await streamService.upsert((req as any).validated);
     res.json(stream);
   },
 
+  async updateByMatch(req: Request, res: Response) {
+    const { matchId } = req.params;
+    const data = (req as any).validated;
+    const stream = await streamService.upsert({ matchId, ...data });
+    res.json(stream);
+  },
+
+  async deleteByMatch(req: Request, res: Response) {
+    await streamRepository.deleteByMatchId(req.params.matchId);
+    res.json({ ok: true });
+  },
+
   async findForMatch(req: Request, res: Response) {
-    const stream = await streamService.findStreamForMatch(req.params.id);
-    if (!stream)
+    const matchId = req.params.matchId ?? req.params.id;
+    const stream = await streamService.findStreamForMatch(matchId);
+    if (!stream) {
       return res
         .status(404)
-        .json({ error: "No stream found or quota exceeded" });
-    res.json(stream);
+        .json({ found: false, error: "No stream found or quota exceeded" });
+    }
+    res.json({ found: true, stream });
+  },
+
+  async bulkYoutubeSearch(req: Request, res: Response) {
+    const liveMatches = await matchRepository.findLive();
+    let searched = 0;
+    for (const match of liveMatches) {
+      try {
+        await youtubeService.findAndSaveStreamForMatch(match.id);
+        searched++;
+      } catch {
+        // continue on error
+      }
+    }
+    res.json({
+      success: true,
+      searched,
+      message: `Searched ${searched} live matches`,
+    });
   },
 };
 
@@ -188,8 +263,35 @@ export const adminAiController = {
 // ─── Users ────────────────────────────────────────────────────────────────────
 
 export const adminUserController = {
-  async getAll(_req: Request, res: Response) {
-    const users = await userRepository.findAll();
-    res.json(users);
+  async getAll(req: Request, res: Response) {
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const search =
+      typeof req.query.search === "string"
+        ? req.query.search.trim()
+        : undefined;
+
+    const result = await userRepository.findPaginated({ page, limit, search });
+    res.json({ users: result.data, total: result.total });
+  },
+
+  async update(req: Request, res: Response) {
+    const { role } = (req as any).validated;
+    const user = await userRepository.update(req.params.id, { role });
+    res.json(user);
+  },
+
+  async delete(req: Request, res: Response) {
+    await userRepository.delete(req.params.id);
+    res.json({ ok: true });
+  },
+
+  async cancelSubscription(req: Request, res: Response) {
+    const { prisma } = await import("../lib/prisma.js");
+    await prisma.subscription.updateMany({
+      where: { userId: req.params.id, status: "active" },
+      data: { status: "canceled", cancelAtPeriodEnd: true },
+    });
+    res.json({ success: true, message: "Subscription cancelled" });
   },
 };

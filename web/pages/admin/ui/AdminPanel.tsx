@@ -68,6 +68,7 @@ import {
 // Entities
 import type { League } from "@/entities/league/model/types";
 import type { Team } from "@/entities/team/model/types";
+import { getStreams } from "@/features/admin-streams";
 
 interface Message {
   text: string;
@@ -90,8 +91,9 @@ export function AdminPanel() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [matches, setMatches] = useState<AdminMatch[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
-  const [totalMatches, setTotalMatches] = useState(0);
-  const [totalUsers, setTotalUsers] = useState(0);
+  const [totalStreams, setTotalStreams] = useState<number>(0);
+  const [totalMatches, setTotalMatches] = useState<number>(0);
+  const [totalUsers, setTotalUsers] = useState<number>(0);
 
   // --- pagination / filters ---
   const [matchPage, setMatchPage] = useState(0);
@@ -163,7 +165,7 @@ export function AdminPanel() {
   const loadUsers = useCallback(async () => {
     try {
       const data = await getUsers(userPage, 10, userSearch || undefined);
-      
+
       setUsers(data.users);
       setTotalUsers(data.total);
     } catch {}
@@ -442,6 +444,19 @@ export function AdminPanel() {
     });
   };
 
+  const fetchStreams = async () => {
+    try {
+      const data = await getStreams();
+      setTotalStreams(data.length);
+    } catch (e: any) {
+      showMessage(e.message, "error");
+    }
+  };
+
+  useEffect(() => {
+    fetchStreams();
+  }, []);
+
   if (isChecking || loading)
     return <LoadingState message="Loading admin panel…" />;
   if (error) return <ErrorState error={error} onRetry={loadAll} />;
@@ -450,13 +465,12 @@ export function AdminPanel() {
     leagues: leagues.length,
     teams: teams.length,
     matches: totalMatches,
-    streams: 0,
+    streams: totalStreams,
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
-        {console.log("leagues.length:", leagues.length)}
         {/* Header */}
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/30">
@@ -557,6 +571,8 @@ export function AdminPanel() {
                 syncing={syncingMatches}
                 currentPage={matchPage}
                 totalPages={Math.ceil(totalMatches / 10)}
+                totalItems={totalMatches}
+                itemsPerPage={10}
                 onPageChange={setMatchPage}
                 statusFilter={matchStatusFilter}
                 leagueFilter={matchLeagueFilter}
@@ -581,7 +597,6 @@ export function AdminPanel() {
               <AdminStreamsManagement />
             </div>
           )}
-{console.log("users from admin panel:", users)}
           {/* Users */}
           {activeTab === "users" && (
             <>
@@ -595,6 +610,8 @@ export function AdminPanel() {
                 onCancelSubscription={handleCancelSubscription}
                 currentPage={userPage}
                 totalPages={Math.ceil(totalUsers / 10)}
+                totalItems={totalUsers}
+                itemsPerPage={10}
                 onPageChange={setUserPage}
                 searchQuery={userSearch}
                 onSearchChange={setUserSearch}

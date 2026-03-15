@@ -1,230 +1,329 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { cn } from "@/shared/lib/utils";
+import { getToken } from "@/shared/api/base";
+import { isAdmin, logout as authLogout } from "@/features/auth/model/auth";
+import { SearchOverlay } from "@/features/search/ui/SearchOverlay";
+import { Button } from "@/shared/ui/button";
 import {
-  Search,
+  LogOut,
   Menu,
   X,
-  Home,
   Trophy,
-  Users,
-  Play,
-  LogOut,
-  Settings,
-  Crown,
-  User,
   Zap,
-  ChevronDown,
+  Play,
+  Users,
+  Shield,
+  Globe,
+  Mail,
+  Heart,
+  Github,
+  Twitter,
+  Facebook,
+  Search,
+  Tag,
+  LayoutDashboard,
 } from "lucide-react";
-import { SearchOverlay } from "@/features/search/ui/SearchOverlay";
-import { getToken, clearToken } from "@/shared/api/base";
-import { getUser, clearUser } from "@/features/auth/model/auth";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
-interface NavItem {
-  href: string;
-  label: string;
-  icon: React.ElementType;
-  exact?: boolean;
+interface ShellProps {
+  children: React.ReactNode;
+  className?: string;
 }
 
-const navItems: NavItem[] = [
-  { href: "/", label: "Home", icon: Home, exact: true },
-  { href: "/leagues", label: "Leagues", icon: Trophy },
-  { href: "/teams", label: "Teams", icon: Users },
-  { href: "/streams", label: "Live Streams", icon: Play },
-];
+function NavLink({
+  href,
+  children,
+  active,
+  icon,
+}: {
+  href: string;
+  children: React.ReactNode;
+  active?: boolean;
+  icon?: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center gap-2 px-4 py-2 text-sm font-medium transition-all rounded-xl",
+        active
+          ? "text-blue-400 bg-blue-500/10 shadow-lg shadow-blue-500/10"
+          : "text-slate-300 hover:text-white hover:bg-slate-800/50",
+      )}
+    >
+      {icon}
+      {children}
+    </Link>
+  );
+}
 
-export function Shell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
+function MobileNavLink({
+  href,
+  children,
+  onClick,
+  icon,
+  active,
+}: {
+  href: string;
+  children: React.ReactNode;
+  onClick?: () => void;
+  icon?: React.ReactNode;
+  active?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all rounded-xl",
+        active
+          ? "text-blue-400 bg-blue-500/10"
+          : "text-slate-300 hover:text-white hover:bg-slate-800/50",
+      )}
+    >
+      {icon}
+      {children}
+    </Link>
+  );
+}
+
+function FooterLink({
+  href,
+  children,
+}: {
+  href: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li>
+      <Link
+        href={href}
+        className="text-slate-400 hover:text-blue-400 transition-colors inline-block"
+      >
+        {children}
+      </Link>
+    </li>
+  );
+}
+
+export function Shell({ children, className }: ShellProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const [isScrolled, setIsScrolled] = useState(false);
-  const [user, setUser] = useState<ReturnType<typeof getUser>>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userIsAdmin, setUserIsAdmin] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    setUser(getUser());
-  }, [pathname]);
-
-  useEffect(() => {
-    const onScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
-        e.preventDefault();
-        setSearchOpen(true);
-      }
+    const refreshAuth = () => {
+      const token = getToken();
+      setIsAuthenticated(!!token);
+      setUserIsAdmin(isAdmin());
     };
-    const onOpenSearch = () => setSearchOpen(true);
-    window.addEventListener("keydown", onKey);
-    window.addEventListener("fgz:open-search", onOpenSearch);
-
+    refreshAuth();
+    const onFocus = () => refreshAuth();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") refreshAuth();
+    };
+    const onStorage = (e: StorageEvent) => {
+      if (!e.key || e.key === "fgz_user" || e.key === "fgz_token")
+        refreshAuth();
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("storage", onStorage);
     return () => {
-      window.removeEventListener("keydown", onKey);
-      window.removeEventListener("fgz:open-search", onOpenSearch);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("storage", onStorage);
     };
   }, []);
 
-  const isActive = (item: NavItem) =>
-    item.exact ? pathname === item.href : pathname.startsWith(item.href);
+  useEffect(() => {
+    const fn = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", fn);
+    return () => window.removeEventListener("scroll", fn);
+  }, []);
+
+  useEffect(() => {
+    const fn = () => setSearchOpen(true);
+    window.addEventListener("fgz:open-search", fn as EventListener);
+    return () =>
+      window.removeEventListener("fgz:open-search", fn as EventListener);
+  }, []);
 
   const handleLogout = () => {
-    clearToken();
-    clearUser();
-    window.location.href = "/";
+    authLogout();
+    setIsAuthenticated(false);
+    setUserIsAdmin(false);
   };
 
-  const token = typeof window !== "undefined" ? getToken() : null;
-
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <div
+      className={cn(
+        "min-h-screen flex flex-col bg-background text-foreground",
+        className,
+      )}
+    >
+      <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
+
+      {/* ── Header ── */}
       <header
-        className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? "bg-slate-950/95 backdrop-blur-xl border-b border-slate-700/60 shadow-2xl shadow-black/20" : "bg-slate-950/80 backdrop-blur-md border-b border-slate-800/50"}`}
+        className={cn(
+          "sticky top-0 z-50 transition-all duration-300",
+          scrolled
+            ? "bg-slate-900/95 backdrop-blur-xl border-b border-slate-700/50 shadow-lg shadow-black/10"
+            : "bg-slate-900/80 backdrop-blur-md border-b border-slate-800/50",
+        )}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center h-16 gap-4">
-            <Link
-              href="/"
-              className="flex items-center gap-2.5 group flex-shrink-0"
-            >
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            {/* Logo */}
+            <Link href="/" className="flex items-center gap-3 group">
               <div className="relative">
-                <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                  <Zap className="w-5 h-5 text-white" />
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
+                <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Trophy className="w-6 h-6 text-white" />
                 </div>
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-xl blur-md opacity-0 group-hover:opacity-40 transition-opacity duration-300" />
               </div>
-              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent group-hover:from-blue-200 group-hover:to-cyan-200 transition-all duration-300">
-                FootballZone
-              </span>
+              <div className="hidden sm:block">
+                <div className="font-black text-xl leading-none">
+                  <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                    Flacron
+                  </span>
+                  <br />
+                  <span className="text-sm bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                    GameZone
+                  </span>
+                </div>
+              </div>
             </Link>
-            <nav
-              className="hidden md:flex items-center gap-1 flex-1"
-              aria-label="Main navigation"
-            >
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${active ? "bg-blue-500/15 text-blue-300 border border-blue-500/25" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/70"}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
+
+            {/* Desktop Nav */}
+            <nav className="hidden md:flex items-center gap-1">
+              <NavLink
+                href="/"
+                active={pathname === "/"}
+                icon={<Zap className="w-4 h-4" />}
+              >
+                Home
+              </NavLink>
+              <NavLink
+                href="/live"
+                active={pathname === "/live"}
+                icon={<Play className="w-4 h-4" />}
+              >
+                Live
+              </NavLink>
+              <NavLink
+                href="/matches"
+                active={pathname === "/matches"}
+                icon={<Trophy className="w-4 h-4" />}
+              >
+                Matches
+              </NavLink>
+              <NavLink
+                href="/leagues"
+                active={pathname === "/leagues"}
+                icon={<Shield className="w-4 h-4" />}
+              >
+                Leagues
+              </NavLink>
+              <NavLink
+                href="/teams"
+                active={pathname === "/teams"}
+                icon={<Users className="w-4 h-4" />}
+              >
+                Teams
+              </NavLink>
+              <NavLink
+                href="/pricing"
+                active={pathname === "/pricing"}
+                icon={<Tag className="w-4 h-4" />}
+              >
+                Pricing
+              </NavLink>
+              {isAuthenticated && (
+                <NavLink
+                  href={userIsAdmin ? "/admin" : "/dashboard"}
+                  active={pathname === "/dashboard" || pathname === "/admin"}
+                  icon={<LayoutDashboard className="w-4 h-4" />}
+                >
+                  {userIsAdmin ? "Admin" : "Dashboard"}
+                </NavLink>
+              )}
             </nav>
-            <div className="flex items-center gap-2 ml-auto">
+
+            {/* Right Side */}
+            <div className="flex items-center gap-2">
               <button
                 onClick={() => setSearchOpen(true)}
-                className="flex items-center gap-2.5 px-3 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600/80 rounded-xl text-slate-400 hover:text-slate-200 text-sm transition-all duration-200 group"
+                className="hidden md:flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 text-white shadow-md shadow-cyan-500/25 hover:shadow-cyan-500/40 hover:from-blue-500 hover:to-cyan-400 hover:scale-105 transition-all duration-200 mr-1"
               >
-                <Search className="w-4 h-4 group-hover:text-blue-400 transition-colors" />
-                <span className="hidden sm:inline text-xs">Search</span>
-                <kbd className="hidden lg:inline-flex items-center gap-1 px-1.5 py-0.5 bg-slate-900/80 border border-slate-700/50 rounded text-[10px] font-mono text-slate-500">
-                  ⌘K
-                </kbd>
+                <Search className="w-4 h-4" />
+                Search
               </button>
-              {token && user ? (
-                <div className="relative">
-                  <button
-                    onClick={() => setUserMenuOpen((v) => !v)}
-                    className="flex items-center gap-2 px-3 py-2 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 hover:border-slate-600 rounded-xl text-sm font-medium text-slate-300 hover:text-white transition-all duration-200"
-                  >
-                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-xs font-bold text-white">
-                      {user.email.charAt(0).toUpperCase()}
-                    </div>
-                    <span className="hidden sm:inline text-xs truncate max-w-24">
-                      {user.email.split("@")[0]}
-                    </span>
-                    <ChevronDown
-                      className={`w-3.5 h-3.5 transition-transform duration-200 ${userMenuOpen ? "rotate-180" : ""}`}
-                    />
-                  </button>
-                  {userMenuOpen && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setUserMenuOpen(false)}
-                      />
-                      <div className="absolute right-0 mt-2 w-52 bg-slate-900 border border-slate-700/50 rounded-2xl shadow-2xl z-50 overflow-hidden py-1">
-                        <div className="px-4 py-3 border-b border-slate-700/50">
-                          <p className="text-xs text-slate-500 mb-0.5">
-                            Signed in as
-                          </p>
-                          <p className="text-sm font-semibold text-slate-200 truncate">
-                            {user.email}
-                          </p>
-                          {user.role === "ADMIN" && (
-                            <span className="inline-flex items-center gap-1 mt-1 text-[10px] font-bold text-purple-400 bg-purple-500/10 px-2 py-0.5 rounded-full">
-                              <Crown className="w-2.5 h-2.5" />
-                              Admin
-                            </span>
-                          )}
-                        </div>
-                        <div className="py-1">
-                          <Link
-                            href="/profile"
-                            onClick={() => setUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
-                          >
-                            <User className="w-4 h-4 text-slate-500" />
-                            Profile
-                          </Link>
-                          {user.role === "ADMIN" && (
-                            <Link
-                              href="/admin"
-                              onClick={() => setUserMenuOpen(false)}
-                              className="flex items-center gap-3 px-4 py-2.5 text-sm text-slate-300 hover:text-white hover:bg-slate-800/60 transition-colors"
-                            >
-                              <Settings className="w-4 h-4 text-slate-500" />
-                              Admin Panel
-                            </Link>
-                          )}
-                        </div>
-                        <div className="border-t border-slate-700/50 py-1">
-                          <button
-                            onClick={handleLogout}
-                            className="flex items-center gap-3 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
-                          >
-                            <LogOut className="w-4 h-4" />
-                            Sign out
-                          </button>
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </div>
+              <button
+                onClick={() => setSearchOpen(true)}
+                className="md:hidden p-2 hover:bg-blue-500/10 rounded-lg transition-colors text-blue-400"
+                aria-label="Search"
+              >
+                <Search className="w-5 h-5" />
+              </button>
+              <Link
+                href="/contact"
+                aria-label="Contact us"
+                className="hidden sm:inline-flex"
+              >
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="hover:bg-slate-800/50 p-2 rounded-md"
+                >
+                  <Mail className="w-4 h-4" />
+                </Button>
+              </Link>
+              {isAuthenticated ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleLogout}
+                  className="hidden sm:inline-flex gap-2 hover:bg-red-500/10 hover:text-red-400 transition-colors"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
               ) : (
-                <div className="hidden sm:flex items-center gap-2">
-                  <Link
-                    href="/login"
-                    className="px-3.5 py-2 text-sm font-medium text-slate-400 hover:text-slate-200 transition-colors"
-                  >
-                    Log in
+                <>
+                  <Link href="/login">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="hidden sm:inline-flex hover:bg-blue-500/10 hover:text-blue-400 transition-colors"
+                    >
+                      Login
+                    </Button>
                   </Link>
-                  <Link
-                    href="/signup"
-                    className="px-3.5 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white text-sm font-semibold rounded-xl shadow-lg shadow-blue-500/20 transition-all duration-200 hover:scale-105"
-                  >
-                    Sign up
+                  <Link href="/signup">
+                    <Button
+                      size="sm"
+                      className="hidden sm:inline-flex bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-500 hover:to-cyan-500 text-white shadow-lg shadow-blue-500/20"
+                    >
+                      Sign Up
+                    </Button>
                   </Link>
-                </div>
+                </>
               )}
               <button
-                onClick={() => setMobileOpen((v) => !v)}
-                className="md:hidden p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 rounded-xl transition-all"
-                aria-label="Toggle menu"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 hover:bg-slate-800/50 rounded-lg transition-colors"
+                aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+                aria-expanded={mobileMenuOpen}
               >
-                {mobileOpen ? (
+                {mobileMenuOpen ? (
                   <X className="w-5 h-5" />
                 ) : (
                   <Menu className="w-5 h-5" />
@@ -232,77 +331,235 @@ export function Shell({ children }: { children: React.ReactNode }) {
               </button>
             </div>
           </div>
+
+          {/* Mobile Nav */}
+          {mobileMenuOpen && (
+            <div className="md:hidden mt-4 pb-4 border-t border-slate-700/50 pt-4 animate-in slide-in-from-top-4 duration-300">
+              <div className="flex flex-col gap-2">
+                <MobileNavLink
+                  href="/"
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<Zap className="w-4 h-4" />}
+                  active={pathname === "/"}
+                >
+                  Home
+                </MobileNavLink>
+                <MobileNavLink
+                  href="/live"
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<Play className="w-4 h-4" />}
+                  active={pathname === "/live"}
+                >
+                  Live
+                </MobileNavLink>
+                <MobileNavLink
+                  href="/matches"
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<Trophy className="w-4 h-4" />}
+                  active={pathname === "/matches"}
+                >
+                  Matches
+                </MobileNavLink>
+                <MobileNavLink
+                  href="/leagues"
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<Shield className="w-4 h-4" />}
+                  active={pathname === "/leagues"}
+                >
+                  Leagues
+                </MobileNavLink>
+                <MobileNavLink
+                  href="/teams"
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<Users className="w-4 h-4" />}
+                  active={pathname === "/teams"}
+                >
+                  Teams
+                </MobileNavLink>
+                <MobileNavLink
+                  href="/pricing"
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<Tag className="w-4 h-4" />}
+                  active={pathname === "/pricing"}
+                >
+                  Pricing
+                </MobileNavLink>
+                {isAuthenticated && (
+                  <MobileNavLink
+                    href={userIsAdmin ? "/admin" : "/dashboard"}
+                    onClick={() => setMobileMenuOpen(false)}
+                    icon={<LayoutDashboard className="w-4 h-4" />}
+                    active={pathname === "/dashboard" || pathname === "/admin"}
+                  >
+                    {userIsAdmin ? "Admin" : "Dashboard"}
+                  </MobileNavLink>
+                )}
+                <MobileNavLink
+                  href="/contact"
+                  onClick={() => setMobileMenuOpen(false)}
+                  icon={<Mail className="w-4 h-4" />}
+                  active={pathname === "/contact"}
+                >
+                  Contact
+                </MobileNavLink>
+                <div className="h-px bg-slate-700/50 my-2" />
+                {isAuthenticated ? (
+                  <button
+                    onClick={() => {
+                      handleLogout();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 text-sm text-red-400 hover:bg-red-500/10 rounded-xl transition-colors text-left"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </button>
+                ) : (
+                  <>
+                    <MobileNavLink
+                      href="/login"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Login
+                    </MobileNavLink>
+                    <MobileNavLink
+                      href="/signup"
+                      onClick={() => setMobileMenuOpen(false)}
+                    >
+                      Sign Up
+                    </MobileNavLink>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
         </div>
-        {mobileOpen && (
-          <div className="md:hidden border-t border-slate-700/50 bg-slate-950/95 backdrop-blur-xl">
-            <div className="px-4 py-3 space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${active ? "bg-blue-500/15 text-blue-300 border border-blue-500/25" : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"}`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {item.label}
-                  </Link>
-                );
-              })}
-              {!token && (
-                <div className="flex gap-2 pt-2 border-t border-slate-700/50">
-                  <Link
-                    href="/login"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex-1 px-4 py-2.5 text-center text-sm font-medium text-slate-400 hover:text-white bg-slate-800/50 rounded-xl transition-colors"
-                  >
-                    Log in
-                  </Link>
-                  <Link
-                    href="/signup"
-                    onClick={() => setMobileOpen(false)}
-                    className="flex-1 px-4 py-2.5 text-center text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-blue-500 rounded-xl"
-                  >
-                    Sign up
-                  </Link>
+      </header>
+
+      <main className="flex-1 container mx-auto px-4 py-8">{children}</main>
+
+      {/* ── Footer ── */}
+      <footer className="relative overflow-hidden bg-slate-900/50 border-t border-slate-800/50 mt-12">
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/10 via-transparent to-purple-900/10 pointer-events-none" />
+        <div className="relative container mx-auto px-4 py-12">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-8">
+            {/* Brand */}
+            <div>
+              <Link href="/" className="flex items-center gap-3 mb-4">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl blur-md opacity-50" />
+                  <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
+                    <Trophy className="w-6 h-6 text-white" />
+                  </div>
                 </div>
-              )}
+                <div className="font-black leading-none">
+                  <span className="text-white">Flacron</span>
+                  <br />
+                  <span className="text-sm bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+                    GameZone
+                  </span>
+                </div>
+              </Link>
+              <p className="text-sm text-slate-400 mb-4">
+                Your ultimate destination for live football matches and
+                comprehensive league coverage.
+              </p>
+              <div className="flex gap-2">
+                {[
+                  { href: "https://twitter.com", Icon: Twitter },
+                  { href: "https://facebook.com", Icon: Facebook },
+                  { href: "https://github.com", Icon: Github },
+                ].map(({ href, Icon }) => (
+                  <a
+                    key={href}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-8 h-8 bg-slate-800/50 hover:bg-blue-500/20 border border-slate-700/50 hover:border-blue-500/50 rounded-lg flex items-center justify-center transition-all group"
+                  >
+                    <Icon className="w-4 h-4 text-slate-400 group-hover:text-blue-400 transition-colors" />
+                  </a>
+                ))}
+              </div>
+            </div>
+
+            {/* Platform */}
+            <div>
+              <h3 className="font-semibold mb-4 text-sm text-white flex items-center gap-2">
+                <Play className="w-4 h-4 text-blue-400" /> Platform
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <FooterLink href="/live">Live Matches</FooterLink>
+                <FooterLink href="/matches">All Matches</FooterLink>
+                <FooterLink href="/leagues">Leagues</FooterLink>
+                <FooterLink href="/teams">Teams</FooterLink>
+                <li>
+                  <button
+                    onClick={() => setSearchOpen(true)}
+                    className="text-slate-400 hover:text-blue-400 transition-colors inline-flex items-center gap-1.5"
+                  >
+                    <Search className="w-3 h-3" /> Search
+                  </button>
+                </li>
+              </ul>
+            </div>
+
+            {/* Account */}
+            <div>
+              <h3 className="font-semibold mb-4 text-sm text-white flex items-center gap-2">
+                <Users className="w-4 h-4 text-cyan-400" /> Account
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <FooterLink href="/pricing">Pricing</FooterLink>
+                <FooterLink href="/login">Login</FooterLink>
+                <FooterLink href="/signup">Sign Up</FooterLink>
+                {isAuthenticated && (
+                  <FooterLink href={userIsAdmin ? "/admin" : "/dashboard"}>
+                    Dashboard
+                  </FooterLink>
+                )}
+              </ul>
+            </div>
+
+            {/* Legal & Support */}
+            <div>
+              <h3 className="font-semibold mb-4 text-sm text-white flex items-center gap-2">
+                <Shield className="w-4 h-4 text-purple-400" /> Legal & Support
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <FooterLink href="/privacy">Privacy Policy</FooterLink>
+                <FooterLink href="/terms">Terms of Service</FooterLink>
+                <FooterLink href="/refund-policy">Refund Policy</FooterLink>
+                <FooterLink href="/help">Help Center</FooterLink>
+                <FooterLink href="/billing-support">Billing Support</FooterLink>
+                <FooterLink href="/about">About</FooterLink>
+                <FooterLink href="/contact">Contact Us</FooterLink>
+                <li>
+                  <a
+                    href="mailto:support@flacrongamezone.com"
+                    className="text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-2"
+                  >
+                    <Mail className="w-3 h-3" /> Support Email
+                  </a>
+                </li>
+              </ul>
             </div>
           </div>
-        )}
-      </header>
-      <main className="flex-1">{children}</main>
-      <footer className="border-t border-slate-800/50 bg-slate-950/80 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-7 h-7 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg flex items-center justify-center">
-                <Zap className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-sm bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
-                FootballZone
-              </span>
-            </Link>
-            <div className="flex items-center gap-6 text-xs text-slate-500">
-              {["/leagues", "/teams", "/streams"].map((href) => (
-                <Link
-                  key={href}
-                  href={href}
-                  className="hover:text-slate-300 transition-colors capitalize"
-                >
-                  {href.slice(1)}
-                </Link>
-              ))}
-            </div>
-            <p className="text-xs text-slate-600">
-              © {new Date().getFullYear()} FootballZone
+
+          <div className="border-t border-slate-800/50 pt-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-slate-500">
+              &copy; {new Date().getFullYear()} Flacron GameZone. All rights
+              reserved.
             </p>
+            <div className="flex items-center gap-2 text-sm text-slate-500">
+              <span>Made with</span>
+              <Heart className="w-4 h-4 text-red-500 fill-red-500 animate-pulse" />
+              <span>for football fans worldwide</span>
+              <Globe className="w-4 h-4 text-blue-400" />
+            </div>
           </div>
         </div>
       </footer>
-      <SearchOverlay isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }

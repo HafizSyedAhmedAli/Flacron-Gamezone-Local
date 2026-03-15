@@ -16,14 +16,25 @@ import {
   AlertCircle,
   PlayCircle,
 } from "lucide-react";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 interface Stream {
   id: string;
   matchId: string;
-  type: "EMBED";
+  type: "EMBED" | "NONE";
   provider: string | null;
   url: string | null;
   isActive: boolean;
+}
+
+const ITEMS_PER_PAGE = 10;
+
+/** Unwrap the { matches, total } envelope returned by getMatchesForStreams. */
+function extractMatches(
+  resp: Awaited<ReturnType<typeof getMatchesForStreams>>,
+): StreamMatch[] {
+  if (!resp) return [];
+  return resp.matches ?? [];
 }
 
 export default function AdminStreamsManagement() {
@@ -35,9 +46,16 @@ export default function AdminStreamsManagement() {
   const [successMsg, setSuccessMsg] = useState("");
   const [showForm, setShowForm] = useState(false);
   const [editingStream, setEditingStream] = useState<Stream | null>(null);
-  const [formData, setFormData] = useState({
+  const [currentPage, setCurrentPage] = useState(0);
+  const [formData, setFormData] = useState<{
+    matchId: string;
+    type: "EMBED" | "NONE";
+    provider: string;
+    url: string;
+    isActive: boolean;
+  }>({
     matchId: "",
-    type: "EMBED" as "EMBED",
+    type: "EMBED",
     provider: "",
     url: "",
     isActive: false,
@@ -60,15 +78,7 @@ export default function AdminStreamsManagement() {
       setLoading(true);
       setError("");
       const resp = await getMatchesForStreams();
-      let matchesData: StreamMatch[] = [];
-      if (!resp) matchesData = [];
-      else if (Array.isArray(resp)) matchesData = resp;
-      else if (Array.isArray(resp.matches)) matchesData = resp.matches;
-      else if (Array.isArray(resp.data)) matchesData = resp.data;
-      else if (resp.data && Array.isArray(resp.data.matches))
-        matchesData = resp.data.matches;
-
-      matchesData.sort((a, b) => {
+      const matchesData = extractMatches(resp).sort((a, b) => {
         if (a.status === b.status)
           return (
             new Date(a.kickoffTime).getTime() -
@@ -80,8 +90,8 @@ export default function AdminStreamsManagement() {
         if (b.status === "UPCOMING") return 1;
         return 0;
       });
-
       setStreamsMatches(matchesData);
+      setCurrentPage(0);
     } catch (e: any) {
       setError(e?.message || "Failed to load matches");
       setStreamsMatches([]);
@@ -94,19 +104,14 @@ export default function AdminStreamsManagement() {
     try {
       setLoadingMatchesList(true);
       const resp = await getMatchesForStreams();
-      let matchesData: StreamMatch[] = [];
-      if (!resp) matchesData = [];
-      else if (Array.isArray(resp)) matchesData = resp;
-      else if (Array.isArray(resp.matches)) matchesData = resp.matches;
-      else if (Array.isArray(resp.data)) matchesData = resp.data;
-      else if (resp.data && Array.isArray(resp.data.matches))
-        matchesData = resp.data.matches;
-
-      matchesData.sort(
-        (a, b) =>
-          new Date(a.kickoffTime).getTime() - new Date(b.kickoffTime).getTime(),
-      );
-      setAllMatches(matchesData.filter((m) => m.status !== "FINISHED"));
+      const matchesData = extractMatches(resp)
+        .sort(
+          (a, b) =>
+            new Date(a.kickoffTime).getTime() -
+            new Date(b.kickoffTime).getTime(),
+        )
+        .filter((m) => m.status !== "FINISHED");
+      setAllMatches(matchesData);
     } catch {
       setAllMatches([]);
     } finally {
@@ -210,6 +215,12 @@ export default function AdminStreamsManagement() {
         return null;
     }
   };
+
+  const totalPages = Math.ceil(streamsMatches.length / ITEMS_PER_PAGE);
+  const paginated = streamsMatches.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE,
+  );
 
   if (loading && loadingMatchesList) {
     return (
@@ -396,7 +407,7 @@ export default function AdminStreamsManagement() {
             </tr>
           </thead>
           <tbody>
-            {streamsMatches.length === 0 ? (
+            {paginated.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-12">
                   <Tv className="w-16 h-16 text-slate-600 mx-auto mb-4" />
@@ -409,7 +420,7 @@ export default function AdminStreamsManagement() {
                 </td>
               </tr>
             ) : (
-              streamsMatches.map((match) => (
+              paginated.map((match) => (
                 <tr
                   key={match.id}
                   className={cn(
@@ -469,6 +480,16 @@ export default function AdminStreamsManagement() {
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
+          totalItems={streamsMatches.length}
+        />
+      )}
     </div>
   );
 }

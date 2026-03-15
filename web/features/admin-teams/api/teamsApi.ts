@@ -1,14 +1,18 @@
 import { apiGet, apiPost, apiPut, apiDelete } from "@/shared/api/base";
 import type { Team } from "@/entities/team/model/types";
 
+/**
+ * Fetch all teams for the admin panel (dropdowns, stats).
+ * Passes limit=10000 to bypass any default server-side pagination cap.
+ */
 export const getTeams = () =>
-  apiGet<{ teams: Team[] } | Team[]>("/api/admin/teams").then((r) =>
-    Array.isArray(r) ? r : ((r as any).teams ?? []),
-  );
+  apiGet<Team[] | { teams: Team[]; pagination: unknown }>(
+    "/api/teams?limit=10000",
+  ).then((r) => (Array.isArray(r) ? r : ((r as any).teams as Team[])));
 
 export const createTeam = (data: {
   name: string;
-  leagueId: string;
+  leagueId?: string;
   logo?: string;
   apiTeamId?: number;
 }) => apiPost<Team>("/api/admin/teams", data);

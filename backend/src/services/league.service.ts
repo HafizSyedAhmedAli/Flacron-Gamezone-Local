@@ -1,7 +1,7 @@
 import axios from "axios";
 import { config } from "../config/index.js";
 import { leagueRepository } from "../repositories/league.repository.js";
-import { cacheGet, cacheSet } from "../lib/redis.js";
+import { cacheGet, cacheSet, cacheDel } from "../lib/redis.js";
 import type { PaginationParams, PaginatedResult } from "../types/index.js";
 
 const LEAGUES_CACHE_KEY = "football:leagues";
@@ -63,6 +63,11 @@ export const leagueService = {
 
   delete(id: string) {
     return leagueRepository.delete(id);
+  },
+
+  /** Invalidates the cached league list so the next fetchFromApi call pulls fresh data. */
+  async invalidateCache(): Promise<void> {
+    await cacheDel(LEAGUES_CACHE_KEY);
   },
 
   async fetchFromApi(page: number, limit: number) {

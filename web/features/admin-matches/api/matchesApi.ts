@@ -28,7 +28,7 @@ export interface AdminMatch {
 }
 
 export const getAdminMatches = (
-  page = 0,
+  page = 1,
   limit = 10,
   status?: string,
   leagueId?: string,
@@ -39,9 +39,11 @@ export const getAdminMatches = (
   });
   if (status) params.set("status", status);
   if (leagueId) params.set("leagueId", leagueId);
-  return apiGet<{ matches: AdminMatch[]; total: number }>(
+  // Backend returns { matches, pagination: { total, ... } } — flatten total to the
+  // top level so AdminPanel can keep using data.total without changes.
+  return apiGet<{ matches: AdminMatch[]; pagination: { total: number } }>(
     `/api/admin/matches?${params}`,
-  );
+  ).then((r) => ({ matches: r.matches, total: r.pagination.total }));
 };
 
 export const createMatch = (data: {
@@ -50,8 +52,6 @@ export const createMatch = (data: {
   leagueId?: string;
   kickoffTime: string;
   venue?: string;
-  status?: string;
-  score?: string;
 }) => apiPost<AdminMatch>("/api/admin/matches", data);
 
 export const updateMatch = (
@@ -62,19 +62,18 @@ export const updateMatch = (
     status?: string;
     score?: string;
     leagueId?: string;
-    homeTeamId?: string;
-    awayTeamId?: string;
   },
 ) => apiPut<AdminMatch>(`/api/admin/matches/${id}`, data);
 
 export const deleteMatch = (id: string) =>
   apiDelete(`/api/admin/matches/${id}`);
 
+/** Syncs live matches from the football API. */
 export const syncLiveMatches = () =>
-  apiPost<{ message: string }>("/api/admin/matches/sync", {});
+  apiPost<{ success: boolean; synced: number; live: number }>(
+    "/api/admin/matches/sync-live",
+    {},
+  );
 
-export const generateMatchAIPreview = (matchId: string, language = "en") =>
-  apiPost(`/api/admin/ai/preview`, { matchId, language });
-
-export const generateMatchAISummary = (matchId: string, language = "en") =>
-  apiPost(`/api/admin/ai/summary`, { matchId, language });
+export const generateMatchAISummary = (id: string) =>
+  apiPost(`/api/admin/ai/summary`, { matchId: id, language: "en" });

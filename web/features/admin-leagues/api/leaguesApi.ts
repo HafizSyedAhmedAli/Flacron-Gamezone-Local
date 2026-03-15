@@ -2,9 +2,9 @@ import { apiGet, apiPost, apiPut, apiDelete } from "@/shared/api/base";
 import type { League } from "@/entities/league/model/types";
 
 export const getLeagues = () =>
-  apiGet<{ leagues: League[] }>("/api/admin/leagues").then(
-    (r) => r.leagues ?? r,
-  );
+  apiGet<{ leagues: League[]; pagination: unknown }>(
+    "/api/leagues?limit=10000",
+  ).then((r) => r.leagues);
 
 export const createLeague = (data: {
   name: string;
@@ -26,5 +26,8 @@ export const updateLeague = (
 export const deleteLeague = (id: string) =>
   apiDelete(`/api/admin/leagues/${id}`);
 
-export const syncLeagues = () =>
-  apiPost<{ message: string }>("/api/admin/matches/sync", {});
+export const syncLeague = (id: string) =>
+  apiPost<{ message: string }>(`/api/admin/leagues/${id}/sync`, {});
+
+export const bulkSyncLeagues = () =>
+  apiPost<{ message: string }>("/api/admin/leagues/bulk-sync", {});

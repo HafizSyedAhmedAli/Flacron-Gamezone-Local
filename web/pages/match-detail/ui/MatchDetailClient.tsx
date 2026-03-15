@@ -95,7 +95,7 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
     try {
       setLoadingMatch(true);
       setErr("");
-      const data = await apiGet<Match>(`/api/match/${matchId}`);
+      const data = await apiGet<Match>(`/api/matches/${matchId}`);
       setMatch(data);
     } catch (e: any) {
       console.error("Error loading match:", e);

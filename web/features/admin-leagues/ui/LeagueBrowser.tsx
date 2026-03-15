@@ -13,6 +13,7 @@ import {
   ChevronUp,
 } from "lucide-react";
 import type { League } from "@/entities/league/model/types";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 interface LeagueBrowserProps {
   leagues: League[];
@@ -24,6 +25,8 @@ interface LeagueBrowserProps {
   syncing: string | null;
   bulkSyncing: boolean;
 }
+
+const ITEMS_PER_PAGE = 10;
 
 export function LeagueBrowser({
   leagues,
@@ -38,6 +41,7 @@ export function LeagueBrowser({
   const [search, setSearch] = useState("");
   const [sortField, setSortField] = useState<"name" | "country">("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [currentPage, setCurrentPage] = useState(0);
 
   const filtered = leagues
     .filter(
@@ -51,12 +55,19 @@ export function LeagueBrowser({
       return sortDir === "asc" ? va.localeCompare(vb) : vb.localeCompare(va);
     });
 
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated = filtered.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE,
+  );
+
   const toggleSort = (field: "name" | "country") => {
     if (sortField === field) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
       setSortField(field);
       setSortDir("asc");
     }
+    setCurrentPage(0);
   };
 
   const SortIcon = ({ field }: { field: string }) =>
@@ -75,7 +86,10 @@ export function LeagueBrowser({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(0);
+            }}
             placeholder="Search leagues…"
             className="w-full pl-9 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm focus:outline-none focus:border-blue-500/50"
           />
@@ -125,14 +139,14 @@ export function LeagueBrowser({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {paginated.length === 0 ? (
               <tr>
                 <td colSpan={4} className="text-center py-12 text-slate-500">
                   No leagues found
                 </td>
               </tr>
             ) : (
-              filtered.map((league) => (
+              paginated.map((league) => (
                 <tr
                   key={league.id}
                   className="border-t border-slate-700/30 hover:bg-slate-800/30 transition-colors"
@@ -193,6 +207,15 @@ export function LeagueBrowser({
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
+          totalItems={filtered.length}
+        />
+      )}
       <p className="text-xs text-slate-500 text-right">
         {filtered.length} of {leagues.length} leagues
       </p>

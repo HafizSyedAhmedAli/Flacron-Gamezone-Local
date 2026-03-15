@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Search, Edit2, Trash2, Shield, XCircle } from "lucide-react";
 import type { AdminUser } from "../api/usersApi";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 interface UserBrowserProps {
   users: AdminUser[];
@@ -11,6 +12,8 @@ interface UserBrowserProps {
   onCancelSubscription: (user: AdminUser) => void;
   currentPage: number;
   totalPages: number;
+  totalItems: number;
+  itemsPerPage: number;
   onPageChange: (page: number) => void;
   searchQuery: string;
   onSearchChange: (v: string) => void;
@@ -23,6 +26,8 @@ export function UserBrowser({
   onCancelSubscription,
   currentPage,
   totalPages,
+  totalItems,
+  itemsPerPage,
   onPageChange,
   searchQuery,
   onSearchChange,
@@ -133,25 +138,13 @@ export function UserBrowser({
         </table>
       </div>
       {totalPages > 1 && (
-        <div className="flex items-center justify-end gap-2">
-          <button
-            onClick={() => onPageChange(currentPage - 1)}
-            disabled={currentPage === 0}
-            className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm disabled:opacity-40"
-          >
-            ←
-          </button>
-          <span className="text-sm text-slate-400">
-            {currentPage + 1} / {totalPages}
-          </span>
-          <button
-            onClick={() => onPageChange(currentPage + 1)}
-            disabled={currentPage === totalPages - 1}
-            className="px-3 py-1.5 bg-slate-800/50 border border-slate-700/50 rounded-lg text-sm disabled:opacity-40"
-          >
-            →
-          </button>
-        </div>
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={onPageChange}
+          itemsPerPage={itemsPerPage}
+          totalItems={totalItems}
+        />
       )}
     </div>
   );

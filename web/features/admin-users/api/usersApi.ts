@@ -1,5 +1,4 @@
 import { apiGet, apiPut, apiDelete } from "@/shared/api/base";
-import type { User } from "@/entities/user/model/types";
 
 export interface AdminUser {
   id: string;
@@ -16,7 +15,8 @@ export interface AdminUser {
   } | null;
 }
 
-export const getUsers = (page = 0, limit = 10, search?: string) => {
+/** Fetch paginated users with optional search. */
+export const getUsers = (page = 1, limit = 10, search?: string) => {
   const params = new URLSearchParams({
     page: String(page),
     limit: String(limit),
@@ -27,10 +27,13 @@ export const getUsers = (page = 0, limit = 10, search?: string) => {
   );
 };
 
+/** Update a user's role. */
 export const updateUser = (id: string, data: { role?: string }) =>
   apiPut<AdminUser>(`/api/admin/users/${id}`, data);
 
+/** Permanently delete a user. */
 export const deleteUser = (id: string) => apiDelete(`/api/admin/users/${id}`);
 
+/** Cancel the active subscription for a user. */
 export const cancelUserSubscription = (id: string) =>
   apiPut(`/api/admin/users/${id}/cancel-subscription`, {});

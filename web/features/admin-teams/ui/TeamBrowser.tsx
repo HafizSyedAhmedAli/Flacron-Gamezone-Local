@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import { Search, Plus, Edit2, Trash2 } from "lucide-react";
 import type { Team } from "@/entities/team/model/types";
+import { PaginationControls } from "@/shared/ui/PaginationControls";
 
 interface TeamBrowserProps {
   teams: Team[];
@@ -12,6 +13,8 @@ interface TeamBrowserProps {
   onAdd: () => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export function TeamBrowser({
   teams,
   onEdit,
@@ -19,11 +22,18 @@ export function TeamBrowser({
   onAdd,
 }: TeamBrowserProps) {
   const [search, setSearch] = useState("");
+  const [currentPage, setCurrentPage] = useState(0);
 
   const filtered = teams.filter(
     (t) =>
       t.name.toLowerCase().includes(search.toLowerCase()) ||
       (t.league?.name ?? "").toLowerCase().includes(search.toLowerCase()),
+  );
+
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const paginated = filtered.slice(
+    currentPage * ITEMS_PER_PAGE,
+    (currentPage + 1) * ITEMS_PER_PAGE,
   );
 
   return (
@@ -33,7 +43,10 @@ export function TeamBrowser({
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
           <input
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => {
+              setSearch(e.target.value);
+              setCurrentPage(0);
+            }}
             placeholder="Search teams…"
             className="w-full pl-9 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm focus:outline-none focus:border-blue-500/50"
           />
@@ -61,14 +74,14 @@ export function TeamBrowser({
             </tr>
           </thead>
           <tbody>
-            {filtered.length === 0 ? (
+            {paginated.length === 0 ? (
               <tr>
                 <td colSpan={5} className="text-center py-12 text-slate-500">
                   No teams found
                 </td>
               </tr>
             ) : (
-              filtered.map((team) => (
+              paginated.map((team) => (
                 <tr
                   key={team.id}
                   className="border-t border-slate-700/30 hover:bg-slate-800/30 transition-colors"
@@ -122,6 +135,15 @@ export function TeamBrowser({
           </tbody>
         </table>
       </div>
+      {totalPages > 1 && (
+        <PaginationControls
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setCurrentPage}
+          itemsPerPage={ITEMS_PER_PAGE}
+          totalItems={filtered.length}
+        />
+      )}
       <p className="text-xs text-slate-500 text-right">
         {filtered.length} of {teams.length} teams
       </p>
