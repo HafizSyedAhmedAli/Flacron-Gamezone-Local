@@ -529,10 +529,6 @@ export function Shell({ children, className }: ShellProps) {
               <ul className="space-y-2 text-sm">
                 <FooterLink href="/privacy">Privacy Policy</FooterLink>
                 <FooterLink href="/terms">Terms of Service</FooterLink>
-                <FooterLink href="/refund-policy">Refund Policy</FooterLink>
-                <FooterLink href="/help">Help Center</FooterLink>
-                <FooterLink href="/billing-support">Billing Support</FooterLink>
-                <FooterLink href="/about">About</FooterLink>
                 <FooterLink href="/contact">Contact Us</FooterLink>
                 <li>
                   <a

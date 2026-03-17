@@ -20,6 +20,7 @@ import {
 } from "@/features/admin-leagues/api/leaguesApi";
 import { LeagueBrowser } from "@/features/admin-leagues/ui/LeagueBrowser";
 import { LeagueEditModal } from "@/features/admin-leagues/ui/LeagueEditModal";
+import { LeagueApiBrowser } from "@/features/admin-leagues/ui/LeagueApiBrowser";
 
 // Team feature
 import {
@@ -30,6 +31,7 @@ import {
 } from "@/features/admin-teams/api/teamsApi";
 import { TeamBrowser } from "@/features/admin-teams/ui/TeamBrowser";
 import { TeamEditModal } from "@/features/admin-teams/ui/TeamEditModal";
+import { TeamApiBrowser } from "@/features/admin-teams/ui/TeamApiBrowser";
 
 // Match feature
 import {
@@ -43,6 +45,7 @@ import {
 } from "@/features/admin-matches/api/matchesApi";
 import { MatchBrowser } from "@/features/admin-matches/ui/MatchBrowser";
 import { MatchEditModal } from "@/features/admin-matches/ui/MatchEditModal";
+import { MatchApiBrowser } from "@/features/admin-matches/ui/MatchApiBrowser";
 
 // Streams feature
 import AdminStreamsManagement from "@/features/admin-streams/ui/AdminStreamsManagement";
@@ -102,17 +105,20 @@ export function AdminPanel() {
   const [userPage, setUserPage] = useState(0);
   const [userSearch, setUserSearch] = useState("");
 
-  // --- league modal ---
+  // --- league modals ---
   const [editLeague, setEditLeague] = useState<League | null>(null);
   const [leagueModalOpen, setLeagueModalOpen] = useState(false);
+  const [leagueApiBrowserOpen, setLeagueApiBrowserOpen] = useState(false);
 
-  // --- team modal ---
+  // --- team modals ---
   const [editTeam, setEditTeam] = useState<Team | null>(null);
   const [teamModalOpen, setTeamModalOpen] = useState(false);
+  const [teamApiBrowserOpen, setTeamApiBrowserOpen] = useState(false);
 
-  // --- match modal ---
+  // --- match modals ---
   const [editMatch, setEditMatch] = useState<AdminMatch | null>(null);
   const [matchModalOpen, setMatchModalOpen] = useState(false);
+  const [matchApiBrowserOpen, setMatchApiBrowserOpen] = useState(false);
 
   // --- user modal ---
   const [editUser, setEditUser] = useState<AdminUser | null>(null);
@@ -165,7 +171,6 @@ export function AdminPanel() {
   const loadUsers = useCallback(async () => {
     try {
       const data = await getUsers(userPage, 10, userSearch || undefined);
-
       setUsers(data.users);
       setTotalUsers(data.total);
     } catch {}
@@ -249,7 +254,6 @@ export function AdminPanel() {
   const handleLeagueSync = async (id: string) => {
     setSyncingLeague(id);
     try {
-      // sync is per-league via the matches sync endpoint
       showMessage("Synced");
       await loadLeagues();
     } catch (e: any) {
@@ -510,6 +514,7 @@ export function AdminPanel() {
                   setEditLeague(null);
                   setLeagueModalOpen(true);
                 }}
+                onImportFromApi={() => setLeagueApiBrowserOpen(true)}
                 onSync={handleLeagueSync}
                 onBulkSync={handleBulkSync}
                 syncing={syncingLeague}
@@ -521,6 +526,14 @@ export function AdminPanel() {
                 onClose={() => setLeagueModalOpen(false)}
                 onSave={handleLeagueSave}
                 saving={saving}
+              />
+              <LeagueApiBrowser
+                isOpen={leagueApiBrowserOpen}
+                onClose={() => setLeagueApiBrowserOpen(false)}
+                onImported={() => {
+                  loadLeagues();
+                  showMessage("Leagues imported successfully");
+                }}
               />
             </>
           )}
@@ -539,6 +552,7 @@ export function AdminPanel() {
                   setEditTeam(null);
                   setTeamModalOpen(true);
                 }}
+                onImportFromApi={() => setTeamApiBrowserOpen(true)}
               />
               <TeamEditModal
                 team={editTeam}
@@ -547,6 +561,15 @@ export function AdminPanel() {
                 onClose={() => setTeamModalOpen(false)}
                 onSave={handleTeamSave}
                 saving={saving}
+              />
+              <TeamApiBrowser
+                isOpen={teamApiBrowserOpen}
+                onClose={() => setTeamApiBrowserOpen(false)}
+                onImported={() => {
+                  loadTeams();
+                  showMessage("Teams imported successfully");
+                }}
+                leagues={leagues}
               />
             </>
           )}
@@ -566,6 +589,7 @@ export function AdminPanel() {
                   setEditMatch(null);
                   setMatchModalOpen(true);
                 }}
+                onImportFromApi={() => setMatchApiBrowserOpen(true)}
                 onSync={handleSyncLiveMatches}
                 onGenerateAI={handleGenerateAI}
                 syncing={syncingMatches}
@@ -588,6 +612,15 @@ export function AdminPanel() {
                 onSave={handleMatchSave}
                 saving={saving}
               />
+              <MatchApiBrowser
+                isOpen={matchApiBrowserOpen}
+                onClose={() => setMatchApiBrowserOpen(false)}
+                onImported={() => {
+                  loadMatches();
+                  showMessage("Matches imported successfully");
+                }}
+                leagues={leagues}
+              />
             </>
           )}
 
@@ -597,6 +630,7 @@ export function AdminPanel() {
               <AdminStreamsManagement />
             </div>
           )}
+
           {/* Users */}
           {activeTab === "users" && (
             <>

@@ -13,7 +13,6 @@ export const streamRepository = {
     });
   },
 
-  /** Returns all streams with their associated match for the admin panel. */
   findAllWithMatch() {
     return prisma.stream.findMany({
       include: {
@@ -72,6 +71,54 @@ export const streamRepository = {
       where: { matchId },
       create: { matchId, ...create },
       update,
+    });
+  },
+
+  /** Called by youtube.service when a live stream is found. */
+  saveYoutubeStream(matchId: string, videoId: string, title: string) {
+    const url = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
+    return prisma.stream.upsert({
+      where: { matchId },
+      create: {
+        matchId,
+        type: "EMBED",
+        provider: "youtube",
+        url,
+        isActive: true,
+        youtubeVideoId: videoId,
+        streamTitle: title,
+        lastCheckedAt: new Date(),
+      },
+      update: {
+        type: "EMBED",
+        provider: "youtube",
+        url,
+        isActive: true,
+        youtubeVideoId: videoId,
+        streamTitle: title,
+        lastCheckedAt: new Date(),
+      },
+    });
+  },
+
+  /** Called by youtube.service when no stream is found for a match. */
+  markNoStream(matchId: string) {
+    return prisma.stream.upsert({
+      where: { matchId },
+      create: {
+        matchId,
+        type: "NONE",
+        provider: null,
+        url: null,
+        isActive: false,
+        youtubeVideoId: null,
+        streamTitle: null,
+        lastCheckedAt: new Date(),
+      },
+      update: {
+        isActive: false,
+        lastCheckedAt: new Date(),
+      },
     });
   },
 

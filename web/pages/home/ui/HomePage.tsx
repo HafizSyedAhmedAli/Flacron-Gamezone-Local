@@ -54,6 +54,7 @@ const Skeleton = ({ className = "" }: { className?: string }) => (
 export default function HomePage() {
   const [featuredLeagues, setFeaturedLeagues] = useState<League[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
+  const [totalLiveMatches, setTotalLiveMatches] = useState<number>(0);
   const liveMatchesRef = useRef<Match[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -92,6 +93,7 @@ export default function HomePage() {
         apiGet<Match[]>("/api/matches?status=UPCOMING"),
       ]);
       setFeaturedLeagues(leaguesRes.leagues?.slice(0, 8) ?? []);
+      setTotalLiveMatches(Array.isArray(liveRes) ? liveRes.length : 0);
       setLiveMatches(Array.isArray(liveRes) ? liveRes.slice(0, 4) : []);
       setUpcomingMatches(
         Array.isArray(upcomingRes) ? upcomingRes.slice(0, 6) : [],
@@ -107,6 +109,7 @@ export default function HomePage() {
     try {
       const liveRes = await apiGet<Match[]>("/api/matches/live");
       setLiveMatches(Array.isArray(liveRes) ? liveRes.slice(0, 4) : []);
+      setTotalLiveMatches(Array.isArray(liveRes) ? liveRes.length : 0);
     } catch (error) {
       console.error("Error refreshing live matches:", error);
     }
@@ -178,7 +181,7 @@ export default function HomePage() {
               <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6">
                 <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
                 <span className="text-sm font-semibold text-red-400">
-                  {liveMatches.length} Live Matches Now
+                  {totalLiveMatches} Live Matches Now
                 </span>
               </div>
               <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
@@ -219,7 +222,7 @@ export default function HomePage() {
                 </div>
                 <div className="text-center">
                   <div className="text-3xl font-black bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                    {liveMatches.length}
+                    {totalLiveMatches}
                   </div>
                   <div className="text-sm text-slate-400 mt-1">Live Now</div>
                 </div>
@@ -394,7 +397,7 @@ export default function HomePage() {
                           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
                         </span>
                         <span className="text-xs font-black text-red-400 uppercase tracking-wide">
-                          {liveMatches.length} LIVE NOW
+                          {totalLiveMatches} LIVE NOW
                         </span>
                       </div>
                     </div>

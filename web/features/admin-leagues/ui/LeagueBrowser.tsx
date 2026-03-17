@@ -11,6 +11,7 @@ import {
   Globe,
   ChevronDown,
   ChevronUp,
+  Download,
 } from "lucide-react";
 import type { League } from "@/entities/league/model/types";
 import { PaginationControls } from "@/shared/ui/PaginationControls";
@@ -19,7 +20,8 @@ interface LeagueBrowserProps {
   leagues: League[];
   onEdit: (league: League) => void;
   onDelete: (league: League) => void;
-  onAdd: () => void;
+  onAdd: () => void; // opens manual form
+  onImportFromApi: () => void; // opens API browser
   onSync: (id: string) => void;
   onBulkSync: () => void;
   syncing: string | null;
@@ -33,6 +35,7 @@ export function LeagueBrowser({
   onEdit,
   onDelete,
   onAdd,
+  onImportFromApi,
   onSync,
   onBulkSync,
   syncing,
@@ -105,11 +108,20 @@ export function LeagueBrowser({
             />{" "}
             Bulk Sync
           </button>
+          {/* Import from API — primary CTA */}
+          <button
+            onClick={onImportFromApi}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-medium transition-all shadow-lg shadow-blue-500/20"
+          >
+            <Download className="w-4 h-4" /> Import from API
+          </button>
+          {/* Manual add — secondary */}
           <button
             onClick={onAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600/50 rounded-xl text-sm font-medium transition-all"
+            title="Add league manually"
           >
-            <Plus className="w-4 h-4" /> Add League
+            <Plus className="w-4 h-4" /> Manual
           </button>
         </div>
       </div>

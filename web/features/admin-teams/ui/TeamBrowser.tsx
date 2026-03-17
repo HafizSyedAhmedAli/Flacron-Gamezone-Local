@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Search, Plus, Edit2, Trash2 } from "lucide-react";
+import { Search, Plus, Edit2, Trash2, Download } from "lucide-react";
 import type { Team } from "@/entities/team/model/types";
 import { PaginationControls } from "@/shared/ui/PaginationControls";
 
@@ -10,7 +10,8 @@ interface TeamBrowserProps {
   teams: Team[];
   onEdit: (team: Team) => void;
   onDelete: (team: Team) => void;
-  onAdd: () => void;
+  onAdd: () => void; // manual form
+  onImportFromApi: () => void; // API browser
 }
 
 const ITEMS_PER_PAGE = 10;
@@ -20,6 +21,7 @@ export function TeamBrowser({
   onEdit,
   onDelete,
   onAdd,
+  onImportFromApi,
 }: TeamBrowserProps) {
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(0);
@@ -51,12 +53,23 @@ export function TeamBrowser({
             className="w-full pl-9 pr-4 py-2.5 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm focus:outline-none focus:border-blue-500/50"
           />
         </div>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-medium transition-all"
-        >
-          <Plus className="w-4 h-4" /> Add Team
-        </button>
+        <div className="flex gap-2">
+          {/* Import from API — primary CTA */}
+          <button
+            onClick={onImportFromApi}
+            className="flex items-center gap-2 px-4 py-2.5 bg-purple-600 hover:bg-purple-500 rounded-xl text-sm font-medium transition-all shadow-lg shadow-purple-500/20"
+          >
+            <Download className="w-4 h-4" /> Import from API
+          </button>
+          {/* Manual add — secondary */}
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600/50 rounded-xl text-sm font-medium transition-all"
+            title="Add team manually"
+          >
+            <Plus className="w-4 h-4" /> Manual
+          </button>
+        </div>
       </div>
       <div className="bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-hidden">
         <table className="w-full">

@@ -8,7 +8,7 @@ import {
   Trash2,
   RefreshCw,
   Sparkles,
-  Filter,
+  Download,
 } from "lucide-react";
 import type { AdminMatch } from "../api/matchesApi";
 import type { League } from "@/entities/league/model/types";
@@ -19,7 +19,8 @@ interface MatchBrowserProps {
   leagues: League[];
   onEdit: (match: AdminMatch) => void;
   onDelete: (match: AdminMatch) => void;
-  onAdd: () => void;
+  onAdd: () => void; // manual form
+  onImportFromApi: () => void; // API browser
   onSync: () => void;
   onGenerateAI: (id: string) => void;
   syncing: boolean;
@@ -40,6 +41,7 @@ export function MatchBrowser({
   onEdit,
   onDelete,
   onAdd,
+  onImportFromApi,
   onSync,
   onGenerateAI,
   syncing,
@@ -120,11 +122,20 @@ export function MatchBrowser({
           <RefreshCw className={`w-4 h-4 ${syncing ? "animate-spin" : ""}`} />{" "}
           Sync Live
         </button>
+        {/* Import from API — primary CTA */}
+        <button
+          onClick={onImportFromApi}
+          className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium transition-all shadow-lg shadow-green-500/20"
+        >
+          <Download className="w-4 h-4" /> Import from API
+        </button>
+        {/* Manual add — secondary */}
         <button
           onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-medium transition-all"
+          className="flex items-center gap-2 px-4 py-2.5 bg-slate-700 hover:bg-slate-600 border border-slate-600/50 rounded-xl text-sm font-medium transition-all"
+          title="Add match manually"
         >
-          <Plus className="w-4 h-4" /> Add Match
+          <Plus className="w-4 h-4" /> Manual
         </button>
       </div>
       <div className="bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-hidden">

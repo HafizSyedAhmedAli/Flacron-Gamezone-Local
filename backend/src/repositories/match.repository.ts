@@ -175,7 +175,7 @@ export const matchRepository = {
     const skip = (page - 1) * limit;
     return Promise.all([
       prisma.match.findMany({
-        include: { league: true, homeTeam: true, awayTeam: true },
+        include: { league: true, homeTeam: true, awayTeam: true, stream: true },
         orderBy: { kickoffTime: "desc" },
         skip,
         take: limit,

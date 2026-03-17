@@ -15,6 +15,7 @@ import {
   X,
   AlertCircle,
   PlayCircle,
+  RefreshCw,
 } from "lucide-react";
 import { PaginationControls } from "@/shared/ui/PaginationControls";
 
@@ -29,7 +30,6 @@ interface Stream {
 
 const ITEMS_PER_PAGE = 10;
 
-/** Unwrap the { matches, total } envelope returned by getMatchesForStreams. */
 function extractMatches(
   resp: Awaited<ReturnType<typeof getMatchesForStreams>>,
 ): StreamMatch[] {
@@ -38,8 +38,13 @@ function extractMatches(
 }
 
 export default function AdminStreamsManagement() {
-  const [streamsMatches, setStreamsMatches] = useState<StreamMatch[]>([]);
+  // All matches fetched from backend (no status filter — backend ignores it)
+  const [allFetched, setAllFetched] = useState<StreamMatch[]>([]);
+  // Only LIVE matches shown in the table — filtered client-side
+  const [liveMatches, setLiveMatches] = useState<StreamMatch[]>([]);
+  // Non-FINISHED matches for the "Select match" dropdown in the form
   const [allMatches, setAllMatches] = useState<StreamMatch[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [loadingMatchesList, setLoadingMatchesList] = useState(false);
   const [error, setError] = useState("");
@@ -62,7 +67,7 @@ export default function AdminStreamsManagement() {
   });
 
   useEffect(() => {
-    loadStreamsMatches();
+    loadLiveMatches();
     loadAllSavedMatches();
   }, []);
 
@@ -73,28 +78,35 @@ export default function AdminStreamsManagement() {
     };
   }, [showForm]);
 
-  async function loadStreamsMatches() {
+  /**
+   * Fetches all matches and filters to LIVE client-side.
+   * The backend's matchService.getPaginated ignores the status param,
+   * so we fetch everything with a high limit and filter here.
+   */
+  async function loadLiveMatches() {
     try {
       setLoading(true);
       setError("");
-      const resp = await getMatchesForStreams();
-      const matchesData = extractMatches(resp).sort((a, b) => {
-        if (a.status === b.status)
-          return (
+      // Fetch a large page — status param is passed but backend ignores it,
+      // so we filter client-side below.
+      const resp = await getMatchesForStreams(1, 10_000);
+      const all = extractMatches(resp);
+      setAllFetched(all);
+
+      // ← Client-side filter: only keep LIVE matches
+      const live = all
+        .filter((m) => m.status === "LIVE")
+        .sort(
+          (a, b) =>
             new Date(a.kickoffTime).getTime() -
-            new Date(b.kickoffTime).getTime()
-          );
-        if (a.status === "LIVE") return -1;
-        if (b.status === "LIVE") return 1;
-        if (a.status === "UPCOMING") return -1;
-        if (b.status === "UPCOMING") return 1;
-        return 0;
-      });
-      setStreamsMatches(matchesData);
+            new Date(b.kickoffTime).getTime(),
+        );
+
+      setLiveMatches(live);
       setCurrentPage(0);
     } catch (e: any) {
       setError(e?.message || "Failed to load matches");
-      setStreamsMatches([]);
+      setLiveMatches([]);
     } finally {
       setLoading(false);
     }
@@ -103,14 +115,14 @@ export default function AdminStreamsManagement() {
   async function loadAllSavedMatches() {
     try {
       setLoadingMatchesList(true);
-      const resp = await getMatchesForStreams();
+      const resp = await getMatchesForStreams(1, 10_000);
       const matchesData = extractMatches(resp)
+        .filter((m) => m.status !== "FINISHED")
         .sort(
           (a, b) =>
             new Date(a.kickoffTime).getTime() -
             new Date(b.kickoffTime).getTime(),
-        )
-        .filter((m) => m.status !== "FINISHED");
+        );
       setAllMatches(matchesData);
     } catch {
       setAllMatches([]);
@@ -143,7 +155,7 @@ export default function AdminStreamsManagement() {
       setShowForm(false);
       setEditingStream(null);
       resetForm();
-      await Promise.all([loadStreamsMatches(), loadAllSavedMatches()]);
+      await Promise.all([loadLiveMatches(), loadAllSavedMatches()]);
       setTimeout(() => setSuccessMsg(""), 3000);
     } catch (e: any) {
       setError(e?.message || "Failed to save stream");
@@ -216,18 +228,18 @@ export default function AdminStreamsManagement() {
     }
   };
 
-  const totalPages = Math.ceil(streamsMatches.length / ITEMS_PER_PAGE);
-  const paginated = streamsMatches.slice(
+  const totalPages = Math.ceil(liveMatches.length / ITEMS_PER_PAGE);
+  const paginated = liveMatches.slice(
     currentPage * ITEMS_PER_PAGE,
     (currentPage + 1) * ITEMS_PER_PAGE,
   );
 
-  if (loading && loadingMatchesList) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
         <div className="text-center">
           <div className="w-12 h-12 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-slate-400">Loading matches...</p>
+          <p className="text-slate-400">Loading live matches...</p>
         </div>
       </div>
     );
@@ -240,21 +252,38 @@ export default function AdminStreamsManagement() {
         <div>
           <h2 className="text-2xl font-black text-white">Stream Management</h2>
           <p className="text-sm text-slate-400 mt-1">
-            Manage live streams for matches
+            Live matches —{" "}
+            <span className="text-red-400 font-semibold">
+              {liveMatches.length} live
+            </span>{" "}
+            ·{" "}
+            <span className="text-green-400 font-semibold">
+              {liveMatches.filter((m) => m.stream?.isActive).length} streaming
+            </span>
           </p>
         </div>
-        <button
-          onClick={() => {
-            if (allMatches.length === 0 && !loadingMatchesList)
-              loadAllSavedMatches();
-            resetForm();
-            setShowForm(true);
-          }}
-          className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition"
-        >
-          <Plus className="w-5 h-5" />
-          Add Stream
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadLiveMatches}
+            disabled={loading}
+            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 border border-slate-700/50 px-3 py-2 rounded-lg text-slate-300 text-sm font-semibold transition"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+            Refresh
+          </button>
+          <button
+            onClick={() => {
+              if (allMatches.length === 0 && !loadingMatchesList)
+                loadAllSavedMatches();
+              resetForm();
+              setShowForm(true);
+            }}
+            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded-lg text-white font-semibold transition"
+          >
+            <Plus className="w-5 h-5" />
+            Add Stream
+          </button>
+        </div>
       </div>
 
       {/* Notifications */}
@@ -392,7 +421,7 @@ export default function AdminStreamsManagement() {
         </div>
       )}
 
-      {/* Streams Table */}
+      {/* Live Streams Table */}
       <div className="bg-slate-900/50 rounded-xl border border-slate-700/50 overflow-hidden">
         <table className="w-full">
           <thead className="bg-slate-800/50">
@@ -412,10 +441,10 @@ export default function AdminStreamsManagement() {
                 <td colSpan={5} className="text-center py-12">
                   <Tv className="w-16 h-16 text-slate-600 mx-auto mb-4" />
                   <p className="text-slate-400 font-semibold">
-                    No matches found
+                    No live matches right now
                   </p>
                   <p className="text-sm text-slate-500 mt-1">
-                    Add streams to show them here
+                    Live matches will appear here automatically
                   </p>
                 </td>
               </tr>
@@ -425,7 +454,9 @@ export default function AdminStreamsManagement() {
                   key={match.id}
                   className={cn(
                     "border-t border-slate-700/30 hover:bg-slate-800/30 transition-colors",
-                    !match.stream?.isActive ? "bg-transparent" : "",
+                    match.stream?.isActive
+                      ? "bg-green-500/5"
+                      : "bg-transparent",
                   )}
                 >
                   <td className="px-6 py-4">
@@ -487,7 +518,7 @@ export default function AdminStreamsManagement() {
           totalPages={totalPages}
           onPageChange={setCurrentPage}
           itemsPerPage={ITEMS_PER_PAGE}
-          totalItems={streamsMatches.length}
+          totalItems={liveMatches.length}
         />
       )}
     </div>
