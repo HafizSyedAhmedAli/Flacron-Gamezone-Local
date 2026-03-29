@@ -55,21 +55,45 @@ export const leagueRepository = {
     return prisma.league.delete({ where: { id } });
   },
 
-  upsertByApiId(data: {
+  async upsertByApiId(data: {
     apiLeagueId: number;
     name: string;
     country?: string | null;
     logo?: string | null;
   }) {
-    return prisma.league.upsert({
-      where: { apiLeagueId: data.apiLeagueId },
-      update: {},
-      create: {
-        name: data.name,
-        country: data.country,
-        logo: data.logo,
-        apiLeagueId: data.apiLeagueId,
-      },
-    });
+    try {
+      return await prisma.league.upsert({
+        where: { apiLeagueId: data.apiLeagueId },
+        update: {
+          // Now it actually updates the data if the league exists!
+          name: data.name,
+          country: data.country,
+          logo: data.logo,
+        },
+        create: {
+          name: data.name,
+          country: data.country,
+          logo: data.logo,
+          apiLeagueId: data.apiLeagueId,
+        },
+      });
+    } catch (error: any) {
+      // If a race condition happens and it throws P2002, catch it gracefully
+      if (
+        error.code === "P2002" &&
+        error.meta?.target?.includes("apiLeagueId")
+      ) {
+        console.log(
+          `[League Repo] Handled race condition for league ${data.apiLeagueId}`,
+        );
+
+        // Fetch and return the record that the other parallel process just created
+        return await prisma.league.findUnique({
+          where: { apiLeagueId: data.apiLeagueId },
+        });
+      }
+      // If it's a completely different error, throw it so you still see it!
+      throw error;
+    }
   },
 };

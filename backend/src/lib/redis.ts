@@ -1,14 +1,16 @@
-import Redis from "ioredis";
-import { config } from "../config/index.js";
+import { Redis } from "@upstash/redis";
 
-export const redis = new Redis(config.redis.url);
+export const redis = new Redis({
+  url: process.env.UPSTASH_REDIS_REST_URL!,
+  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
+});
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
-  const raw = await redis.get(key);
-  if (!raw) return null;
   try {
-    return JSON.parse(raw) as T;
-  } catch {
+    const value = await redis.get<T>(key);
+    return value ?? null;
+  } catch (err) {
+    console.error(`[redis] cacheGet error for key "${key}":`, err);
     return null;
   }
 }
@@ -16,11 +18,19 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
 export async function cacheSet(
   key: string,
   value: unknown,
-  ttlSeconds: number
+  ttlSeconds: number,
 ): Promise<void> {
-  await redis.set(key, JSON.stringify(value), "EX", ttlSeconds);
+  try {
+    await redis.set(key, value, { ex: ttlSeconds });
+  } catch (err) {
+    console.error(`[redis] cacheSet error for key "${key}":`, err);
+  }
 }
 
 export async function cacheDel(key: string): Promise<void> {
-  await redis.del(key);
+  try {
+    await redis.del(key);
+  } catch (err) {
+    console.error(`[redis] cacheDel error for key "${key}":`, err);
+  }
 }

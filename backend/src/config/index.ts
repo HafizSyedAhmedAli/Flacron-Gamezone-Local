@@ -16,8 +16,10 @@ export const config = {
     url: process.env.DATABASE_URL ?? "",
   },
 
-  redis: {
-    url: process.env.REDIS_URL ?? "redis://localhost:6379",
+  // Upstash REST — replaces the old ioredis REDIS_URL
+  upstash: {
+    url: process.env.UPSTASH_REDIS_REST_URL ?? "",
+    token: process.env.UPSTASH_REDIS_REST_TOKEN ?? "",
   },
 
   stripe: {
