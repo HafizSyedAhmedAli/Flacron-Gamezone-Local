@@ -55,14 +55,14 @@ export const leagueRepository = {
     return prisma.league.delete({ where: { id } });
   },
 
-  upsertByApiId(data: {
+  async upsertByApiId(data: {
     apiLeagueId: number;
     name: string;
     country?: string | null;
     logo?: string | null;
   }) {
     try {
-      return prisma.league.upsert({
+      return await prisma.league.upsert({
         where: { apiLeagueId: data.apiLeagueId },
         update: {
           // Now it actually updates the data if the league exists!
@@ -88,7 +88,7 @@ export const leagueRepository = {
         );
 
         // Fetch and return the record that the other parallel process just created
-        return prisma.league.findUnique({
+        return await prisma.league.findUnique({
           where: { apiLeagueId: data.apiLeagueId },
         });
       }
