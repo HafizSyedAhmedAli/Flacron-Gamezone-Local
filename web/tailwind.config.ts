@@ -4,7 +4,7 @@ const config: Config = {
   darkMode: ["class"],
   content: [
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./page-components/**/*.{js,ts,jsx,tsx,mdx}",
     "./widgets/**/*.{js,ts,jsx,tsx,mdx}",
     "./features/**/*.{js,ts,jsx,tsx,mdx}",
     "./entities/**/*.{js,ts,jsx,tsx,mdx}",
