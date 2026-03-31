@@ -38,7 +38,7 @@ export function LeagueEditModal({
       setForm({
         name: league.name,
         country: league.country ?? "",
-        logo: league.logo,
+        logo: league.logo ?? "",
         apiLeagueId: String(league.apiLeagueId ?? ""),
       });
     } else {
