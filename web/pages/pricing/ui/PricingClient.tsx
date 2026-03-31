@@ -110,7 +110,7 @@ export function PricingClient() {
   useEffect(() => {
     if (!mounted) return;
     const timeoutId = setTimeout(() => {
-      if (searchParams.get("scroll") === "faq") {
+      if (searchParams?.get("scroll") === "faq") {
         document
           .getElementById("faq-section")
           ?.scrollIntoView({ behavior: "smooth" });
