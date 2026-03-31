@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 };
 
 const PrivacyClient = dynamic(
-  () => import("@/pages/privacy/ui/PrivacyClient").then((m) => m.PrivacyClient),
+  () => import("../../page-components/privacy/ui/PrivacyClient").then((m) => m.PrivacyClient),
   { ssr: false },
 );
 

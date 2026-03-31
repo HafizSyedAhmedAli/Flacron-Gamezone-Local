@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 const TeamDetailClient = dynamic(
   () =>
-    import("@/pages/team-detail/ui/TeamDetailClient").then(
+    import("../../../page-components/team-detail/ui/TeamDetailClient").then(
       (m) => m.TeamDetailClient,
     ),
   { ssr: false },

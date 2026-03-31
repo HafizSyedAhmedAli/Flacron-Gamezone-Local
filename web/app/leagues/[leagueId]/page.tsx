@@ -3,7 +3,7 @@ import { apiGet } from "@/shared/api/base";
 import { BackButton } from "@/shared/ui/BackButton";
 import { LeagueHeader } from "@/entities/league/ui/LeagueHeader";
 import { ErrorState } from "@/shared/ui/LoadingErrorStates";
-import LeagueDetailsClient from "@/pages/league-details/ui/LeagueDetailsClient";
+import LeagueDetailsClient from "../../../page-components/league-details/ui/LeagueDetailsClient";
 
 interface Team {
   id: string;

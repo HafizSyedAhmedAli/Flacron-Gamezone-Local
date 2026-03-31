@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import ContactPage from "@/pages/contact/ui/ContactPage";
+import ContactPage from "../../page-components/contact/ui/ContactPage";
 
 export const metadata: Metadata = {
   title: "Contact Us | Flacrom Gamezone",

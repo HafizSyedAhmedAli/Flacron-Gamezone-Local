@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 const TermsClient = dynamic(
-  () => import("@/pages/terms/ui/TermsClient").then((m) => m.TermsClient),
+  () => import("../../page-components/terms/ui/TermsClient").then((m) => m.TermsClient),
   { ssr: false },
 );
 

@@ -23,7 +23,7 @@
       "@/entities/*": ["./entities/*"],
       "@/features/*": ["./features/*"],
       "@/widgets/*": ["./widgets/*"],
-      "@/pages/*": ["./pages/*"],
+      "@/pages/*": ["./page-components/*"],
       "@/app/*": ["./app/*"]
     }
   },

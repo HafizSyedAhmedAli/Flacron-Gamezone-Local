@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 const PricingClient = dynamic(
-  () => import("@/pages/pricing/ui/PricingClient").then((m) => m.PricingClient),
+  () => import("../../page-components/pricing/ui/PricingClient").then((m) => m.PricingClient),
   { ssr: false },
 );
 

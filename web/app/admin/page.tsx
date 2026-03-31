@@ -2,7 +2,7 @@ import dynamic from "next/dynamic";
 import LoadingSpinner from "@/shared/ui/LoadingSpinner";
 
 const AdminPanel = dynamic(
-  () => import("@/pages/admin/ui/AdminPanel").then((m) => m.AdminPanel),
+  () => import("../../page-components/admin/ui/AdminPanel").then((m) => m.AdminPanel),
   {
     ssr: false,
     loading: () => (

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { apiGet } from "@/shared/api/base";
-import LiveMatchesClient from "@/pages/live/ui/LiveMatchesClient";
+import LiveMatchesClient from "../../page-components/live/ui/LiveMatchesClient";
 
 export const metadata: Metadata = {
   title: "Live Football Matches | Flacron Gamezone",

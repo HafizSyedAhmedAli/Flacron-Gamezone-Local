@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { MatchDetailClient } from "@/pages/match-detail/ui/MatchDetailClient";
+import { MatchDetailClient } from "../../../page-components/match-detail/ui/MatchDetailClient";
 
 interface Props {
   params: { id: string };

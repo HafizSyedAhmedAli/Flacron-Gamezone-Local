@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { MatchesClient } from "@/pages/matches/ui/MatchesClient";
+import { MatchesClient } from "../../page-components/matches/ui/MatchesClient";
 
 export const metadata: Metadata = {
   title: "Football Matches | Watch Live & Upcoming Games",

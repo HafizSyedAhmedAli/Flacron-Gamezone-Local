@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 const LoginClient = dynamic(
-  () => import("@/pages/login/ui/LoginClient").then((m) => m.LoginClient),
+  () => import("../../page-components/login/ui/LoginClient").then((m) => m.LoginClient),
   { ssr: false },
 );
 

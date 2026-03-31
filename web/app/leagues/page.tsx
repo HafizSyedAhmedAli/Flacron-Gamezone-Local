@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { apiGet } from "@/shared/api/base";
 import { ErrorState } from "@/shared/ui/LoadingErrorStates";
-import LeaguesClient from "@/pages/leagues/ui/LeaguesClient";
+import LeaguesClient from "../../page-components/leagues/ui/LeaguesClient";
 import { Trophy, Globe2, Sparkles } from "lucide-react";
 
 interface League {

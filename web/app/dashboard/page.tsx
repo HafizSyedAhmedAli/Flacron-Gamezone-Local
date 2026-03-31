@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import DashboardPage from "@/pages/dashboard/ui/DashboardPage";
+import DashboardPage from "../../page-components/dashboard/ui/DashboardPage";
 
 export const metadata: Metadata = {
   title: "Dashboard | Flacrom Gamezone",

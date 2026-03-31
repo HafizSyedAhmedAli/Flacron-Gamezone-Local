@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 };
 
 const SignupClient = dynamic(
-  () => import("@/pages/signup/ui/SignupClient").then((m) => m.SignupClient),
+  () => import("../../page-components/signup/ui/SignupClient").then((m) => m.SignupClient),
   { ssr: false },
 );
 

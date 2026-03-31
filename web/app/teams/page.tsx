@@ -31,7 +31,7 @@ async function getTeams() {
 }
 
 const TeamsClient = dynamic(
-  () => import("@/pages/teams/ui/TeamsClient").then((m) => m.TeamsClient),
+  () => import("../../page-components/teams/ui/TeamsClient").then((m) => m.TeamsClient),
   {
     ssr: false,
     loading: () => (
