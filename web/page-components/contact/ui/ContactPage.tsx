@@ -45,8 +45,6 @@ export default function ContactPage() {
     [],
   );
 
-  const WEB3FORMS_ACCESS_KEY = process.env.NEXT_PUBLIC_WEB3FORMS_ACCESS_KEY;
-
   useEffect(() => {
     setMounted(true);
   }, []);
@@ -84,46 +82,23 @@ export default function ContactPage() {
       setError(errs);
       return;
     }
+
     try {
       setLoading(true);
-      if (!WEB3FORMS_ACCESS_KEY) {
-        setError({
-          general:
-            "Contact form is not configured. Please add WEB3FORMS_ACCESS_KEY in .env",
-        });
-        return;
-      }
-      const response = await fetch("https://api.web3forms.com/submit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE}/api/contact`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(formData),
         },
-        body: JSON.stringify({
-          access_key: WEB3FORMS_ACCESS_KEY,
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message,
-          from_name: "Flacrom Gamezone Contact Form",
-          replyto: formData.email,
-        }),
-      });
-      const result = await response.json();
-      if (result.success) {
-        setSuccess(true);
-        setFormData({ name: "", email: "", subject: "", message: "" });
-      } else {
-        setError({
-          general:
-            result.message || "Failed to send message. Please try again.",
-        });
-      }
-    } catch (err) {
-      setError({
-        general:
-          "Failed to send message. Please check your connection and try again.",
-      });
+      );
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to send");
+      setSuccess(true);
+      setFormData({ name: "", email: "", subject: "", message: "" });
+    } catch (err: any) {
+      setError({ general: err.message || "Failed to send message." });
     } finally {
       setLoading(false);
     }
