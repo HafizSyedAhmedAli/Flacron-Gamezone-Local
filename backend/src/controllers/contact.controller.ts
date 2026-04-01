@@ -1,6 +1,15 @@
 import type { Request, Response } from "express";
 import axios from "axios";
 
+const escapeHtml = (str: string): string => {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+};
+
 export const contactController = {
   async send(req: Request, res: Response) {
     const { name, email, subject, message } = (req as any).validated;
@@ -17,21 +26,29 @@ export const contactController = {
       );
     }
 
+    const safeName = escapeHtml(name);
+    const safeSubject = escapeHtml(subject);
+    const safeMessage = escapeHtml(message).replace(/\n/g, "<br />");
+
     await axios.post(
       "https://api.brevo.com/v3/smtp/email",
       {
         sender: { name: fromName, email: fromEmail },
         to: [{ email: toEmail }],
-        replyTo: { email, name },
-        subject: `[Contact Form] ${subject}`,
+        replyTo: { email, name }, 
+        subject: `[Contact Form] ${safeSubject}`,
         htmlContent: `
-          <h2>New Contact Form Submission</h2>
-          <p><strong>Name:</strong> ${name}</p>
-          <p><strong>Email:</strong> ${email}</p>
-          <p><strong>Subject:</strong> ${subject}</p>
-          <hr />
-          <p><strong>Message:</strong></p>
-          <p>${message.replace(/\n/g, "<br />")}</p>
+          <div style="font-family: sans-serif; line-height: 1.6;">
+            <h2>New Contact Form Submission</h2>
+            <p><strong>Name:</strong> ${safeName}</p>
+            <p><strong>Email:</strong> ${email}</p>
+            <p><strong>Subject:</strong> ${safeSubject}</p>
+            <hr />
+            <p><strong>Message:</strong></p>
+            <div style="background: #f9f9f9; padding: 15px; border-radius: 5px;">
+              ${safeMessage}
+            </div>
+          </div>
         `,
         textContent: `Name: ${name}\nEmail: ${email}\nSubject: ${subject}\n\n${message}`,
       },
