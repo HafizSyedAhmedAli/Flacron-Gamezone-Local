@@ -18,7 +18,7 @@ export const billingController = {
   async webhook(req: any, res: Response) {
     const sig = req.headers["stripe-signature"];
     if (!sig) return res.status(400).send("No signature provided");
-    await billingService.handleWebhook(req.rawBody, sig as string);
+    await billingService.handleWebhook(req.body, sig as string);
     res.json({ received: true });
   },
 
