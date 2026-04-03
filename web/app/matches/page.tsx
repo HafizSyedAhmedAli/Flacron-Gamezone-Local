@@ -20,11 +20,8 @@ export const metadata: Metadata = {
 
 async function getMatches() {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:3000");
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+
     const res = await fetch(`${baseUrl}/api/matches`, {
       next: { revalidate: 60 },
     });

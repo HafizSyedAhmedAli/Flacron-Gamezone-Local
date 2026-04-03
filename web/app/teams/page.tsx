@@ -15,11 +15,8 @@ export const metadata: Metadata = {
 
 async function getTeams() {
   try {
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API_URL ||
-      (process.env.VERCEL_URL
-        ? `https://${process.env.VERCEL_URL}`
-        : "http://localhost:4000");
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+
     const res = await fetch(`${baseUrl}/api/teams`, {
       next: { revalidate: 120 },
     });
