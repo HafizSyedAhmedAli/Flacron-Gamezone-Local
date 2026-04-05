@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { apiGet } from "@/shared/api/base";
 import {
   Search,
@@ -65,7 +65,15 @@ export default function HomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Load initial data only once when component mounts
+  // Ref to track live match count without causing re-renders in the interval effect
+  const liveMatchCountRef = useRef(0);
+
+  // Update ref whenever live count changes
+  useEffect(() => {
+    liveMatchCountRef.current = totalLiveMatches || liveMatches.length;
+  }, [totalLiveMatches, liveMatches.length]);
+
+  // Load initial data only once
   const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
@@ -76,8 +84,6 @@ export default function HomePage() {
         apiGet<Match[]>("/api/matches/live"),
         apiGet<Match[]>("/api/matches?status=UPCOMING"),
       ]);
-
-      console.log("liveRes:", liveRes);
 
       setFeaturedLeagues(leaguesRes.leagues?.slice(0, 8) ?? []);
       setTotalLiveMatches(Array.isArray(liveRes) ? liveRes.length : 0);
@@ -92,7 +98,7 @@ export default function HomePage() {
     }
   }, []);
 
-  // Refresh only live matches (called every 45 seconds)
+  // Refresh only live matches
   const refreshLiveMatches = useCallback(async () => {
     try {
       const liveRes = await apiGet<Match[]>("/api/matches/live");
@@ -105,24 +111,19 @@ export default function HomePage() {
     }
   }, []);
 
-  // Initial load + periodic live refresh
+  // Initial load + periodic live refresh (Corrected)
   useEffect(() => {
     loadInitialData();
 
-    // Refresh live matches every 45 seconds only if there are live matches
     const interval = setInterval(() => {
-      if (totalLiveMatches > 0 || liveMatches.length > 0) {
+      // Use the ref instead of state to prevent re-creating interval
+      if (liveMatchCountRef.current > 0) {
         refreshLiveMatches();
       }
     }, 45000);
 
     return () => clearInterval(interval);
-  }, [
-    loadInitialData,
-    refreshLiveMatches,
-    totalLiveMatches,
-    liveMatches.length,
-  ]);
+  }, [loadInitialData, refreshLiveMatches]);
 
   // Search with debounce
   useEffect(() => {

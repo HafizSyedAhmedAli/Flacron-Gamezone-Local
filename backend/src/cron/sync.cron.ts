@@ -1,11 +1,12 @@
 import cron from "node-cron";
 import { matchService } from "../services/match.service.js";
 import { youtubeService } from "../services/youtube.service.js";
+import { config } from "../config/index.js";
 
 let isLiveSyncing = false; // Prevents overlapping syncs
 
 export function startSyncCron() {
-  // if (!config.isProduction) return;
+  if (!config.isProduction) return;
   console.log("[cron:sync] Initializing cron jobs...");
 
   // Run one sync immediately when server starts

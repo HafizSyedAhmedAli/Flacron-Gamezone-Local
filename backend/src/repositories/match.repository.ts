@@ -221,16 +221,14 @@ export const matchRepository = {
   },
 
   markStaleLiveAsFinished(currentLiveApiIds: number[]) {
-    // Convert to numbers in case they come as strings
-    const validApiIds = currentLiveApiIds
-      .map((id) => (typeof id === "string" ? parseInt(id, 10) : id))
-      .filter((id) => !isNaN(id) && id > 0);
+    // Since the caller already filters for numbers, we just ensure they are valid (> 0)
+    const validApiIds = currentLiveApiIds.filter((id) => id > 0);
 
     console.log(`[markStale] Excluding ${validApiIds.length} apiFixtureIds`);
 
     return prisma.match.updateMany({
       where: {
-        status: "LIVE",
+        status: "LIVE", // ⚠️ DOUBLE CHECK: Is your DB status "LIVE" or "live"?
         ...(validApiIds.length > 0
           ? { apiFixtureId: { notIn: validApiIds } }
           : {}),
