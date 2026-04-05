@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { apiGet } from "@/shared/api/base";
 import {
   Search,
   Trophy,
   Play,
   Clock,
-  TrendingUp,
   Zap,
   ChevronRight,
   Sparkles,
@@ -24,11 +23,13 @@ interface League {
   country: string | null;
   logo: string;
 }
+
 interface Team {
   id: string;
   name: string;
   logo: string | null;
 }
+
 interface Match {
   id: string;
   homeTeam: Team;
@@ -39,6 +40,7 @@ interface Match {
   score: string | null;
   venue: string | null;
 }
+
 interface SearchResults {
   leagues: League[];
   teams: Team[];
@@ -55,7 +57,6 @@ export default function HomePage() {
   const [featuredLeagues, setFeaturedLeagues] = useState<League[]>([]);
   const [liveMatches, setLiveMatches] = useState<Match[]>([]);
   const [totalLiveMatches, setTotalLiveMatches] = useState<number>(0);
-  const liveMatchesRef = useRef<Match[]>([]);
   const [upcomingMatches, setUpcomingMatches] = useState<Match[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResults | null>(
@@ -64,34 +65,20 @@ export default function HomePage() {
   const [isSearching, setIsSearching] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    liveMatchesRef.current = liveMatches;
-  }, [liveMatches]);
-
-  useEffect(() => {
-    loadInitialData();
-    const interval = setInterval(() => {
-      if (liveMatchesRef.current.length > 0) refreshLiveMatches();
-    }, 45000);
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (searchQuery.trim()) performSearch();
-      else setSearchResults(null);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [searchQuery]);
-
-  async function loadInitialData() {
+  // Load initial data only once when component mounts
+  const loadInitialData = useCallback(async () => {
     try {
       setLoading(true);
+      console.log("Loading Initial Data");
+
       const [leaguesRes, liveRes, upcomingRes] = await Promise.all([
         apiGet<{ success: boolean; leagues: League[] }>("/api/leagues"),
         apiGet<Match[]>("/api/matches/live"),
         apiGet<Match[]>("/api/matches?status=UPCOMING"),
       ]);
+
+      console.log("liveRes:", liveRes);
+
       setFeaturedLeagues(leaguesRes.leagues?.slice(0, 8) ?? []);
       setTotalLiveMatches(Array.isArray(liveRes) ? liveRes.length : 0);
       setLiveMatches(Array.isArray(liveRes) ? liveRes.slice(0, 4) : []);
@@ -99,24 +86,60 @@ export default function HomePage() {
         Array.isArray(upcomingRes) ? upcomingRes.slice(0, 6) : [],
       );
     } catch (error) {
-      console.error("Error loading data:", error);
+      console.error("Error loading initial data:", error);
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
-  async function refreshLiveMatches() {
+  // Refresh only live matches (called every 45 seconds)
+  const refreshLiveMatches = useCallback(async () => {
     try {
       const liveRes = await apiGet<Match[]>("/api/matches/live");
-      setLiveMatches(Array.isArray(liveRes) ? liveRes.slice(0, 4) : []);
+      const newLiveMatches = Array.isArray(liveRes) ? liveRes.slice(0, 4) : [];
+
+      setLiveMatches(newLiveMatches);
       setTotalLiveMatches(Array.isArray(liveRes) ? liveRes.length : 0);
     } catch (error) {
       console.error("Error refreshing live matches:", error);
     }
-  }
+  }, []);
+
+  // Initial load + periodic live refresh
+  useEffect(() => {
+    loadInitialData();
+
+    // Refresh live matches every 45 seconds only if there are live matches
+    const interval = setInterval(() => {
+      if (totalLiveMatches > 0 || liveMatches.length > 0) {
+        refreshLiveMatches();
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, [
+    loadInitialData,
+    refreshLiveMatches,
+    totalLiveMatches,
+    liveMatches.length,
+  ]);
+
+  // Search with debounce
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchQuery.trim()) {
+        performSearch();
+      } else {
+        setSearchResults(null);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   async function performSearch() {
     if (!searchQuery.trim()) return;
+
     try {
       setIsSearching(true);
       const results = await apiGet<SearchResults>(
@@ -176,6 +199,7 @@ export default function HomePage() {
               style={{ animationDelay: "1s" }}
             />
           </div>
+
           <div className="relative p-8 md:p-16">
             <div className="max-w-4xl">
               <div className="inline-flex items-center gap-2 bg-red-500/20 border border-red-500/30 rounded-full px-4 py-2 mb-6">
@@ -184,6 +208,7 @@ export default function HomePage() {
                   {totalLiveMatches} Live Matches Now
                 </span>
               </div>
+
               <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight">
                 <span className="bg-gradient-to-r from-white via-blue-100 to-cyan-200 bg-clip-text text-transparent">
                   Football Universe
@@ -193,11 +218,13 @@ export default function HomePage() {
                   Discover • Watch • Connect
                 </span>
               </h1>
+
               <p className="text-slate-300 text-lg md:text-xl mb-8 max-w-2xl">
                 Your ultimate destination for live football matches,
                 comprehensive league coverage, and real-time updates from around
                 the globe.
               </p>
+
               <div className="flex flex-wrap gap-4">
                 <Link href="/live">
                   <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-bold px-8 py-4 rounded-xl shadow-lg shadow-blue-500/30 transition-all duration-300 hover:scale-105 flex items-center gap-3">
@@ -213,6 +240,7 @@ export default function HomePage() {
                   </button>
                 </Link>
               </div>
+
               <div className="grid grid-cols-3 gap-6 mt-12 max-w-2xl">
                 <div className="text-center">
                   <div className="text-3xl font-black bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
@@ -235,6 +263,7 @@ export default function HomePage() {
               </div>
             </div>
           </div>
+
           <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/50 to-transparent" />
         </div>
       </div>
@@ -293,6 +322,7 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
+
               {searchResults.teams.length > 0 && (
                 <div className="p-4 border-b border-slate-700/50">
                   <div className="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-2">
@@ -326,6 +356,7 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
+
               {searchResults.matches.length > 0 && (
                 <div className="p-4">
                   <div className="text-xs font-semibold text-slate-400 mb-3 flex items-center gap-2">
@@ -360,6 +391,7 @@ export default function HomePage() {
                   </div>
                 </div>
               )}
+
               {searchResults.leagues.length === 0 &&
                 searchResults.teams.length === 0 &&
                 searchResults.matches.length === 0 && (
@@ -438,6 +470,7 @@ export default function HomePage() {
                       </span>
                     </div>
                   </div>
+
                   <div className="relative space-y-4">
                     {match.league && (
                       <div className="flex items-center gap-2">
@@ -453,6 +486,7 @@ export default function HomePage() {
                         </span>
                       </div>
                     )}
+
                     <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-4 mt-6">
                       <div className="text-right">
                         <div className="flex justify-end mb-3">
@@ -478,6 +512,7 @@ export default function HomePage() {
                           Home
                         </div>
                       </div>
+
                       <div className="text-center min-w-[90px]">
                         <div className="text-5xl font-black bg-gradient-to-r from-red-400 via-orange-400 to-red-400 bg-clip-text text-transparent animate-pulse">
                           {match.score || "0-0"}
@@ -486,6 +521,7 @@ export default function HomePage() {
                           Score
                         </div>
                       </div>
+
                       <div className="text-left">
                         <div className="flex justify-start mb-3">
                           {match.awayTeam.logo ? (
@@ -511,6 +547,7 @@ export default function HomePage() {
                         </div>
                       </div>
                     </div>
+
                     {match.venue && (
                       <div className="mt-6 pt-4 border-t border-slate-700/50 flex items-center justify-center gap-2 text-xs text-slate-400">
                         <Trophy className="w-3.5 h-3.5" />
@@ -518,6 +555,7 @@ export default function HomePage() {
                       </div>
                     )}
                   </div>
+
                   <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-red-500 via-orange-500 to-red-500 transform scale-x-0 group-hover:scale-x-100 transition-transform duration-300 rounded-b-2xl" />
                 </div>
               </Link>
@@ -555,6 +593,7 @@ export default function HomePage() {
             <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
+
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {loading
             ? Array.from({ length: 8 }).map((_, idx) => (
@@ -619,6 +658,7 @@ export default function HomePage() {
             <ChevronRight className="w-4 h-4" />
           </Link>
         </div>
+
         <div className="grid md:grid-cols-3 gap-4">
           {loading
             ? Array.from({ length: 6 }).map((_, idx) => (

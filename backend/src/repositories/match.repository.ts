@@ -14,12 +14,13 @@ const matchIncludesFull = {
 } as const;
 
 export const matchRepository = {
-  findAll(filters: {
+  async findAll(filters: {
     status?: "LIVE" | "UPCOMING" | "FINISHED";
     leagueId?: string;
     teamId?: string;
     date?: string;
   }) {
+    // console.log("filters:", filters);
     const where: any = {};
     if (filters.status) where.status = filters.status;
     if (filters.leagueId) where.leagueId = filters.leagueId;
@@ -34,11 +35,14 @@ export const matchRepository = {
         lte: new Date(filters.date + "T23:59:59.999Z"),
       };
     }
-    return prisma.match.findMany({
+    // console.log("where:", where);
+    const query = await prisma.match.findMany({
       where,
       include: matchIncludes,
       orderBy: { kickoffTime: "asc" },
     });
+    // console.log("query:", query);
+    return query;
   },
 
   findById(id: string) {
@@ -216,9 +220,21 @@ export const matchRepository = {
     });
   },
 
-  markStaleLiveAsFinished(excludeIds: string[]) {
+  markStaleLiveAsFinished(currentLiveApiIds: number[]) {
+    // Convert to numbers in case they come as strings
+    const validApiIds = currentLiveApiIds
+      .map((id) => (typeof id === "string" ? parseInt(id, 10) : id))
+      .filter((id) => !isNaN(id) && id > 0);
+
+    console.log(`[markStale] Excluding ${validApiIds.length} apiFixtureIds`);
+
     return prisma.match.updateMany({
-      where: { status: "LIVE", id: { notIn: excludeIds } },
+      where: {
+        status: "LIVE",
+        ...(validApiIds.length > 0
+          ? { apiFixtureId: { notIn: validApiIds } }
+          : {}),
+      },
       data: { status: "FINISHED" },
     });
   },

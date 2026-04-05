@@ -41,11 +41,13 @@ export const publicController = {
   },
 
   async getLiveMatches(_req: Request, res: Response) {
-    await matchService.syncLiveFromApi();
-    youtubeService
-      .refreshAllLiveStreams()
-      .catch((e) => console.error("[YouTube] refreshAllLiveStreams error:", e));
+    // await matchService.syncLiveFromApi();
+    // youtubeService
+    //   .refreshAllLiveStreams()
+    //   .catch((e) => console.error("[YouTube] refreshAllLiveStreams error:", e));
     const liveMatches = await matchService.getAll({ status: "LIVE" });
+    // console.log("liveMatches in publicController:", liveMatches);
+    
     res.json(liveMatches);
   },
 

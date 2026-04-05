@@ -27,6 +27,7 @@ import {
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 
 interface ShellProps {
   children: React.ReactNode;
@@ -182,24 +183,14 @@ export function Shell({ children, className }: ShellProps) {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             {/* Logo */}
-            <Link href="/" className="flex items-center gap-3 group">
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl blur-md opacity-50 group-hover:opacity-75 transition-opacity" />
-                <div className="relative w-10 h-10 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg">
-                  <Trophy className="w-6 h-6 text-white" />
-                </div>
-              </div>
-              <div className="hidden sm:block">
-                <div className="font-black text-xl leading-none">
-                  <span className="bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
-                    Flacron
-                  </span>
-                  <br />
-                  <span className="text-sm bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-                    GameZone
-                  </span>
-                </div>
-              </div>
+            <Link href="/" className="flex items-center gap-3  group">
+              <Image
+                src="/logo.png"
+                width={64}
+                height={64}
+                alt="flacron-logo"
+                className="object-contain h-full w-auto"
+              />
             </Link>
 
             {/* Desktop Nav */}

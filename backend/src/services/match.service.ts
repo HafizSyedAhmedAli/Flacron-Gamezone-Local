@@ -340,42 +340,45 @@ export const matchService = {
   async syncLiveFromApi(): Promise<string[]> {
     const apiData = await footballApiService.getLiveFixturesCached();
     const fixtures = apiData?.response ?? [];
+
+    console.log(
+      `[syncLiveFromApi] Total fixtures from API: ${fixtures.length}`,
+    );
+
     const liveMatchIds: string[] = [];
+    let processed = 0;
 
     for (const fixture of fixtures) {
       try {
         const fixtureId = fixture.fixture?.id;
         if (!fixtureId) continue;
 
-        const leagueData = fixture.league;
-        const league = leagueData?.id
+        const home = fixture.teams?.home;
+        const away = fixture.teams?.away;
+        if (!home?.id || !away?.id) continue;
+
+        const league = fixture.league?.id
           ? await leagueRepository.upsertByApiId({
-              apiLeagueId: leagueData.id,
-              name: leagueData.name ?? "Unknown League",
-              country: leagueData.country,
-              logo: leagueData.logo,
+              apiLeagueId: fixture.league.id,
+              name: fixture.league.name ?? "Unknown",
+              country: fixture.league.country,
+              logo: fixture.league.logo,
             })
           : null;
 
-        const homeTeamData = fixture.teams?.home;
-        const homeTeam = homeTeamData?.id
-          ? await teamRepository.upsertByApiId({
-              apiTeamId: homeTeamData.id,
-              name: homeTeamData.name ?? "Unknown Home",
-              logo: homeTeamData.logo,
-              leagueId: league?.id ?? null,
-            })
-          : null;
+        const homeTeam = await teamRepository.upsertByApiId({
+          apiTeamId: home.id,
+          name: home.name ?? "Unknown",
+          logo: home.logo,
+          leagueId: league?.id ?? null,
+        });
 
-        const awayTeamData = fixture.teams?.away;
-        const awayTeam = awayTeamData?.id
-          ? await teamRepository.upsertByApiId({
-              apiTeamId: awayTeamData.id,
-              name: awayTeamData.name ?? "Unknown Away",
-              logo: awayTeamData.logo,
-              leagueId: league?.id ?? null,
-            })
-          : null;
+        const awayTeam = await teamRepository.upsertByApiId({
+          apiTeamId: away.id,
+          name: away.name ?? "Unknown",
+          logo: away.logo,
+          leagueId: league?.id ?? null,
+        });
 
         if (homeTeam && awayTeam) {
           const match = await matchRepository.upsertByApiFixtureId(
@@ -395,17 +398,36 @@ export const matchService = {
               score: `${fixture.goals?.home ?? 0}-${fixture.goals?.away ?? 0}`,
             },
           );
-          liveMatchIds.push(match.id);
+
+          if (match?.id) {
+            liveMatchIds.push(match.id);
+            processed++;
+          }
         }
       } catch (err) {
         console.error(
-          `[matchService] Error syncing fixture ${fixture.fixture?.id}:`,
+          `[syncLiveFromApi] Error on fixture ${fixture.fixture?.id}:`,
           err,
         );
       }
     }
 
-    await matchRepository.markStaleLiveAsFinished(liveMatchIds);
+    console.log(
+      `[syncLiveFromApi] Successfully processed ${processed} fixtures → ${liveMatchIds.length} live matches`,
+    );
+
+    // Get the list of apiFixtureIds that are currently live
+    const currentLiveApiIds = fixtures
+      .map((f: { fixture: { id: any; }; }) => f.fixture?.id)
+      .filter((id: any): id is number => typeof id === "number");
+
+    const result =
+      await matchRepository.markStaleLiveAsFinished(currentLiveApiIds);
+
+    console.log(
+      `[syncLiveFromApi] Marked ${result.count} stale LIVE matches as FINISHED`,
+    );
+
     return liveMatchIds;
   },
 };
