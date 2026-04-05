@@ -59,15 +59,16 @@ export function MatchesClient({ initialMatches }: MatchesClientProps) {
   const [error, setError] = useState<string | null>(null);
 
   // Re-fetch on client for freshness (optional, remove if ISR is sufficient)
-  useEffect(() => {
-    fetchMatches();
-  }, []);
+  // useEffect(() => {
+  //   fetchMatches();
+  // }, []);
 
   async function fetchMatches() {
     try {
       setLoading(true);
       setError(null);
       const data = await apiGet<Match[]>("/api/matches");
+      console.log("data:", data);
       setAllMatches(data || []);
     } catch (err) {
       console.error("Error fetching matches:", err);

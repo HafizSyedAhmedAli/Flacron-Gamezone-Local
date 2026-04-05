@@ -147,7 +147,7 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
       setErr("");
       setSuccessMsg("");
 
-      const response = await apiPost<AISummary>("/api/ai/match-preview", {
+      const response = await apiPost<AISummary>("/api/ai/preview", {
         matchId,
         language: lang,
       });
@@ -178,7 +178,7 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
       setErr("");
       setSuccessMsg("");
 
-      const response = await apiPost<AISummary>("/api/ai/match-summary", {
+      const response = await apiPost<AISummary>("/api/ai/summary", {
         matchId,
         language: lang,
       });
