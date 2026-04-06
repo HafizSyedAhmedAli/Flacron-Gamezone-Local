@@ -139,7 +139,7 @@ router.post(
   "/streams/bulk-youtube-search",
   asyncHandler(adminStreamController.bulkYoutubeSearch),
 );
-router.get("streams/:matchId", asyncHandler(adminStreamController.getByMatch));
+router.get("/streams/:matchId", asyncHandler(adminStreamController.getByMatch));
 router.put(
   "/streams/:matchId",
   validateBody(streamUpdateSchema),

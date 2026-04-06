@@ -109,7 +109,7 @@ export function MatchDetailClient({ initialMatch, matchId }: Props) {
     if (!isPremium) return;
     try {
       const data = await apiGet<AISummary[]>(
-        `/api/ai/match/${matchId}?language=${lang}`,
+        `/api/ai/${matchId}?language=${lang}`,
       );
       if (data && match) {
         setMatch((prev) => (prev ? { ...prev, aiTexts: data } : prev));
