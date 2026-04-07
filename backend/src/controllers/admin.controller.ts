@@ -11,9 +11,16 @@ import { streamRepository } from "../repositories/stream.repository.js";
 import { userRepository } from "../repositories/user.repository.js";
 
 function pagination(req: Request) {
+  const rawPage = Number.parseInt(String(req.query.page ?? "1"), 10);
+  const rawLimit = Number.parseInt(String(req.query.limit ?? "100"), 10);
+  const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+  const limit =
+    Number.isFinite(rawLimit) && rawLimit > 0
+      ? Math.min(rawLimit, 100)
+      : 100;
   return {
-    page: parseInt(req.query.page as string) || 1,
-    limit: parseInt(req.query.limit as string) || 100,
+    page,
+    limit,
   };
 }
 
@@ -136,8 +143,11 @@ export const adminMatchController = {
   },
 
   async getSaved(req: Request, res: Response) {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const rawPage = Number.parseInt(String(req.query.page ?? "1"), 10);
+    const rawLimit = Number.parseInt(String(req.query.limit ?? "10"), 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const limit =
+      Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 10;
     const status = req.query.status as string | undefined;
     const leagueId = req.query.leagueId as string | undefined;
 
@@ -264,8 +274,11 @@ export const adminAiController = {
 
 export const adminUserController = {
   async getAll(req: Request, res: Response) {
-    const page = parseInt(req.query.page as string) || 1;
-    const limit = parseInt(req.query.limit as string) || 10;
+    const rawPage = Number.parseInt(String(req.query.page ?? "1"), 10);
+    const rawLimit = Number.parseInt(String(req.query.limit ?? "10"), 10);
+    const page = Number.isFinite(rawPage) && rawPage > 0 ? rawPage : 1;
+    const limit =
+      Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 100) : 10;
     const search =
       typeof req.query.search === "string"
         ? req.query.search.trim()

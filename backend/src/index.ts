@@ -2,13 +2,14 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
-import { config } from "./config/index.js";
+import { config, validateConfig } from "./config/index.js";
 import router from "./routes/index.js";
 import { errorHandler } from "./middleware/error.middleware.js";
 import { startSyncCron } from "./cron/sync.cron.js";
 import { startAiCron } from "./cron/ai.cron.js";
 
 const app = express();
+validateConfig();
 
 // ─── Security & parsing ───────────────────────────────────────────────────────
 

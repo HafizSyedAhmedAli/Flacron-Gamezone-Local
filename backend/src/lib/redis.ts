@@ -1,11 +1,17 @@
 import { Redis } from "@upstash/redis";
+const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-export const redis = new Redis({
-  url: process.env.UPSTASH_REDIS_REST_URL!,
-  token: process.env.UPSTASH_REDIS_REST_TOKEN!,
-});
+export const redis =
+  redisUrl && redisToken
+    ? new Redis({
+        url: redisUrl,
+        token: redisToken,
+      })
+    : null;
 
 export async function cacheGet<T>(key: string): Promise<T | null> {
+  if (!redis) return null;
   try {
     const value = await redis.get<T>(key);
     return value ?? null;
@@ -20,6 +26,7 @@ export async function cacheSet(
   value: unknown,
   ttlSeconds: number,
 ): Promise<void> {
+  if (!redis) return;
   try {
     await redis.set(key, value, { ex: ttlSeconds });
   } catch (err) {
@@ -28,6 +35,7 @@ export async function cacheSet(
 }
 
 export async function cacheDel(key: string): Promise<void> {
+  if (!redis) return;
   try {
     await redis.del(key);
   } catch (err) {
