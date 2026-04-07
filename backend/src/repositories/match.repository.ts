@@ -234,7 +234,7 @@ export const matchRepository = {
 
     return prisma.match.updateMany({
       where: {
-        status: "LIVE", // ⚠️ DOUBLE CHECK: Is your DB status "LIVE" or "live"?
+        status: "LIVE", 
         ...(validApiIds.length > 0
           ? { apiFixtureId: { notIn: validApiIds } }
           : {}),

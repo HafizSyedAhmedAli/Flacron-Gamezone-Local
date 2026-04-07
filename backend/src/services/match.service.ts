@@ -418,15 +418,16 @@ export const matchService = {
 
     // Get the list of apiFixtureIds that are currently live
     const currentLiveApiIds = fixtures
-      .map((f: { fixture: { id: any; }; }) => f.fixture?.id)
+      .map((f: { fixture: { id: any } }) => f.fixture?.id)
       .filter((id: any): id is number => typeof id === "number");
 
-    const result =
-      await matchRepository.markStaleLiveAsFinished(currentLiveApiIds);
-
-    console.log(
-      `[syncLiveFromApi] Marked ${result.count} stale LIVE matches as FINISHED`,
-    );
+    if (currentLiveApiIds.length > 0) {
+      const result =
+        await matchRepository.markStaleLiveAsFinished(currentLiveApiIds);
+      console.log(
+        `[syncLiveFromApi] Marked ${result.count} stale LIVE matches as FINISHED`,
+      );
+    }
 
     return liveMatchIds;
   },
