@@ -1,6 +1,6 @@
-export const dynamic = 'force-dynamic';
+// web/app/leagues/page.tsx
+export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
-import { apiGet } from "@/shared/api/base";
 import { ErrorState } from "@/shared/ui/LoadingErrorStates";
 import LeaguesClient from "../../page-components/leagues/ui/LeaguesClient";
 import { Trophy, Globe2, Sparkles } from "lucide-react";
@@ -10,10 +10,6 @@ interface League {
   name: string;
   country: string | null;
   logo: string;
-}
-interface LeaguesResponse {
-  success: boolean;
-  leagues: League[];
 }
 
 export const metadata: Metadata = {
@@ -27,9 +23,14 @@ export default async function LeaguesPage() {
   let fetchError: string | null = null;
 
   try {
-    const response = await apiGet<LeaguesResponse>("/api/leagues");
-    if (!response.success) throw new Error("Failed to fetch leagues");
-    leagues = response.leagues ?? [];
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+    const res = await fetch(`${baseUrl}/api/leagues`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Failed to fetch leagues");
+    const data = await res.json();
+    if (!data.success) throw new Error("Failed to fetch leagues");
+    leagues = data.leagues ?? [];
   } catch (error) {
     fetchError =
       error instanceof Error ? error.message : "Failed to load leagues";
