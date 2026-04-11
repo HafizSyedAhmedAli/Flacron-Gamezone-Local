@@ -1,3 +1,4 @@
+export const dynamic = 'force-dynamic';
 import type { Metadata } from "next";
 import { apiGet } from "@/shared/api/base";
 import { ErrorState } from "@/shared/ui/LoadingErrorStates";
