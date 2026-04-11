@@ -29,13 +29,17 @@ export const publicController = {
 
   async getMatches(req: Request, res: Response) {
     const status = String(req.query.status ?? "").toUpperCase() as any;
+    const date = String(req.query.date ?? "").trim();
+    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+    }
     const matches = await matchService.getAll({
       status: ["LIVE", "UPCOMING", "FINISHED"].includes(status)
         ? status
         : undefined,
       leagueId: String(req.query.leagueId ?? "") || undefined,
       teamId: String(req.query.teamId ?? "") || undefined,
-      date: String(req.query.date ?? "") || undefined,
+      date: date || undefined,
     });
     res.json(matches);
   },

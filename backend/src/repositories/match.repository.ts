@@ -30,8 +30,14 @@ export const matchRepository = {
         { awayTeamId: filters.teamId },
       ];
     if (filters.date) {
+      const parsedDate = new Date(filters.date + "T00:00:00.000Z");
+      if (Number.isNaN(parsedDate.getTime())) {
+        throw Object.assign(new Error("Invalid date format. Use YYYY-MM-DD"), {
+          status: 400,
+        });
+      }
       where.kickoffTime = {
-        gte: new Date(filters.date + "T00:00:00.000Z"),
+        gte: parsedDate,
         lte: new Date(filters.date + "T23:59:59.999Z"),
       };
     }
@@ -228,7 +234,7 @@ export const matchRepository = {
 
     return prisma.match.updateMany({
       where: {
-        status: "LIVE", // ⚠️ DOUBLE CHECK: Is your DB status "LIVE" or "live"?
+        status: "LIVE", 
         ...(validApiIds.length > 0
           ? { apiFixtureId: { notIn: validApiIds } }
           : {}),

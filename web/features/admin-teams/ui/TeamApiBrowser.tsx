@@ -134,7 +134,7 @@ export function TeamApiBrowser({
           name: team.name,
           logo: team.logo || undefined,
           apiTeamId: team.apiTeamId,
-          leagueId: league?.id || selectedLeagueId || "",
+          leagueId: selectedLeagueId || "",
         });
         success++;
       } catch {
@@ -270,7 +270,7 @@ export function TeamApiBrowser({
             <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-sm text-green-400">
               ✅ Imported {importResults.success} team(s)
               {importResults.skipped > 0 &&
-                `, ${importResults.skipped} already existed`}
+                `, ${importResults.skipped} failed — ensure the league is imported first`}
             </div>
           )}
 

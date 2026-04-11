@@ -57,7 +57,7 @@ export default function StreamEmbed({
     const poll = async () => {
       try {
         const data = await apiGet<StreamStatusResponse>(
-          `/api/match/${matchId}/stream-status`,
+          `/api/streams/${matchId}/status`,
         );
         if (data.found && data.stream) {
           setStream({
@@ -80,7 +80,7 @@ export default function StreamEmbed({
     setChecking(true);
     try {
       const data = await apiGet<StreamStatusResponse>(
-        `/api/match/${matchId}/stream-status`,
+        `/api/streams/${matchId}/status`,
       );
       if (data.found && data.stream) {
         setStream({

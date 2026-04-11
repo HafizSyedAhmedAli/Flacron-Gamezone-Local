@@ -50,3 +50,17 @@ export const config = {
     apiKey: process.env.YOUTUBE_API_KEY ?? "",
   },
 };
+
+export function validateConfig() {
+  if (config.nodeEnv === "production" && config.jwt.secret === "dev_secret") {
+    throw new Error("JWT_SECRET must be set in production");
+  }
+
+  if (config.port <= 0 || Number.isNaN(config.port)) {
+    throw new Error("PORT must be a valid positive number");
+  }
+
+  if (!config.db.url) {
+    throw new Error("DATABASE_URL is required");
+  }
+}
