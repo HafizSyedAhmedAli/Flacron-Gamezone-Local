@@ -183,9 +183,15 @@ export const matchRepository = {
     limit,
     status,
     leagueId,
-  }: PaginationParams & { status?: string; leagueId?: string }) {
+  }: PaginationParams & {
+    status?: "LIVE" | "UPCOMING" | "FINISHED";
+    leagueId?: string;
+  }) {
     const skip = (page - 1) * limit;
-    const where: any = {};
+    const where: {
+      status?: "LIVE" | "UPCOMING" | "FINISHED";
+      leagueId?: string;
+    } = {};
     if (status) where.status = status;
     if (leagueId) where.leagueId = leagueId;
 

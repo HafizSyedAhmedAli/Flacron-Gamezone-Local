@@ -142,7 +142,7 @@ export function MatchApiBrowser({
     setHasMore(false);
     didInitRef.current = true;
     fetchPage(1, false);
-  }, [isOpen]);
+  }, [isOpen, fetchPage]);
 
   // ── Auto-fetch when filters change (only while open) ───────────────────────
   // We skip the very first run (handled by the open effect above).
@@ -160,9 +160,8 @@ export function MatchApiBrowser({
     setHasMore(false);
     setSelected(new Set());
     fetchPage(1, false);
-  }, [selectedLeagueId, selectedDate, statusFilter]);
+  }, [selectedLeagueId, selectedDate, statusFilter, fetchPage]);
 
-  // Reset the "first run" guard whenever the modal reopens
   useEffect(() => {
     if (isOpen) isFirstFilterRun.current = true;
   }, [isOpen]);

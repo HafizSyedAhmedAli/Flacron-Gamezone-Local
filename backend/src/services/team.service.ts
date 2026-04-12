@@ -184,7 +184,7 @@ export const teamService = {
     if (!config.football.key) return `League ID ${leagueId}`;
     try {
       const { data } = await axios.get(
-        `${config.football.baseUrl}/leagues?id=${leagueId}&season=2024`,
+        `${config.football.baseUrl}/leagues?id=${leagueId}&season=${this._deriveSeasonFromNow()}`,
         {
           headers: { "x-apisports-key": config.football.key },
           timeout: 10_000,
