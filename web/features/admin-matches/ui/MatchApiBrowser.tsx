@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   X,
   Search,
@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { apiGet, apiPost } from "@/shared/api/base";
 import type { League } from "@/entities/league/model/types";
+import { Team } from "@/entities/team";
 
 interface ApiMatch {
   apiFixtureId: number;
@@ -36,6 +37,7 @@ interface MatchApiBrowserProps {
   onClose: () => void;
   onImported: () => void;
   leagues: League[];
+  teams: Team[];
 }
 
 const PAGE_SIZE = 100;
@@ -45,8 +47,8 @@ export function MatchApiBrowser({
   onClose,
   onImported,
   leagues,
+  teams,
 }: MatchApiBrowserProps) {
-  // State
   const [matches, setMatches] = useState<ApiMatch[]>([]);
   const [filtered, setFiltered] = useState<ApiMatch[]>([]);
   const [search, setSearch] = useState("");
@@ -64,11 +66,13 @@ export function MatchApiBrowser({
     success: number;
     skipped: number;
   } | null>(null);
-
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalAvailable, setTotalAvailable] = useState<number | null>(null);
+
+  // Track whether this is the very first mount after opening so we don't
+  // double-fetch when the filter-change effect also fires on open.
+  const didInitRef = useRef(false);
 
   const fetchPage = useCallback(
     async (page: number, append: boolean) => {
@@ -122,18 +126,48 @@ export function MatchApiBrowser({
     [selectedLeagueId, selectedDate, statusFilter],
   );
 
+  // ── Open / close: reset state ───────────────────────────────────────────────
   useEffect(() => {
-    if (isOpen) {
-      setSelected(new Set());
-      setSearch("");
-      setImportResults(null);
-      setMatches([]);
-      setFiltered([]);
-      setCurrentPage(1);
-      fetchPage(1, false);
+    if (!isOpen) {
+      didInitRef.current = false;
+      return;
     }
-  }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
+    // Reset on open
+    setSelected(new Set());
+    setSearch("");
+    setImportResults(null);
+    setMatches([]);
+    setFiltered([]);
+    setCurrentPage(1);
+    setHasMore(false);
+    didInitRef.current = true;
+    fetchPage(1, false);
+  }, [isOpen]);
 
+  // ── Auto-fetch when filters change (only while open) ───────────────────────
+  // We skip the very first run (handled by the open effect above).
+  const isFirstFilterRun = useRef(true);
+  useEffect(() => {
+    if (isFirstFilterRun.current) {
+      isFirstFilterRun.current = false;
+      return;
+    }
+    if (!isOpen) return;
+
+    setMatches([]);
+    setFiltered([]);
+    setCurrentPage(1);
+    setHasMore(false);
+    setSelected(new Set());
+    fetchPage(1, false);
+  }, [selectedLeagueId, selectedDate, statusFilter]);
+
+  // Reset the "first run" guard whenever the modal reopens
+  useEffect(() => {
+    if (isOpen) isFirstFilterRun.current = true;
+  }, [isOpen]);
+
+  // ── Client-side text search ────────────────────────────────────────────────
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(
@@ -148,6 +182,7 @@ export function MatchApiBrowser({
     );
   }, [search, matches]);
 
+  // ── Helpers ────────────────────────────────────────────────────────────────
   const toggleSelect = (id: number) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -165,7 +200,6 @@ export function MatchApiBrowser({
     }
   };
 
-  const handleFetch = () => fetchPage(1, false);
   const handleLoadMore = () => fetchPage(currentPage + 1, true);
 
   const mapStatus = (apiStatus: string): "UPCOMING" | "LIVE" | "FINISHED" => {
@@ -181,31 +215,44 @@ export function MatchApiBrowser({
     setError(null);
     let success = 0;
     let skipped = 0;
-    let missingLeagues: string[] = [];
+    const missingLeagues: string[] = [];
+    const missingTeams: string[] = [];
 
     for (const id of selected) {
       const match = matches.find((m) => m.apiFixtureId === id);
       if (!match) continue;
 
-      // Safe matching using apiLeagueId
       const league = leagues.find(
         (l) => String(l.apiLeagueId) === String(match.leagueId),
       );
 
+      const homeTeam = teams.find((h) => h.apiTeamId === match.homeTeam.id);
+      const awayTeam = teams.find((h) => h.apiTeamId === match.awayTeam.id);
+
       if (!league) {
-        if (!missingLeagues.includes(match.leagueName)) {
+        if (!missingLeagues.includes(match.leagueName))
           missingLeagues.push(match.leagueName);
+        skipped++;
+        continue;
+      }
+
+      if (!homeTeam || !awayTeam) {
+        if (!homeTeam && !missingTeams.includes(match.homeTeam.name)) {
+          missingTeams.push(match.homeTeam.name);
+        }
+        if (!awayTeam && !missingTeams.includes(match.awayTeam.name)) {
+          missingTeams.push(match.awayTeam.name);
         }
         skipped++;
-        continue; // Skip this match but continue the loop
+        continue;
       }
 
       try {
         await apiPost("/api/admin/matches", {
           apiFixtureId: match.apiFixtureId,
           leagueId: league.id,
-          homeTeamId: String(match.homeTeam.id),
-          awayTeamId: String(match.awayTeam.id),
+          homeTeamId: String(homeTeam.id),
+          awayTeamId: String(awayTeam.id),
           kickoffTime: match.kickoffTime,
           status: mapStatus(match.status),
           score: match.score || null,
@@ -220,9 +267,18 @@ export function MatchApiBrowser({
     setImporting(false);
     setImportResults({ success, skipped });
 
-    if (missingLeagues.length > 0) {
+    if (missingLeagues.length > 0 || missingTeams.length > 0) {
+      const leagueMsg =
+        missingLeagues.length > 0
+          ? `Leagues to add: ${missingLeagues.join(", ")}`
+          : "";
+      const teamMsg =
+        missingTeams.length > 0
+          ? `Teams to add: ${missingTeams.join(", ")}`
+          : "";
+
       setError(
-        `Partial completion. Add these leagues to your database first: ${missingLeagues.join(", ")}`,
+        `Partial completion. Please add the following to your database: ${[leagueMsg, teamMsg].filter(Boolean).join(" | ")}`,
       );
     }
 
@@ -266,10 +322,8 @@ export function MatchApiBrowser({
               <h2 className="text-lg font-bold">Import Matches from API</h2>
               <p className="text-xs text-slate-500">
                 {loading
-                  ? "Fetching..."
-                  : totalAvailable
-                    ? ``
-                    : `${matches.length} matches loaded`}
+                  ? "Fetching…"
+                  : `${matches.length} matches loaded${totalAvailable ? ` of ${totalAvailable}` : ""}`}
               </p>
             </div>
           </div>
@@ -282,7 +336,7 @@ export function MatchApiBrowser({
           </button>
         </div>
 
-        {/* Filters */}
+        {/* Filters — changes auto-trigger a new fetch */}
         <div className="p-4 border-b border-slate-700/30 flex-shrink-0 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div>
@@ -311,14 +365,14 @@ export function MatchApiBrowser({
             </div>
             <div className="col-span-2">
               <label className="block text-xs text-slate-500 mb-1">
-                League Filter
+                League{" "}
               </label>
               <select
                 value={selectedLeagueId}
                 onChange={(e) => setSelectedLeagueId(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm"
               >
-                <option value="">All Leagues</option>
+                <option value="">All Leagues (today)</option>
                 {leagues
                   .filter((l) => l.apiLeagueId)
                   .map((l) => (
@@ -329,27 +383,30 @@ export function MatchApiBrowser({
               </select>
             </div>
           </div>
+
+          {/* Text search + manual refresh */}
           <div className="flex gap-3">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search team or league..."
+                placeholder="Search team or league…"
                 className="w-full pl-9 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm"
               />
             </div>
             <button
-              onClick={handleFetch}
+              onClick={() => fetchPage(1, false)}
               disabled={loading}
               className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium flex items-center gap-2"
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />{" "}
-              Fetch
+              />
+              Refresh
             </button>
           </div>
+
           <div className="flex items-center justify-between text-sm">
             <button
               onClick={toggleAll}
@@ -373,7 +430,7 @@ export function MatchApiBrowser({
           {loading && (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-8 h-8 text-green-400 animate-spin" />
-              <p className="text-sm text-slate-400">Fetching matches...</p>
+              <p className="text-sm text-slate-400">Fetching matches…</p>
             </div>
           )}
 
@@ -386,10 +443,24 @@ export function MatchApiBrowser({
 
           {importResults && (
             <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-sm text-green-400">
-              ✅ Imported {importResults.success} match(es){" "}
+              ✅ Imported {importResults.success} match(es)
               {importResults.skipped > 0 &&
                 `, ${importResults.skipped} skipped`}
             </div>
+          )}
+
+          {!loading && filtered.length === 0 && matches.length > 0 && (
+            <p className="text-center py-8 text-slate-500">
+              No matches match your search
+            </p>
+          )}
+
+          {!loading && matches.length === 0 && !error && (
+            <p className="text-center py-8 text-slate-500">
+              {selectedLeagueId
+                ? "No matches found for this league. Try changing the date or status filter."
+                : "No matches found. Try a different date."}
+            </p>
           )}
 
           <div className="space-y-2">
@@ -407,9 +478,9 @@ export function MatchApiBrowser({
                   }`}
                 >
                   {isSelected ? (
-                    <CheckSquare className="w-4 h-4 text-green-400" />
+                    <CheckSquare className="w-4 h-4 text-green-400 flex-shrink-0" />
                   ) : (
-                    <Square className="w-4 h-4 text-slate-600" />
+                    <Square className="w-4 h-4 text-slate-600 flex-shrink-0" />
                   )}
                   <div className="flex items-center gap-2 flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 min-w-[120px]">
@@ -440,8 +511,8 @@ export function MatchApiBrowser({
                       </span>
                     </div>
                   </div>
-                  <div className="hidden sm:flex items-center gap-3">
-                    <span className="text-xs text-slate-500">
+                  <div className="hidden sm:flex items-center gap-3 flex-shrink-0">
+                    <span className="text-xs text-slate-500 truncate max-w-[120px]">
                       {match.leagueName}
                     </span>
                     <span
@@ -490,7 +561,7 @@ export function MatchApiBrowser({
           <button
             onClick={handleImport}
             disabled={importing || selected.size === 0}
-            className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium"
+            className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium disabled:opacity-50"
           >
             {importing ? (
               <Loader2 className="w-4 h-4 animate-spin" />

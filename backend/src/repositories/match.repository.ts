@@ -20,7 +20,6 @@ export const matchRepository = {
     teamId?: string;
     date?: string;
   }) {
-    // console.log("filters:", filters);
     const where: any = {};
     if (filters.status) where.status = filters.status;
     if (filters.leagueId) where.leagueId = filters.leagueId;
@@ -41,14 +40,11 @@ export const matchRepository = {
         lte: new Date(filters.date + "T23:59:59.999Z"),
       };
     }
-    // console.log("where:", where);
-    const query = await prisma.match.findMany({
+    return prisma.match.findMany({
       where,
       include: matchIncludes,
       orderBy: { kickoffTime: "asc" },
     });
-    // console.log("query:", query);
-    return query;
   },
 
   findById(id: string) {
@@ -181,16 +177,27 @@ export const matchRepository = {
     };
   },
 
-  findPaginated({ page, limit }: PaginationParams) {
+  // ─── FIXED: now respects status and leagueId filters ────────────────────────
+  findPaginated({
+    page,
+    limit,
+    status,
+    leagueId,
+  }: PaginationParams & { status?: string; leagueId?: string }) {
     const skip = (page - 1) * limit;
+    const where: any = {};
+    if (status) where.status = status;
+    if (leagueId) where.leagueId = leagueId;
+
     return Promise.all([
       prisma.match.findMany({
+        where,
         include: { league: true, homeTeam: true, awayTeam: true, stream: true },
         orderBy: { kickoffTime: "desc" },
         skip,
         take: limit,
       }),
-      prisma.match.count(),
+      prisma.match.count({ where }),
     ]);
   },
 
@@ -227,14 +234,10 @@ export const matchRepository = {
   },
 
   markStaleLiveAsFinished(currentLiveApiIds: number[]) {
-    // Since the caller already filters for numbers, we just ensure they are valid (> 0)
     const validApiIds = currentLiveApiIds.filter((id) => id > 0);
-
-    console.log(`[markStale] Excluding ${validApiIds.length} apiFixtureIds`);
-
     return prisma.match.updateMany({
       where: {
-        status: "LIVE", 
+        status: "LIVE",
         ...(validApiIds.length > 0
           ? { apiFixtureId: { notIn: validApiIds } }
           : {}),

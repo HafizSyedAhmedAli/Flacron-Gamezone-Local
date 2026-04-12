@@ -50,13 +50,23 @@ export const teamService = {
     const skip = (params.page - 1) * params.limit;
     return {
       data,
-      pagination: { page: params.page, limit: params.limit, total, hasMore: skip + data.length < total },
+      pagination: {
+        page: params.page,
+        limit: params.limit,
+        total,
+        hasMore: skip + data.length < total,
+      },
     };
   },
 
-  async create(data: { name: string; logo?: string; apiTeamId?: number; leagueId: string }) {
+  async create(data: {
+    name: string;
+    logo?: string;
+    apiTeamId?: number;
+    leagueId: string;
+  }) {
     const existing = await teamRepository.findFirst(
-      data.apiTeamId ? { apiTeamId: data.apiTeamId } : { name: data.name }
+      data.apiTeamId ? { apiTeamId: data.apiTeamId } : { name: data.name },
     );
     if (existing)
       throw Object.assign(new Error("Team already added"), { status: 400 });
@@ -64,20 +74,31 @@ export const teamService = {
     const league = await leagueRepository.findByApiId(Number(data.leagueId));
     if (!league) {
       const leagueName = await this._fetchLeagueName(data.leagueId);
-      throw Object.assign(new Error(`Add ${leagueName} as League First!`), { status: 404 });
+      throw Object.assign(new Error(`Add ${leagueName} as League First!`), {
+        status: 404,
+      });
     }
 
-    return teamRepository.create({ ...data, logo: data.logo ?? null, leagueId: league.id });
+    return teamRepository.create({
+      ...data,
+      logo: data.logo ?? null,
+      leagueId: league.id,
+    });
   },
 
   async update(
     id: string,
-    data: Partial<{ name: string; logo: string; apiTeamId: number; leagueId: string }>
+    data: Partial<{
+      name: string;
+      logo: string;
+      apiTeamId: number;
+      leagueId: string;
+    }>,
   ) {
     return teamRepository.update(id, {
       ...data,
-      logo: data.logo === "" ? null : data.logo ?? undefined,
-      leagueId: data.leagueId === "" ? null : data.leagueId ?? undefined,
+      logo: data.logo === "" ? null : (data.logo ?? undefined),
+      leagueId: data.leagueId === "" ? null : (data.leagueId ?? undefined),
     });
   },
 
@@ -90,17 +111,23 @@ export const teamService = {
       ? `${TEAMS_CACHE_KEY}:league:${leagueId}`
       : TEAMS_CACHE_KEY;
     const cached = await cacheGet<any[]>(cacheKey);
-    const allTeams = cached ?? (await this._fetchAndCacheFromApi(leagueId, cacheKey));
+    const allTeams =
+      cached ?? (await this._fetchAndCacheFromApi(leagueId, cacheKey));
     return this._paginate(allTeams, page, limit);
   },
 
-  async _fetchAndCacheFromApi(leagueId: string | null, cacheKey: string): Promise<any[]> {
+  async _fetchAndCacheFromApi(
+    leagueId: string | null,
+    cacheKey: string,
+  ): Promise<any[]> {
     if (!config.football.key)
-      throw Object.assign(new Error("Football API key not configured"), { status: 500 });
+      throw Object.assign(new Error("Football API key not configured"), {
+        status: 500,
+      });
 
     const url = leagueId
-      ? `${config.football.baseUrl}/teams?league=${leagueId}&season=2024`
-      : `${config.football.baseUrl}/teams?league=39&season=2024`;
+      ? `${config.football.baseUrl}/teams?league=${leagueId}&season=${this._deriveSeasonFromNow()}`
+      : `${config.football.baseUrl}/teams?league=39&season=${this._deriveSeasonFromNow()}`;
 
     const { data } = await axios.get(url, {
       headers: { "x-apisports-key": config.football.key },
@@ -127,17 +154,22 @@ export const teamService = {
 
   async _fetchTeamsFromSportMonks(leagueId: string | null): Promise<any[]> {
     if (!config.football.sportMonksKey)
-      throw Object.assign(new Error("Backup Football API key not configured"), { status: 500 });
+      throw Object.assign(new Error("Backup Football API key not configured"), {
+        status: 500,
+      });
 
-    const { data } = await axios.get(`${config.football.sportMonksBaseUrl}/teams`, {
-      params: {
-        api_token: config.football.sportMonksKey,
-        include: "country",
-        ...(leagueId && { league_id: leagueId }),
+    const { data } = await axios.get(
+      `${config.football.sportMonksBaseUrl}/teams`,
+      {
+        params: {
+          api_token: config.football.sportMonksKey,
+          include: "country",
+          ...(leagueId && { league_id: leagueId }),
+        },
+        headers: { Accept: "application/json" },
+        timeout: 10_000,
       },
-      headers: { Accept: "application/json" },
-      timeout: 10_000,
-    });
+    );
 
     return data.data.map((team: any) => ({
       apiTeamId: team.id,
@@ -153,7 +185,10 @@ export const teamService = {
     try {
       const { data } = await axios.get(
         `${config.football.baseUrl}/leagues?id=${leagueId}&season=2024`,
-        { headers: { "x-apisports-key": config.football.key }, timeout: 10_000 }
+        {
+          headers: { "x-apisports-key": config.football.key },
+          timeout: 10_000,
+        },
       );
       return data.response?.[0]?.league?.name ?? `League ID ${leagueId}`;
     } catch {
@@ -161,12 +196,24 @@ export const teamService = {
     }
   },
 
+  _deriveSeasonFromNow(): number {
+    const today = new Date();
+    return today.getMonth() >= 6
+      ? today.getFullYear()
+      : today.getFullYear() - 1;
+  },
+
   _paginate<T>(arr: T[], page: number, limit: number) {
     const startIndex = (page - 1) * limit;
     const endIndex = startIndex + limit;
     return {
       data: arr.slice(startIndex, endIndex),
-      pagination: { page, limit, total: arr.length, hasMore: endIndex < arr.length },
+      pagination: {
+        page,
+        limit,
+        total: arr.length,
+        hasMore: endIndex < arr.length,
+      },
     };
   },
 };

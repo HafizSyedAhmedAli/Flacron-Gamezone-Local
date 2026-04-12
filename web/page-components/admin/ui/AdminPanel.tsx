@@ -620,6 +620,7 @@ export function AdminPanel() {
                   showMessage("Matches imported successfully");
                 }}
                 leagues={leagues}
+                teams={teams}
               />
             </>
           )}
