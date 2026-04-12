@@ -11,7 +11,7 @@ import {
   AlertCircle,
   RefreshCw,
   Calendar,
-  Filter,
+  ChevronDown,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/shared/api/base";
 import type { League } from "@/entities/league/model/types";
@@ -38,12 +38,15 @@ interface MatchApiBrowserProps {
   leagues: League[];
 }
 
+const PAGE_SIZE = 100;
+
 export function MatchApiBrowser({
   isOpen,
   onClose,
   onImported,
   leagues,
 }: MatchApiBrowserProps) {
+  // State
   const [matches, setMatches] = useState<ApiMatch[]>([]);
   const [filtered, setFiltered] = useState<ApiMatch[]>([]);
   const [search, setSearch] = useState("");
@@ -53,6 +56,7 @@ export function MatchApiBrowser({
   );
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -61,31 +65,62 @@ export function MatchApiBrowser({
     skipped: number;
   } | null>(null);
 
-  const fetchMatches = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setImportResults(null);
-    try {
-      const params = new URLSearchParams({ page: "1", limit: "200" });
-      if (selectedLeagueId) params.set("leagueId", selectedLeagueId);
-      if (selectedDate) params.set("date", selectedDate);
-      if (statusFilter) params.set("status", statusFilter);
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalAvailable, setTotalAvailable] = useState<number | null>(null);
 
-      const data = await apiGet<{
-        success: boolean;
-        matches: ApiMatch[];
-        total: number;
-      }>(`/api/admin/matches/api?${params}`);
-      const items = data.matches ?? [];
-      setMatches(items);
-      setFiltered(items);
-      setSelected(new Set());
-    } catch (e: any) {
-      setError(e?.message || "Failed to fetch matches from Football API");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedLeagueId, selectedDate, statusFilter]);
+  const fetchPage = useCallback(
+    async (page: number, append: boolean) => {
+      if (page === 1) setLoading(true);
+      else setLoadingMore(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(PAGE_SIZE),
+        });
+        if (selectedLeagueId) params.set("leagueId", selectedLeagueId);
+        if (selectedDate) params.set("date", selectedDate);
+        if (statusFilter) params.set("status", statusFilter);
+
+        const data = await apiGet<{
+          success: boolean;
+          matches: ApiMatch[];
+          pagination?: { total: number; hasMore: boolean };
+          total?: number;
+        }>(`/api/admin/matches/api?${params}`);
+
+        const items = data.matches ?? [];
+        const total = data.pagination?.total ?? data.total ?? null;
+
+        if (append) {
+          setMatches((prev) => {
+            const existing = new Set(prev.map((m) => m.apiFixtureId));
+            return [
+              ...prev,
+              ...items.filter((m) => !existing.has(m.apiFixtureId)),
+            ];
+          });
+        } else {
+          setMatches(items);
+          setImportResults(null);
+          setSelected(new Set());
+        }
+
+        setHasMore(data.pagination?.hasMore ?? items.length === PAGE_SIZE);
+        setTotalAvailable(total);
+        setCurrentPage(page);
+      } catch (e: any) {
+        setError(e?.message || "Failed to fetch matches from Football API");
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [selectedLeagueId, selectedDate, statusFilter],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -94,7 +129,8 @@ export function MatchApiBrowser({
       setImportResults(null);
       setMatches([]);
       setFiltered([]);
-      fetchMatches();
+      setCurrentPage(1);
+      fetchPage(1, false);
     }
   }, [isOpen]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -129,6 +165,9 @@ export function MatchApiBrowser({
     }
   };
 
+  const handleFetch = () => fetchPage(1, false);
+  const handleLoadMore = () => fetchPage(currentPage + 1, true);
+
   const mapStatus = (apiStatus: string): "UPCOMING" | "LIVE" | "FINISHED" => {
     if (["1H", "HT", "2H", "ET", "P", "LIVE", "INT"].includes(apiStatus))
       return "LIVE";
@@ -142,22 +181,35 @@ export function MatchApiBrowser({
     setError(null);
     let success = 0;
     let skipped = 0;
+    let missingLeagues: string[] = [];
 
     for (const id of selected) {
       const match = matches.find((m) => m.apiFixtureId === id);
       if (!match) continue;
+
+      // Safe matching using apiLeagueId
+      const league = leagues.find(
+        (l) => String(l.apiLeagueId) === String(match.leagueId),
+      );
+
+      if (!league) {
+        if (!missingLeagues.includes(match.leagueName)) {
+          missingLeagues.push(match.leagueName);
+        }
+        skipped++;
+        continue; // Skip this match but continue the loop
+      }
+
       try {
-        // Find the stored league
-        const league = leagues.find((l) => l.apiLeagueId === match.leagueId);
         await apiPost("/api/admin/matches", {
           apiFixtureId: match.apiFixtureId,
-          leagueId: league?.id || undefined,
+          leagueId: league.id,
           homeTeamId: String(match.homeTeam.id),
           awayTeamId: String(match.awayTeam.id),
           kickoffTime: match.kickoffTime,
           status: mapStatus(match.status),
-          score: match.score || undefined,
-          venue: match.venue || undefined,
+          score: match.score || null,
+          venue: match.venue || null,
         });
         success++;
       } catch {
@@ -167,6 +219,13 @@ export function MatchApiBrowser({
 
     setImporting(false);
     setImportResults({ success, skipped });
+
+    if (missingLeagues.length > 0) {
+      setError(
+        `Partial completion. Add these leagues to your database first: ${missingLeagues.join(", ")}`,
+      );
+    }
+
     setSelected(new Set());
     if (success > 0) onImported();
   };
@@ -188,11 +247,6 @@ export function MatchApiBrowser({
     LIVE: "bg-red-500/20 text-red-400",
     FINISHED: "bg-green-500/20 text-green-400",
     UPCOMING: "bg-blue-500/20 text-blue-400",
-    "1H": "bg-red-500/20 text-red-400",
-    "2H": "bg-red-500/20 text-red-400",
-    HT: "bg-yellow-500/20 text-yellow-400",
-    FT: "bg-green-500/20 text-green-400",
-    NS: "bg-blue-500/20 text-blue-400",
   };
 
   return (
@@ -211,16 +265,18 @@ export function MatchApiBrowser({
             <div>
               <h2 className="text-lg font-bold">Import Matches from API</h2>
               <p className="text-xs text-slate-500">
-                {matches.length > 0
-                  ? `${matches.length} matches found`
-                  : "Configure filters and fetch matches"}
+                {loading
+                  ? "Fetching..."
+                  : totalAvailable
+                    ? ``
+                    : `${matches.length} matches loaded`}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             disabled={importing}
-            className="p-2 hover:bg-slate-800 rounded-lg transition-colors disabled:opacity-50"
+            className="p-2 hover:bg-slate-800 rounded-lg transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -229,23 +285,23 @@ export function MatchApiBrowser({
         {/* Filters */}
         <div className="p-4 border-b border-slate-700/30 flex-shrink-0 space-y-3">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="col-span-2 sm:col-span-1">
+            <div>
               <label className="block text-xs text-slate-500 mb-1">Date</label>
               <input
                 type="date"
                 value={selectedDate}
                 onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm focus:outline-none focus:border-green-500/50"
+                className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm"
               />
             </div>
-            <div className="col-span-2 sm:col-span-1">
+            <div>
               <label className="block text-xs text-slate-500 mb-1">
                 Status
               </label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm focus:outline-none focus:border-green-500/50"
+                className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm"
               >
                 <option value="">All</option>
                 <option value="UPCOMING">Upcoming</option>
@@ -260,11 +316,11 @@ export function MatchApiBrowser({
               <select
                 value={selectedLeagueId}
                 onChange={(e) => setSelectedLeagueId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm focus:outline-none focus:border-green-500/50"
+                className="w-full px-3 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm"
               >
                 <option value="">All Leagues</option>
                 {leagues
-                  .filter((l) => l.apiLeagueId != null)
+                  .filter((l) => l.apiLeagueId)
                   .map((l) => (
                     <option key={l.id} value={String(l.apiLeagueId)}>
                       {l.name}
@@ -279,18 +335,18 @@ export function MatchApiBrowser({
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search team or league…"
-                className="w-full pl-9 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm focus:outline-none focus:border-green-500/50"
+                placeholder="Search team or league..."
+                className="w-full pl-9 pr-4 py-2 bg-slate-800/50 border border-slate-700/50 rounded-xl text-sm"
               />
             </div>
             <button
-              onClick={fetchMatches}
+              onClick={handleFetch}
               disabled={loading}
-              className="px-4 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-900/50 disabled:opacity-50 rounded-xl text-sm font-medium transition-all flex items-center gap-2"
+              className="px-4 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium flex items-center gap-2"
             >
               <RefreshCw
                 className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
-              />
+              />{" "}
               Fetch
             </button>
           </div>
@@ -298,7 +354,7 @@ export function MatchApiBrowser({
             <button
               onClick={toggleAll}
               disabled={loading || filtered.length === 0}
-              className="flex items-center gap-2 text-slate-400 hover:text-white transition-colors disabled:opacity-40"
+              className="flex items-center gap-2 text-slate-400 hover:text-white"
             >
               {allFilteredSelected ? (
                 <CheckSquare className="w-4 h-4 text-green-400" />
@@ -317,122 +373,107 @@ export function MatchApiBrowser({
           {loading && (
             <div className="flex flex-col items-center justify-center py-16 gap-3">
               <Loader2 className="w-8 h-8 text-green-400 animate-spin" />
-              <p className="text-sm text-slate-400">Fetching matches…</p>
+              <p className="text-sm text-slate-400">Fetching matches...</p>
             </div>
           )}
 
-          {error && !loading && (
-            <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm text-red-400 font-medium">{error}</p>
-                <button
-                  onClick={fetchMatches}
-                  className="mt-2 flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200 transition-colors"
-                >
-                  <RefreshCw className="w-3.5 h-3.5" /> Retry
-                </button>
-              </div>
+          {error && (
+            <div className="flex items-start gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-xl mb-4">
+              <AlertCircle className="w-5 h-5 text-red-400 mt-0.5" />
+              <p className="text-sm text-red-400 font-medium">{error}</p>
             </div>
           )}
 
           {importResults && (
             <div className="mb-4 p-3 bg-green-500/10 border border-green-500/30 rounded-xl text-sm text-green-400">
-              ✅ Imported {importResults.success} match(es)
+              ✅ Imported {importResults.success} match(es){" "}
               {importResults.skipped > 0 &&
-                `, ${importResults.skipped} already existed or failed`}
+                `, ${importResults.skipped} skipped`}
             </div>
           )}
 
-          {!loading && !error && filtered.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
-              {matches.length === 0
-                ? "Click Fetch to load matches from the Football API"
-                : "No matches found for the current filters"}
-            </div>
-          )}
-
-          {!loading && filtered.length > 0 && (
-            <div className="space-y-2">
-              {filtered.map((match) => {
-                const isSelected = selected.has(match.apiFixtureId);
-                const mappedStatus = mapStatus(match.status);
-                return (
-                  <button
-                    key={match.apiFixtureId}
-                    onClick={() => toggleSelect(match.apiFixtureId)}
-                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all duration-150 ${
-                      isSelected
-                        ? "bg-green-500/10 border-green-500/40"
-                        : "bg-slate-800/30 border-slate-700/40 hover:border-slate-600/60 hover:bg-slate-800/50"
-                    }`}
-                  >
-                    <div className="flex-shrink-0">
-                      {isSelected ? (
-                        <CheckSquare className="w-4 h-4 text-green-400" />
-                      ) : (
-                        <Square className="w-4 h-4 text-slate-600" />
+          <div className="space-y-2">
+            {filtered.map((match) => {
+              const isSelected = selected.has(match.apiFixtureId);
+              const mapped = mapStatus(match.status);
+              return (
+                <button
+                  key={match.apiFixtureId}
+                  onClick={() => toggleSelect(match.apiFixtureId)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                    isSelected
+                      ? "bg-green-500/10 border-green-500/40"
+                      : "bg-slate-800/30 border-slate-700/40 hover:bg-slate-800/50"
+                  }`}
+                >
+                  {isSelected ? (
+                    <CheckSquare className="w-4 h-4 text-green-400" />
+                  ) : (
+                    <Square className="w-4 h-4 text-slate-600" />
+                  )}
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 min-w-[120px]">
+                      {match.homeTeam.logo && (
+                        <img
+                          src={match.homeTeam.logo}
+                          className="w-5 h-5"
+                          alt=""
+                        />
                       )}
-                    </div>
-
-                    {/* Teams */}
-                    <div className="flex items-center gap-2 flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5">
-                        {match.homeTeam.logo && (
-                          <img
-                            src={match.homeTeam.logo}
-                            alt=""
-                            className="w-5 h-5 object-contain"
-                          />
-                        )}
-                        <span className="text-sm font-medium text-white truncate max-w-[100px]">
-                          {match.homeTeam.name}
-                        </span>
-                      </div>
-
-                      <div className="flex-shrink-0 px-2 text-xs font-bold text-slate-500">
-                        {match.score ? (
-                          <span className="text-white">{match.score}</span>
-                        ) : (
-                          "vs"
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-1.5">
-                        {match.awayTeam.logo && (
-                          <img
-                            src={match.awayTeam.logo}
-                            alt=""
-                            className="w-5 h-5 object-contain"
-                          />
-                        )}
-                        <span className="text-sm font-medium text-white truncate max-w-[100px]">
-                          {match.awayTeam.name}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Meta */}
-                    <div className="hidden sm:flex items-center gap-2 flex-shrink-0">
-                      <span className="text-xs text-slate-500 truncate max-w-[120px]">
-                        {match.leagueName}
-                      </span>
-                      <span
-                        className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${
-                          statusColors[match.status] ||
-                          statusColors[mappedStatus] ||
-                          "bg-slate-700/50 text-slate-400"
-                        }`}
-                      >
-                        {match.status}
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {formatDate(match.kickoffTime)}
+                      <span className="text-sm truncate">
+                        {match.homeTeam.name}
                       </span>
                     </div>
-                  </button>
-                );
-              })}
+                    <span className="px-2 text-xs font-bold text-slate-500">
+                      {match.score || "vs"}
+                    </span>
+                    <div className="flex items-center gap-1.5 min-w-[120px]">
+                      {match.awayTeam.logo && (
+                        <img
+                          src={match.awayTeam.logo}
+                          className="w-5 h-5"
+                          alt=""
+                        />
+                      )}
+                      <span className="text-sm truncate">
+                        {match.awayTeam.name}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="hidden sm:flex items-center gap-3">
+                    <span className="text-xs text-slate-500">
+                      {match.leagueName}
+                    </span>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-lg ${statusColors[mapped] || "bg-slate-700 text-slate-400"}`}
+                    >
+                      {match.status}
+                    </span>
+                    <span className="text-xs text-slate-500 whitespace-nowrap">
+                      {formatDate(match.kickoffTime)}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {hasMore && !search && !loading && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-6 py-2 bg-slate-800 border border-slate-700 rounded-xl text-sm"
+              >
+                {loadingMore ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+                {loadingMore
+                  ? "Loading…"
+                  : `Load More${totalAvailable ? ` (${totalAvailable - matches.length} remaining)` : ""}`}
+              </button>
             </div>
           )}
         </div>
@@ -442,23 +483,21 @@ export function MatchApiBrowser({
           <button
             onClick={onClose}
             disabled={importing}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700/50 rounded-xl text-sm transition-all disabled:opacity-50"
+            className="px-4 py-2 bg-slate-800 rounded-xl text-sm"
           >
             Close
           </button>
           <button
             onClick={handleImport}
             disabled={importing || selected.size === 0}
-            className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 disabled:bg-green-900/50 disabled:opacity-50 rounded-xl text-sm font-medium transition-all"
+            className="flex items-center gap-2 px-5 py-2 bg-green-600 hover:bg-green-500 rounded-xl text-sm font-medium"
           >
             {importing ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <Download className="w-4 h-4" />
             )}
-            {importing
-              ? "Importing…"
-              : `Import ${selected.size > 0 ? selected.size : ""} Match${selected.size !== 1 ? "es" : ""}`}
+            Import {selected.size} Match{selected.size !== 1 ? "es" : ""}
           </button>
         </div>
       </div>
