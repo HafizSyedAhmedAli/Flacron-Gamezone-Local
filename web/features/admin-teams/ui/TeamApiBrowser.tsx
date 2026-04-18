@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Users,
   Globe,
+  ChevronDown,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/shared/api/base";
 import type { League } from "@/entities/league/model/types";
@@ -31,6 +32,8 @@ interface TeamApiBrowserProps {
   leagues: League[];
 }
 
+const PAGE_SIZE = 100;
+
 export function TeamApiBrowser({
   isOpen,
   onClose,
@@ -42,6 +45,7 @@ export function TeamApiBrowser({
   const [search, setSearch] = useState("");
   const [selectedLeagueId, setSelectedLeagueId] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -49,30 +53,57 @@ export function TeamApiBrowser({
     success: number;
     skipped: number;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalAvailable, setTotalAvailable] = useState<number | null>(null);
 
-  const fetchTeams = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    setImportResults(null);
-    setTeams([]);
-    setFiltered([]);
-    try {
-      const params = new URLSearchParams({ page: "1", limit: "500" });
-      if (selectedLeagueId) params.set("leagueId", selectedLeagueId);
-      const data = await apiGet<{
-        success: boolean;
-        data: ApiTeam[];
-        pagination: unknown;
-      }>(`/api/admin/teams/api?${params}`);
-      const items = data.data ?? [];
-      setTeams(items);
-      setFiltered(items);
-    } catch (e: any) {
-      setError(e?.message || "Failed to fetch teams from Football API");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectedLeagueId]);
+  const fetchPage = useCallback(
+    async (page: number, append: boolean) => {
+      if (page === 1) setLoading(true);
+      else setLoadingMore(true);
+      setError(null);
+
+      try {
+        const params = new URLSearchParams({
+          page: String(page),
+          limit: String(PAGE_SIZE),
+        });
+        if (selectedLeagueId) params.set("leagueId", selectedLeagueId);
+
+        const data = await apiGet<{
+          success: boolean;
+          data: ApiTeam[];
+          pagination: { total: number; hasMore: boolean };
+        }>(`/api/admin/teams/api?${params}`);
+
+        const items = data.data ?? [];
+        const pagination = data.pagination as any;
+
+        if (append) {
+          setTeams((prev) => {
+            const existing = new Set(prev.map((t) => t.apiTeamId));
+            return [
+              ...prev,
+              ...items.filter((t) => !existing.has(t.apiTeamId)),
+            ];
+          });
+        } else {
+          setTeams(items);
+          setImportResults(null);
+        }
+
+        setHasMore(pagination?.hasMore ?? items.length === PAGE_SIZE);
+        setTotalAvailable(pagination?.total ?? null);
+        setCurrentPage(page);
+      } catch (e: any) {
+        setError(e?.message || "Failed to fetch teams from Football API");
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
+      }
+    },
+    [selectedLeagueId],
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -82,12 +113,18 @@ export function TeamApiBrowser({
       setTeams([]);
       setFiltered([]);
       setSelectedLeagueId("");
+      setCurrentPage(1);
+      setHasMore(false);
     }
   }, [isOpen]);
 
   // Auto-fetch when league changes (only if open)
   useEffect(() => {
-    if (isOpen) fetchTeams();
+    if (isOpen) {
+      setCurrentPage(1);
+      setHasMore(false);
+      fetchPage(1, false);
+    }
   }, [isOpen, selectedLeagueId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
@@ -114,17 +151,16 @@ export function TeamApiBrowser({
     }
   };
 
+  const handleLoadMore = () => {
+    fetchPage(currentPage + 1, true);
+  };
+
   const handleImport = async () => {
     if (selected.size === 0) return;
     setImporting(true);
     setError(null);
     let success = 0;
     let skipped = 0;
-
-    // Find the internal league id for the selected API league
-    const league = selectedLeagueId
-      ? leagues.find((l) => String(l.apiLeagueId) === selectedLeagueId)
-      : null;
 
     for (const id of selected) {
       const team = teams.find((t) => t.apiTeamId === id);
@@ -169,9 +205,11 @@ export function TeamApiBrowser({
             <div>
               <h2 className="text-lg font-bold">Import Teams from API</h2>
               <p className="text-xs text-slate-500">
-                {teams.length > 0
-                  ? `${teams.length} teams available`
-                  : "Select a league to load teams"}
+                {loading
+                  ? "Fetching…"
+                  : totalAvailable != null
+                    ? `${teams.length} of ${totalAvailable} teams loaded`
+                    : `${teams.length} teams loaded`}
               </p>
             </div>
           </div>
@@ -205,7 +243,11 @@ export function TeamApiBrowser({
                 ))}
             </select>
             <button
-              onClick={fetchTeams}
+              onClick={() => {
+                setCurrentPage(1);
+                setHasMore(false);
+                fetchPage(1, false);
+              }}
               disabled={loading}
               className="px-4 py-2.5 bg-slate-800/50 border border-slate-700/50 hover:border-purple-500/50 rounded-xl text-sm transition-all disabled:opacity-50 flex items-center gap-2"
             >
@@ -257,7 +299,7 @@ export function TeamApiBrowser({
               <div>
                 <p className="text-sm text-red-400 font-medium">{error}</p>
                 <button
-                  onClick={fetchTeams}
+                  onClick={() => fetchPage(1, false)}
                   className="mt-2 flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200 transition-colors"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Retry
@@ -274,11 +316,18 @@ export function TeamApiBrowser({
             </div>
           )}
 
-          {!loading && !error && filtered.length === 0 && !loading && (
+          {!loading &&
+            !error &&
+            filtered.length === 0 &&
+            teams.length === 0 && (
+              <div className="text-center py-12 text-slate-500">
+                Select a league and click Refresh to load teams
+              </div>
+            )}
+
+          {!loading && !error && filtered.length === 0 && teams.length > 0 && (
             <div className="text-center py-12 text-slate-500">
-              {teams.length === 0
-                ? "Select a league and click Refresh to load teams"
-                : "No teams found"}
+              No teams match your search
             </div>
           )}
 
@@ -337,6 +386,26 @@ export function TeamApiBrowser({
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {/* Load More */}
+          {!loading && !error && hasMore && !search && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-6 py-2.5 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 hover:border-purple-500/40 rounded-xl text-sm font-medium text-slate-300 hover:text-white transition-all disabled:opacity-50"
+              >
+                {loadingMore ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+                {loadingMore
+                  ? "Loading…"
+                  : `Load More${totalAvailable ? ` (${totalAvailable - teams.length} remaining)` : ""}`}
+              </button>
             </div>
           )}
         </div>

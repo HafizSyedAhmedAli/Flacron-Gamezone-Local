@@ -77,6 +77,15 @@ export const billingService = {
         { status: 400, existingSubscription: true },
       );
 
+    const incompleteSubs = pending.data.filter((sub) =>
+      ["incomplete", "incomplete_expired"].includes(sub.status),
+    );
+    for (const sub of incompleteSubs) {
+      try {
+        await s.subscriptions.cancel(sub.id);
+      } catch {}
+    }
+
     const session = await s.checkout.sessions.create(
       {
         mode: "subscription",

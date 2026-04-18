@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import {
   X,
   Search,
@@ -13,6 +12,7 @@ import {
   AlertCircle,
   RefreshCw,
   Trophy,
+  ChevronDown,
 } from "lucide-react";
 import { apiGet, apiPost } from "@/shared/api/base";
 
@@ -29,6 +29,8 @@ interface LeagueApiBrowserProps {
   onImported: () => void;
 }
 
+const PAGE_SIZE = 100;
+
 export function LeagueApiBrowser({
   isOpen,
   onClose,
@@ -38,6 +40,7 @@ export function LeagueApiBrowser({
   const [filtered, setFiltered] = useState<ApiLeague[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -45,24 +48,49 @@ export function LeagueApiBrowser({
     success: number;
     skipped: number;
   } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [totalAvailable, setTotalAvailable] = useState<number | null>(null);
 
-  const fetchLeagues = useCallback(async () => {
-    setLoading(true);
+  const fetchPage = useCallback(async (page: number, append: boolean) => {
+    if (page === 1) setLoading(true);
+    else setLoadingMore(true);
     setError(null);
-    setImportResults(null);
+
     try {
       const data = await apiGet<{
         success: boolean;
         data: ApiLeague[];
-        pagination: unknown;
-      }>("/api/admin/leagues/api?page=1&limit=500");
+        pagination: {
+          total: number;
+          hasMore: boolean;
+          page: number;
+          limit: number;
+        };
+      }>(`/api/admin/leagues/api?page=${page}&limit=${PAGE_SIZE}`);
+
       const items = data.data ?? [];
-      setLeagues(items);
-      setFiltered(items);
+      const pagination = data.pagination as any;
+
+      if (append) {
+        setLeagues((prev) => {
+          const existing = new Set(prev.map((l) => l.apiLeagueId));
+          const newItems = items.filter((l) => !existing.has(l.apiLeagueId));
+          return [...prev, ...newItems];
+        });
+      } else {
+        setLeagues(items);
+        setImportResults(null);
+      }
+
+      setHasMore(pagination?.hasMore ?? items.length === PAGE_SIZE);
+      setTotalAvailable(pagination?.total ?? null);
+      setCurrentPage(page);
     } catch (e: any) {
       setError(e?.message || "Failed to fetch leagues from Football API");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, []);
 
@@ -71,9 +99,11 @@ export function LeagueApiBrowser({
       setSelected(new Set());
       setSearch("");
       setImportResults(null);
-      fetchLeagues();
+      setCurrentPage(1);
+      setHasMore(false);
+      fetchPage(1, false);
     }
-  }, [isOpen, fetchLeagues]);
+  }, [isOpen, fetchPage]);
 
   useEffect(() => {
     const q = search.toLowerCase();
@@ -103,6 +133,10 @@ export function LeagueApiBrowser({
     } else {
       setSelected(new Set(filtered.map((l) => l.apiLeagueId)));
     }
+  };
+
+  const handleLoadMore = () => {
+    fetchPage(currentPage + 1, true);
   };
 
   const handleImport = async () => {
@@ -155,9 +189,11 @@ export function LeagueApiBrowser({
             <div>
               <h2 className="text-lg font-bold">Import Leagues from API</h2>
               <p className="text-xs text-slate-500">
-                {leagues.length > 0
-                  ? `${leagues.length} leagues available`
-                  : "Fetching from Football API…"}
+                {loading
+                  ? "Fetching from Football API…"
+                  : totalAvailable != null
+                    ? `${leagues.length} of ${totalAvailable} leagues loaded`
+                    : `${leagues.length} leagues loaded`}
               </p>
             </div>
           </div>
@@ -216,7 +252,7 @@ export function LeagueApiBrowser({
               <div>
                 <p className="text-sm text-red-400 font-medium">{error}</p>
                 <button
-                  onClick={fetchLeagues}
+                  onClick={() => fetchPage(1, false)}
                   className="mt-2 flex items-center gap-1.5 text-xs text-red-300 hover:text-red-200 transition-colors"
                 >
                   <RefreshCw className="w-3.5 h-3.5" /> Retry
@@ -233,11 +269,14 @@ export function LeagueApiBrowser({
             </div>
           )}
 
-          {!loading && !error && filtered.length === 0 && (
-            <div className="text-center py-12 text-slate-500">
-              No leagues found
-            </div>
-          )}
+          {!loading &&
+            !error &&
+            filtered.length === 0 &&
+            leagues.length > 0 && (
+              <div className="text-center py-12 text-slate-500">
+                No leagues match your search
+              </div>
+            )}
 
           {!loading && filtered.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -292,6 +331,32 @@ export function LeagueApiBrowser({
                 );
               })}
             </div>
+          )}
+
+          {/* Load More button */}
+          {!loading && !error && hasMore && !search && (
+            <div className="mt-4 flex justify-center">
+              <button
+                onClick={handleLoadMore}
+                disabled={loadingMore}
+                className="flex items-center gap-2 px-6 py-2.5 bg-slate-800/60 hover:bg-slate-700/60 border border-slate-600/50 hover:border-blue-500/40 rounded-xl text-sm font-medium text-slate-300 hover:text-white transition-all disabled:opacity-50"
+              >
+                {loadingMore ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <ChevronDown className="w-4 h-4" />
+                )}
+                {loadingMore
+                  ? "Loading…"
+                  : `Load More${totalAvailable ? ` (${totalAvailable - leagues.length} remaining)` : ""}`}
+              </button>
+            </div>
+          )}
+
+          {search && hasMore && (
+            <p className="mt-3 text-center text-xs text-slate-500">
+              Clear search and scroll down to load more leagues from the API.
+            </p>
           )}
         </div>
 

@@ -225,13 +225,14 @@ export const matchService = {
       });
 
     const { leagueId, date, status, page, limit } = params;
-    const dateKey = date ?? new Date().toISOString().split("T")[0];
+    const dateKey = date ?? "no-date";
     const cacheKey = `${MATCHES_CACHE_KEY}:${leagueId ?? "all"}:${dateKey}:${status ?? "all"}`;
 
     const cached = await cacheGet<any[]>(cacheKey);
     if (cached) return this._paginate(cached, page, limit);
 
     const queryParams: any = {};
+
     if (leagueId) {
       queryParams.league = leagueId;
       queryParams.season = String(this._deriveSeason(date));
@@ -243,7 +244,17 @@ export const matchService = {
       if (status)
         queryParams.status =
           { UPCOMING: "NS", FINISHED: "FT" }[status] ?? status;
-      queryParams.date = date ?? new Date().toISOString().split("T")[0];
+
+      // KEY FIX: only add a date when the user explicitly chose one,
+      // OR when there is no league filter (browsing all leagues for today).
+      // Without this, picking a league + no date → "today only" → blank results.
+      if (date) {
+        queryParams.date = date;
+      } else if (!leagueId) {
+        queryParams.date = new Date().toISOString().split("T")[0];
+      }
+      // If leagueId is set and no date chosen, we let the API return the
+      // full season fixtures for that league (filtered by season above).
     }
 
     const { data } = await axios.get(`${config.football.baseUrl}/fixtures`, {
@@ -291,7 +302,9 @@ export const matchService = {
       );
     }
 
-    await cacheSet(cacheKey, matchesData, MATCHES_TTL);
+    // Cache for 2 min when filtered, longer for league-wide results
+    const ttl = leagueId && !date ? 60 * 10 : MATCHES_TTL;
+    await cacheSet(cacheKey, matchesData, ttl);
     return this._paginate(matchesData, page, limit);
   },
 
