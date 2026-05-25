@@ -39,7 +39,7 @@ app.use(errorHandler);
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-app.listen(config.port, () => {
+app.listen(config.port, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${config.port} [${config.nodeEnv}]`);
   startSyncCron();
   startAiCron();
