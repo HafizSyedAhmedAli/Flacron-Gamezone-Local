@@ -415,5 +415,3 @@ npm start
 Or deploy to Vercel — set `NEXT_PUBLIC_API_BASE` to your production backend URL in the project settings.
 
 ---
-- **Stripe webhooks** are verified using the webhook signing secret
-- Additional hardening to consider: WAF rules, audit logging, HTTPS enforcement, CSP headers
