@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
-import { apiGet } from "@/shared/api/base";
 import LiveMatchesClient from "../../page-components/live/ui/LiveMatchesClient";
 
 export const metadata: Metadata = {
@@ -14,7 +13,12 @@ export default async function LiveMatchesPage() {
   let fetchError = false;
 
   try {
-    initialMatches = await apiGet<any[]>("/api/matches/live");
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+    const res = await fetch(`${baseUrl}/api/matches/live`, {
+      cache: "no-store",
+    });
+    if (!res.ok) throw new Error("Failed to fetch live matches");
+    initialMatches = await res.json();
   } catch {
     fetchError = true;
   }

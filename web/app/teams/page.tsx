@@ -13,22 +13,11 @@ export const metadata: Metadata = {
   },
 };
 
-async function getTeams() {
-  try {
-    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
-
-    const res = await fetch(`${baseUrl}/api/teams`, {
-      next: { revalidate: 120 },
-    });
-    if (!res.ok) return [];
-    return res.json();
-  } catch {
-    return [];
-  }
-}
-
 const TeamsClient = dynamic(
-  () => import("../../page-components/teams/ui/TeamsClient").then((m) => m.TeamsClient),
+  () =>
+    import("../../page-components/teams/ui/TeamsClient").then(
+      (m) => m.TeamsClient,
+    ),
   {
     ssr: false,
     loading: () => (
@@ -49,6 +38,19 @@ const TeamsClient = dynamic(
 );
 
 export default async function TeamsPage() {
-  const initialTeams = await getTeams();
+  let initialTeams: any[] = [];
+
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+    const res = await fetch(`${baseUrl}/api/teams`, {
+      next: { revalidate: 120 },
+    });
+    if (res.ok) {
+      initialTeams = await res.json();
+    }
+  } catch {
+    // fall through with empty array
+  }
+
   return <TeamsClient initialTeams={initialTeams} />;
 }

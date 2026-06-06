@@ -18,21 +18,20 @@ export const metadata: Metadata = {
   },
 };
 
-async function getMatches() {
+export default async function MatchesPage() {
+  let initialMatches: any[] = [];
+
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
-
     const res = await fetch(`${baseUrl}/api/matches`, {
       next: { revalidate: 60 },
     });
-    if (!res.ok) return [];
-    return await res.json();
+    if (res.ok) {
+      initialMatches = await res.json();
+    }
   } catch {
-    return [];
+    // fall through with empty array
   }
-}
 
-export default async function MatchesPage() {
-  const initialMatches = await getMatches();
   return <MatchesClient initialMatches={initialMatches} />;
 }

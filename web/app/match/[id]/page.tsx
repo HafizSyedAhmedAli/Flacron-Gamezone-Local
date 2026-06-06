@@ -8,7 +8,6 @@ interface Props {
 async function getMatch(id: string) {
   try {
     const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
-
     const res = await fetch(`${baseUrl}/api/matches/${id}`, {
       next: { revalidate: 30 },
     });

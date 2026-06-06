@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { apiGet } from "@/shared/api/base";
 import { BackButton } from "@/shared/ui/BackButton";
 import { LeagueHeader } from "@/entities/league/ui/LeagueHeader";
 import { ErrorState } from "@/shared/ui/LoadingErrorStates";
@@ -51,9 +50,12 @@ export async function generateMetadata({
   params,
 }: LeagueDetailsPageProps): Promise<Metadata> {
   try {
-    const data = await apiGet<LeagueDetailsResponse>(
-      `/api/leagues/${params.leagueId}`,
-    );
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+    const res = await fetch(`${baseUrl}/api/leagues/${params.leagueId}`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) throw new Error();
+    const data: LeagueDetailsResponse = await res.json();
     return {
       title: `${data.league.name} Standings & Fixtures | Flacron Gamezone`,
       description: `View standings, fixtures and results for ${data.league.name}.`,
@@ -70,9 +72,12 @@ export default async function LeagueDetailsPage({
   let fetchError: string | null = null;
 
   try {
-    data = await apiGet<LeagueDetailsResponse>(
-      `/api/leagues/${params.leagueId}`,
-    );
+    const baseUrl = process.env.NEXT_PUBLIC_API_BASE || "http://localhost:4000";
+    const res = await fetch(`${baseUrl}/api/leagues/${params.leagueId}`, {
+      next: { revalidate: 60 },
+    });
+    if (!res.ok) throw new Error("Failed to fetch league details");
+    data = await res.json();
   } catch (error) {
     fetchError =
       error instanceof Error ? error.message : "Failed to load league details";
