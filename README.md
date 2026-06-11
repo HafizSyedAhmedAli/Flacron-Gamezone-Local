@@ -14,11 +14,11 @@ A full-stack football streaming and analytics platform. Watch live matches, foll
 - [Environment Variables](#environment-variables)
 - [Database Setup](#database-setup)
 - [External Integrations](#external-integrations)
-  - [Football Data API](#football-data-api)
-  - [Stripe Billing](#stripe-billing)
-  - [AI (OpenAI)](#ai-openai)
-  - [YouTube Streams](#youtube-streams)
-  - [Email (Brevo)](#email-brevo)
+   - [Football Data API](#football-data-api)
+   - [Stripe Billing](#stripe-billing)
+   - [AI (OpenAI)](#ai-openai)
+   - [YouTube Streams](#youtube-streams)
+   - [Email (Brevo)](#email-brevo)
 - [Architecture](#architecture)
 - [API Reference](#api-reference)
 - [Admin Panel](#admin-panel)
@@ -45,18 +45,18 @@ All features degrade gracefully when third-party API keys are absent, so the pro
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Frontend | Next.js 14, React 18, Tailwind CSS, shadcn/ui |
-| Backend | Node.js, Express, TypeScript |
-| Database | PostgreSQL via Prisma ORM |
-| Cache | Upstash Redis (REST API) |
-| Auth | JWT (jsonwebtoken + bcryptjs) |
-| Billing | Stripe Checkout + Webhooks |
-| AI | OpenAI via Vercel AI SDK |
+| Layer         | Technology                                    |
+| ------------- | --------------------------------------------- |
+| Frontend      | Next.js 14, React 18, Tailwind CSS, shadcn/ui |
+| Backend       | Node.js, Express, TypeScript                  |
+| Database      | PostgreSQL via Prisma ORM                     |
+| Cache         | Upstash Redis (REST API)                      |
+| Auth          | JWT (jsonwebtoken + bcryptjs)                 |
+| Billing       | Stripe Checkout + Webhooks                    |
+| AI            | OpenAI via Vercel AI SDK                      |
 | Football Data | API-Football (primary), SportMonks (fallback) |
-| Streams | YouTube Data API v3 |
-| Email | Brevo (contact form) |
+| Streams       | YouTube Data API v3                           |
+| Email         | Brevo (contact form)                          |
 
 ---
 
@@ -152,36 +152,36 @@ This creates a demo league, two teams, a match, and a placeholder stream.
 
 ### Backend (`backend/.env`)
 
-| Variable | Required | Description |
-|---|---|---|
-| `PORT` | Yes | Server port (default: `4000`) |
-| `NODE_ENV` | Yes | `development` or `production` |
-| `FRONTEND_ORIGIN` | Yes | CORS origin (e.g. `http://localhost:3000`) |
-| `JWT_SECRET` | Yes | Secret key for signing JWTs |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `UPSTASH_REDIS_REST_URL` | No | Upstash Redis REST endpoint |
-| `UPSTASH_REDIS_REST_TOKEN` | No | Upstash Redis REST token |
-| `STRIPE_SECRET_KEY` | No | Stripe secret key |
-| `STRIPE_WEBHOOK_SECRET` | No | Stripe webhook signing secret |
-| `STRIPE_PRICE_MONTHLY` | No | Stripe price ID for monthly plan |
-| `STRIPE_PRICE_YEARLY` | No | Stripe price ID for yearly plan |
-| `API_FOOTBALL_KEY` | No | API-Football key |
-| `API_FOOTBALL_BASEURL` | No | API-Football base URL |
-| `API_SPORT_MONKS_KEY` | No | SportMonks key (fallback) |
-| `API_SPORT_MONKS_BASEURL` | No | SportMonks base URL (fallback) |
-| `OPENAI_API_KEY` | No | OpenAI API key for AI features |
-| `OPENAI_MODEL` | No | Model name (default: `gpt-4o-mini`) |
-| `YOUTUBE_API_KEY` | No | YouTube Data API v3 key |
-| `BREVO_API_KEY` | No | Brevo key for contact form emails |
-| `CONTACT_FORM_TO_EMAIL` | No | Recipient address for contact form |
-| `CONTACT_FORM_FROM_EMAIL` | No | Sender address for contact form |
-| `CONTACT_FORM_FROM_NAME` | No | Sender display name |
+| Variable                   | Required | Description                                |
+| -------------------------- | -------- | ------------------------------------------ |
+| `PORT`                     | Yes      | Server port (default: `4000`)              |
+| `NODE_ENV`                 | Yes      | `development` or `production`              |
+| `FRONTEND_ORIGIN`          | Yes      | CORS origin (e.g. `http://localhost:3000`) |
+| `JWT_SECRET`               | Yes      | Secret key for signing JWTs                |
+| `DATABASE_URL`             | Yes      | PostgreSQL connection string               |
+| `UPSTASH_REDIS_REST_URL`   | No       | Upstash Redis REST endpoint                |
+| `UPSTASH_REDIS_REST_TOKEN` | No       | Upstash Redis REST token                   |
+| `STRIPE_SECRET_KEY`        | No       | Stripe secret key                          |
+| `STRIPE_WEBHOOK_SECRET`    | No       | Stripe webhook signing secret              |
+| `STRIPE_PRICE_MONTHLY`     | No       | Stripe price ID for monthly plan           |
+| `STRIPE_PRICE_YEARLY`      | No       | Stripe price ID for yearly plan            |
+| `API_FOOTBALL_KEY`         | No       | API-Football key                           |
+| `API_FOOTBALL_BASEURL`     | No       | API-Football base URL                      |
+| `API_SPORT_MONKS_KEY`      | No       | SportMonks key (fallback)                  |
+| `API_SPORT_MONKS_BASEURL`  | No       | SportMonks base URL (fallback)             |
+| `OPENAI_API_KEY`           | No       | OpenAI API key for AI features             |
+| `OPENAI_MODEL`             | No       | Model name (default: `gpt-4o-mini`)        |
+| `YOUTUBE_API_KEY`          | No       | YouTube Data API v3 key                    |
+| `BREVO_API_KEY`            | No       | Brevo key for contact form emails          |
+| `CONTACT_FORM_TO_EMAIL`    | No       | Recipient address for contact form         |
+| `CONTACT_FORM_FROM_EMAIL`  | No       | Sender address for contact form            |
+| `CONTACT_FORM_FROM_NAME`   | No       | Sender display name                        |
 
 ### Web Frontend (`web/.env.local`)
 
-| Variable | Required | Description |
-|---|---|---|
-| `NEXT_PUBLIC_API_BASE` | Yes | Backend URL (e.g. `http://localhost:4000`) |
+| Variable               | Required | Description                                |
+| ---------------------- | -------- | ------------------------------------------ |
+| `NEXT_PUBLIC_API_BASE` | Yes      | Backend URL (e.g. `http://localhost:4000`) |
 
 > **Note:** All external integrations are optional for local development. The app falls back to mock data or disables the relevant feature when keys are missing.
 
@@ -191,15 +191,15 @@ This creates a demo league, two teams, a match, and a placeholder stream.
 
 The schema is managed with Prisma. The main models are:
 
-| Model | Description |
-|---|---|
-| `User` | Accounts with `USER` or `ADMIN` roles |
-| `Subscription` | Stripe subscription state per user |
-| `League` | Football competitions |
-| `Team` | Football clubs |
-| `Match` | Fixtures with status (`UPCOMING`, `LIVE`, `FINISHED`) |
-| `Stream` | Embed stream linked to a match |
-| `AISummary` | Cached AI preview/summary per match and language |
+| Model          | Description                                           |
+| -------------- | ----------------------------------------------------- |
+| `User`         | Accounts with `USER` or `ADMIN` roles                 |
+| `Subscription` | Stripe subscription state per user                    |
+| `League`       | Football competitions                                 |
+| `Team`         | Football clubs                                        |
+| `Match`        | Fixtures with status (`UPCOMING`, `LIVE`, `FINISHED`) |
+| `Stream`       | Embed stream linked to a match                        |
+| `AISummary`    | Cached AI preview/summary per match and language      |
 
 **Apply schema to the database:**
 
@@ -236,6 +236,7 @@ stripe listen --forward-to localhost:4000/api/billing/webhook
 ```
 
 Configure the following webhook events in your Stripe dashboard:
+
 - `customer.subscription.created`
 - `customer.subscription.updated`
 - `customer.subscription.deleted`
@@ -307,57 +308,63 @@ Client → Next.js → /api/* → Express Backend → Prisma → PostgreSQL
 All endpoints are prefixed with `/api`.
 
 ### Auth
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/auth/signup` | Public | Register a new user |
-| POST | `/auth/login` | Public | Log in, receive JWT |
+
+| Method | Path           | Auth   | Description         |
+| ------ | -------------- | ------ | ------------------- |
+| POST   | `/auth/signup` | Public | Register a new user |
+| POST   | `/auth/login`  | Public | Log in, receive JWT |
 
 ### Public Data
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| GET | `/leagues` | Public | List all leagues |
-| GET | `/leagues/:id` | Public | League details + standings + fixtures |
-| GET | `/teams` | Public | List all teams |
-| GET | `/teams/:id` | Public | Team details + match history |
-| GET | `/matches` | Public | List matches (filter by status, date, league, team) |
-| GET | `/matches/live` | Public | Live matches only |
-| GET | `/matches/:id` | Optional | Match detail (stream + AI hidden for free users) |
-| GET | `/streams/:id/status` | Public | Stream availability for a match |
-| GET | `/search?q=` | Public | Search leagues, teams, and matches |
+
+| Method | Path                  | Auth     | Description                                         |
+| ------ | --------------------- | -------- | --------------------------------------------------- |
+| GET    | `/leagues`            | Public   | List all leagues                                    |
+| GET    | `/leagues/:id`        | Public   | League details + standings + fixtures               |
+| GET    | `/teams`              | Public   | List all teams                                      |
+| GET    | `/teams/:id`          | Public   | Team details + match history                        |
+| GET    | `/matches`            | Public   | List matches (filter by status, date, league, team) |
+| GET    | `/matches/live`       | Public   | Live matches only                                   |
+| GET    | `/matches/:id`        | Optional | Match detail (stream + AI hidden for free users)    |
+| GET    | `/streams/:id/status` | Public   | Stream availability for a match                     |
+| GET    | `/search?q=`          | Public   | Search leagues, teams, and matches                  |
 
 ### Billing
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/billing/checkout` | User | Create Stripe Checkout session |
-| GET | `/billing/subscription` | User | Get current subscription |
-| POST | `/billing/cancel` | User | Cancel subscription |
-| POST | `/billing/reactivate` | User | Undo scheduled cancellation |
-| POST | `/billing/portal` | User | Open Stripe billing portal |
-| POST | `/billing/webhook` | Stripe | Handle Stripe webhook events |
+
+| Method | Path                    | Auth   | Description                    |
+| ------ | ----------------------- | ------ | ------------------------------ |
+| POST   | `/billing/checkout`     | User   | Create Stripe Checkout session |
+| GET    | `/billing/subscription` | User   | Get current subscription       |
+| POST   | `/billing/cancel`       | User   | Cancel subscription            |
+| POST   | `/billing/reactivate`   | User   | Undo scheduled cancellation    |
+| POST   | `/billing/portal`       | User   | Open Stripe billing portal     |
+| POST   | `/billing/webhook`      | Stripe | Handle Stripe webhook events   |
 
 ### AI (Premium)
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/ai/preview` | Premium | Generate or fetch match preview |
-| POST | `/ai/summary` | Premium | Generate or fetch match summary |
-| GET | `/ai/:matchId` | Premium | Get all AI content for a match |
+
+| Method | Path           | Auth    | Description                     |
+| ------ | -------------- | ------- | ------------------------------- |
+| POST   | `/ai/preview`  | Premium | Generate or fetch match preview |
+| POST   | `/ai/summary`  | Premium | Generate or fetch match summary |
+| GET    | `/ai/:matchId` | Premium | Get all AI content for a match  |
 
 ### Admin
+
 All admin routes require `Authorization: Bearer <admin-token>` and are prefixed with `/api/admin`.
 
-| Resource | Endpoints |
-|---|---|
-| Leagues | `GET/POST /leagues`, `PUT/DELETE /leagues/:id`, `POST /leagues/bulk-sync` |
-| Teams | `GET/POST /teams`, `PUT/DELETE /teams/:id` |
-| Matches | `GET/POST /matches`, `PUT/DELETE /matches/:id`, `POST /matches/sync-live` |
-| Streams | `GET/POST /streams`, `PUT/DELETE /streams/:matchId`, `POST /streams/bulk-youtube-search` |
-| AI | `POST /ai/preview`, `POST /ai/summary`, `DELETE /ai/:matchId` |
-| Users | `GET /users`, `PUT /users/:id`, `DELETE /users/:id` |
+| Resource | Endpoints                                                                                |
+| -------- | ---------------------------------------------------------------------------------------- |
+| Leagues  | `GET/POST /leagues`, `PUT/DELETE /leagues/:id`, `POST /leagues/bulk-sync`                |
+| Teams    | `GET/POST /teams`, `PUT/DELETE /teams/:id`                                               |
+| Matches  | `GET/POST /matches`, `PUT/DELETE /matches/:id`, `POST /matches/sync-live`                |
+| Streams  | `GET/POST /streams`, `PUT/DELETE /streams/:matchId`, `POST /streams/bulk-youtube-search` |
+| AI       | `POST /ai/preview`, `POST /ai/summary`, `DELETE /ai/:matchId`                            |
+| Users    | `GET /users`, `PUT /users/:id`, `DELETE /users/:id`                                      |
 
 ### Contact
-| Method | Path | Auth | Description |
-|---|---|---|---|
-| POST | `/contact` | Public | Send contact form email (rate limited) |
+
+| Method | Path       | Auth   | Description                            |
+| ------ | ---------- | ------ | -------------------------------------- |
+| POST   | `/contact` | Public | Send contact form email (rate limited) |
 
 ---
 
@@ -378,12 +385,12 @@ Navigate to `/admin` when logged in as an admin user. The panel provides:
 
 Cron jobs are only active when `NODE_ENV=production`.
 
-| Job | Schedule | Description |
-|---|---|---|
-| Live match sync | Every 5 min | Fetches live fixtures from Football API, upserts matches, marks stale ones as finished |
-| YouTube stream refresh | Every 6 min | Searches YouTube for streams on live matches that don't have one |
-| AI summary generation | Every 15 min | Generates post-match summaries for recently finished matches |
-| AI preview generation | Every 30 min | Generates pre-match previews for matches within the next 2 days |
+| Job                    | Schedule     | Description                                                                            |
+| ---------------------- | ------------ | -------------------------------------------------------------------------------------- |
+| Live match sync        | Every 5 min  | Fetches live fixtures from Football API, upserts matches, marks stale ones as finished |
+| YouTube stream refresh | Every 6 min  | Searches YouTube for streams on live matches that don't have one                       |
+| AI summary generation  | Every 15 min | Generates post-match summaries for recently finished matches                           |
+| AI preview generation  | Every 30 min | Generates pre-match previews for matches within the next 2 days                        |
 
 ---
 

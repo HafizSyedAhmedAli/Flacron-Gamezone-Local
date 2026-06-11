@@ -1,66 +1,67 @@
 export const config = {
-  port: Number(process.env.PORT ?? 4000),
-  nodeEnv: process.env.NODE_ENV ?? "development",
-  isProduction: process.env.NODE_ENV === "production",
+   port: Number(process.env.PORT ?? 4000),
+   nodeEnv: process.env.NODE_ENV ?? 'development',
+   isProduction: process.env.NODE_ENV === 'production',
 
-  jwt: {
-    secret: process.env.JWT_SECRET ?? "dev_secret",
-    expiresIn: "7d" as const,
-  },
+   jwt: {
+      secret: process.env.JWT_SECRET ?? 'dev_secret',
+      expiresIn: '7d' as const,
+   },
 
-  cors: {
-    origin: process.env.FRONTEND_ORIGIN ?? "http://localhost:3000",
-  },
+   cors: {
+      origin: process.env.FRONTEND_ORIGIN ?? 'http://localhost:3000',
+   },
 
-  db: {
-    url: process.env.DATABASE_URL ?? "",
-  },
+   db: {
+      url: process.env.DATABASE_URL ?? '',
+   },
 
-  // Upstash REST — replaces the old ioredis REDIS_URL
-  upstash: {
-    url: process.env.UPSTASH_REDIS_REST_URL ?? "",
-    token: process.env.UPSTASH_REDIS_REST_TOKEN ?? "",
-  },
+   // Upstash REST — replaces the old ioredis REDIS_URL
+   upstash: {
+      url: process.env.UPSTASH_REDIS_REST_URL ?? '',
+      token: process.env.UPSTASH_REDIS_REST_TOKEN ?? '',
+   },
 
-  stripe: {
-    secretKey: process.env.STRIPE_SECRET_KEY ?? "",
-    webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? "",
-    prices: {
-      monthly: process.env.STRIPE_PRICE_MONTHLY ?? "",
-      yearly: process.env.STRIPE_PRICE_YEARLY ?? "",
-    },
-  },
+   stripe: {
+      secretKey: process.env.STRIPE_SECRET_KEY ?? '',
+      webhookSecret: process.env.STRIPE_WEBHOOK_SECRET ?? '',
+      prices: {
+         monthly: process.env.STRIPE_PRICE_MONTHLY ?? '',
+         yearly: process.env.STRIPE_PRICE_YEARLY ?? '',
+      },
+   },
 
-  football: {
-    key: process.env.API_FOOTBALL_KEY ?? "",
-    baseUrl:
-      process.env.API_FOOTBALL_BASEURL ?? "https://v3.football.api-sports.io",
-    sportMonksKey: process.env.API_SPORT_MONKS_KEY ?? "",
-    sportMonksBaseUrl:
-      process.env.API_SPORT_MONKS_BASEURL ??
-      "https://api.sportmonks.com/v3/football",
-  },
+   football: {
+      key: process.env.API_FOOTBALL_KEY ?? '',
+      baseUrl:
+         process.env.API_FOOTBALL_BASEURL ??
+         'https://v3.football.api-sports.io',
+      sportMonksKey: process.env.API_SPORT_MONKS_KEY ?? '',
+      sportMonksBaseUrl:
+         process.env.API_SPORT_MONKS_BASEURL ??
+         'https://api.sportmonks.com/v3/football',
+   },
 
-  ai: {
-    openaiKey: process.env.OPENAI_API_KEY ?? "",
-    model: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
-  },
+   ai: {
+      openaiKey: process.env.OPENAI_API_KEY ?? '',
+      model: process.env.OPENAI_MODEL ?? 'gpt-4o-mini',
+   },
 
-  youtube: {
-    apiKey: process.env.YOUTUBE_API_KEY ?? "",
-  },
+   youtube: {
+      apiKey: process.env.YOUTUBE_API_KEY ?? '',
+   },
 };
 
 export function validateConfig() {
-  if (config.nodeEnv === "production" && config.jwt.secret === "dev_secret") {
-    throw new Error("JWT_SECRET must be set in production");
-  }
+   if (config.nodeEnv === 'production' && config.jwt.secret === 'dev_secret') {
+      throw new Error('JWT_SECRET must be set in production');
+   }
 
-  if (config.port <= 0 || Number.isNaN(config.port)) {
-    throw new Error("PORT must be a valid positive number");
-  }
+   if (config.port <= 0 || Number.isNaN(config.port)) {
+      throw new Error('PORT must be a valid positive number');
+   }
 
-  if (!config.db.url) {
-    throw new Error("DATABASE_URL is required");
-  }
+   if (!config.db.url) {
+      throw new Error('DATABASE_URL is required');
+   }
 }

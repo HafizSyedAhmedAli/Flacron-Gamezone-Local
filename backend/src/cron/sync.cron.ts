@@ -1,82 +1,84 @@
-import cron from "node-cron";
-import { matchService } from "../services/match.service.js";
-import { youtubeService } from "../services/youtube.service.js";
-import { config } from "../config/index.js";
-import { cacheDel, cacheSet } from "../lib/redis.js";
-import { FootballApiError } from "../services/footballApi.service.js";
+import cron from 'node-cron';
+import { matchService } from '../services/match.service.js';
+import { youtubeService } from '../services/youtube.service.js';
+import { config } from '../config/index.js';
+import { cacheDel, cacheSet } from '../lib/redis.js';
+import { FootballApiError } from '../services/footballApi.service.js';
 
 let isLiveSyncing = false; // Prevents overlapping syncs
 
 export function startSyncCron() {
-  if (!config.isProduction) return;
-  console.log("[cron:sync] Initializing cron jobs...");
+   if (!config.isProduction) return;
+   console.log('[cron:sync] Initializing cron jobs...');
 
-  // Run one sync immediately when server starts
-  runLiveSync("initial");
+   // Run one sync immediately when server starts
+   runLiveSync('initial');
 
-  // Schedule sync every 5 minutes
-  cron.schedule("*/5 * * * *", () => {
-    runLiveSync("cron");
-  });
+   // Schedule sync every 5 minutes
+   cron.schedule('*/5 * * * *', () => {
+      runLiveSync('cron');
+   });
 
-  // YouTube refresh every 6 minutes
-  cron.schedule("*/6 * * * *", async () => {
-    try {
-      await youtubeService.refreshAllLiveStreams();
-      console.log("[cron:youtube] ✓ Live streams refreshed");
-    } catch (err) {
-      console.error("[cron:youtube] ✗ Error refreshing streams:", err);
-    }
-  });
+   // YouTube refresh every 6 minutes
+   cron.schedule('*/6 * * * *', async () => {
+      try {
+         await youtubeService.refreshAllLiveStreams();
+         console.log('[cron:youtube] ✓ Live streams refreshed');
+      } catch (err) {
+         console.error('[cron:youtube] ✗ Error refreshing streams:', err);
+      }
+   });
 
-  console.log("[cron:sync] Scheduled successfully (live sync every 5 minutes)");
+   console.log(
+      '[cron:sync] Scheduled successfully (live sync every 5 minutes)'
+   );
 }
 
 // Helper function with lock to prevent overlapping runs
 async function runLiveSync(source: string) {
-  if (isLiveSyncing) {
-    console.log(
-      `[cron:sync] ${source} → Sync already running, skipping this execution`,
-    );
-    return;
-  }
-
-  isLiveSyncing = true;
-  const startTime = Date.now();
-
-  try {
-    console.log(`[cron:sync] ${source} → Starting live sync...`);
-    const ids = await matchService.syncLiveFromApi();
-    const duration = Date.now() - startTime;
-
-    // Clear any previous API error since sync succeeded
-    await cacheDel("api-football:last-error");
-
-    if (ids.length > 0) {
+   if (isLiveSyncing) {
       console.log(
-        `[cron:sync] ${source} ✓ Success: ${ids.length} live matches synced (${duration}ms)`,
+         `[cron:sync] ${source} → Sync already running, skipping this execution`
       );
-    } else {
-      console.log(
-        `[cron:sync] ${source} ✓ No live matches right now (${duration}ms)`,
-      );
-    }
-  } catch (err) {
-    if (err instanceof FootballApiError) {
-      console.error(
-        `[cron:sync] ${source} ✗ API Error [${err.code}]:`,
-        err.message,
-      );
-      // Store error in Redis so the frontend can show it — TTL 10 min
-      await cacheSet(
-        "api-football:last-error",
-        { code: err.code, message: err.message },
-        60 * 10,
-      );
-    } else {
-      console.error(`[cron:sync] ${source} ✗ Failed:`, err);
-    }
-  } finally {
-    isLiveSyncing = false;
-  }
+      return;
+   }
+
+   isLiveSyncing = true;
+   const startTime = Date.now();
+
+   try {
+      console.log(`[cron:sync] ${source} → Starting live sync...`);
+      const ids = await matchService.syncLiveFromApi();
+      const duration = Date.now() - startTime;
+
+      // Clear any previous API error since sync succeeded
+      await cacheDel('api-football:last-error');
+
+      if (ids.length > 0) {
+         console.log(
+            `[cron:sync] ${source} ✓ Success: ${ids.length} live matches synced (${duration}ms)`
+         );
+      } else {
+         console.log(
+            `[cron:sync] ${source} ✓ No live matches right now (${duration}ms)`
+         );
+      }
+   } catch (err) {
+      if (err instanceof FootballApiError) {
+         console.error(
+            `[cron:sync] ${source} ✗ API Error [${err.code}]:`,
+            err.message
+         );
+         // Store error in Redis so the frontend can show it — TTL 10 min
+         await cacheSet(
+            'api-football:last-error',
+            { code: err.code, message: err.message },
+            60 * 10
+         );
+      } else {
+         console.error(`[cron:sync] ${source} ✗ Failed:`, err);
+      }
+   } finally {
+      isLiveSyncing = false;
+   }
 }

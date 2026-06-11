@@ -1,2 +1,2 @@
-export * from "./api/streamsApi";
-export * from "./ui/AdminStreamsManagement"
+export * from './api/streamsApi';
+export * from './ui/AdminStreamsManagement';

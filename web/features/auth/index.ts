@@ -1,2 +1,2 @@
-export * from "./model/auth";
-export * from "./hooks/useAuth";
+export * from './model/auth';
+export * from './hooks/useAuth';

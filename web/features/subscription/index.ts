@@ -1,1 +1,1 @@
-export * from "./hooks/useSubscription";
+export * from './hooks/useSubscription';
