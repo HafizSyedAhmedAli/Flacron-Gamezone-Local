@@ -96,16 +96,21 @@ export function MatchesSection({
                matches.map((match) => (
                   <MatchCard
                      key={match.id}
-                     matchId={match.id}
-                     homeTeam={match.homeTeam}
-                     awayTeam={match.awayTeam}
-                     kickoffTime={match.kickoffTime}
-                     status={match.status}
-                     score={match.score}
-                     venue={match.venue}
-                     league={match.league}
+                     match={
+                        {
+                           ...match,
+                           league: match.league
+                              ? {
+                                   id: '',
+                                   country: '',
+                                   logo: '',
+                                   name: match.league.name,
+                                }
+                              : undefined,
+                        } as any
+                     }
                      currentTeamName={currentTeamName}
-                     variant={variant}
+                     variant={variant === 'upcoming' ? 'default' : 'compact'}
                   />
                ))
             ) : (

@@ -43,13 +43,14 @@ export interface Match {
    id: string;
    apiFixtureId?: number | null;
    leagueId?: string | null;
+
    homeTeamId?: string;
    awayTeamId?: string;
    kickoffTime: string;
    status: MatchStatus;
    score: string | null;
    venue: string | null;
-   league?: LeagueRef | null;
+   league?: League | LeagueRef; // Allow the simpler League type here
    homeTeam: TeamRef;
    awayTeam: TeamRef;
    stream?: StreamData | null;
