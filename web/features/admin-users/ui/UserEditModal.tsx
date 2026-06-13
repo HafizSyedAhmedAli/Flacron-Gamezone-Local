@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Save, User } from 'lucide-react';
-import type { AdminUser } from '../api/usersApi';
+import { AdminUser } from '@/shared/types';
 
 interface UserEditModalProps {
    user: AdminUser | null;

@@ -2,8 +2,8 @@
 
 import { useState } from 'react';
 import { Search, Edit2, Trash2, Shield, XCircle } from 'lucide-react';
-import type { AdminUser } from '../api/usersApi';
 import { PaginationControls } from '@/shared/ui/PaginationControls';
+import { AdminUser } from '@/shared/types';
 
 interface UserBrowserProps {
    users: AdminUser[];
