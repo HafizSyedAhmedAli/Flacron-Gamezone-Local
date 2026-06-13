@@ -93,10 +93,10 @@ export async function syncLiveFromSportSrc(): Promise<string[]> {
             }
          }
 
-         // ── Upsert teams by name ───────────────────────────────────────────
          const homeTeam = await upsertTeamByName(
             fixture.home_team,
-            league?.id ?? null
+            league?.id ?? null,
+            (fixture as any).home_team_logo ?? null
          );
          if (!homeTeam) {
             console.warn(
@@ -108,7 +108,8 @@ export async function syncLiveFromSportSrc(): Promise<string[]> {
 
          const awayTeam = await upsertTeamByName(
             fixture.away_team,
-            league?.id ?? null
+            league?.id ?? null,
+            (fixture as any).away_team_logo ?? null
          );
          if (!awayTeam) {
             console.warn(
@@ -181,13 +182,23 @@ export async function syncLiveFromSportSrc(): Promise<string[]> {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function upsertTeamByName(name: string, leagueId: string | null) {
+async function upsertTeamByName(
+   name: string,
+   leagueId: string | null,
+   logo?: string | null
+) {
    const existing = await teamRepository.findFirst({
       name,
       ...(leagueId && { leagueId }),
    });
-   if (existing) return existing;
-   return teamRepository.create({ name, leagueId, logo: null });
+   if (existing) {
+      // Backfill logo if missing
+      if (!existing.logo && logo) {
+         return teamRepository.update(existing.id, { logo });
+      }
+      return existing;
+   }
+   return teamRepository.create({ name, leagueId, logo: logo ?? null });
 }
 
 async function saveStreamFromDetail(

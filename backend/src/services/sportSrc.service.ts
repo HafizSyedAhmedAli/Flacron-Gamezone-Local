@@ -26,6 +26,8 @@ export interface SportSrcMatch {
    id: string;
    home_team: string;
    away_team: string;
+   home_team_logo?: string | null;
+   away_team_logo?: string | null;
    home_score: number | null;
    away_score: number | null;
    status: string;
@@ -39,7 +41,6 @@ export interface SportSrcMatch {
    has_stream?: boolean;
    has_standing?: boolean;
 }
-
 export interface SportSrcDetail {
    id: string;
    home_team: string;
@@ -187,6 +188,8 @@ export const sportSrcService = {
                id: m.id,
                home_team: m.teams.home.name,
                away_team: m.teams.away.name,
+               home_team_logo: m.teams.home.badge,
+               away_team_logo: m.teams.away.badge,
                home_score: m.score.current.home,
                away_score: m.score.current.away,
                status: m.status,

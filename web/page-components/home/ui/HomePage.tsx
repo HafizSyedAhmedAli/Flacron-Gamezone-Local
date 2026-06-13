@@ -540,11 +540,15 @@ export default function HomePage({
                           <div className="group bg-gradient-to-b from-slate-900/40 to-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl sm:rounded-2xl p-4 sm:p-6 hover:border-blue-500/50 transition-all duration-300 cursor-pointer">
                              <div className="relative mb-3 mx-auto w-14 h-14 sm:w-20 sm:h-20">
                                 <div className="w-full h-full rounded-xl bg-slate-800/50 flex items-center justify-center p-2 sm:p-3 group-hover:scale-110 transition-transform">
-                                   <img
-                                      src={league.logo}
-                                      alt={league.name}
-                                      className="w-full h-full object-contain"
-                                   />
+                                   {league.logo ? (
+                                      <img
+                                         src={league.logo}
+                                         alt={league.name}
+                                         className="w-full h-full object-contain"
+                                      />
+                                   ) : (
+                                      <span>{league?.name.charAt(0)}</span>
+                                   )}
                                 </div>
                              </div>
                              <div className="text-center space-y-1">
