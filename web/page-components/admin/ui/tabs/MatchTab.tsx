@@ -58,7 +58,7 @@ export function MatchTab({ admin, leagues, teams, onConfirmDelete }: Props) {
          awayTeamId: m.awayTeam.id,
          leagueId: m.league?.id ?? '',
          kickoffTime: new Date(m.kickoffTime).toISOString().slice(0, 16),
-         venue: m.venue ?? '',
+         venue: m.venue?.name ?? '',
          status: m.status,
          score: m.score ?? '',
       });
