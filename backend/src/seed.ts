@@ -10,6 +10,15 @@ async function main() {
    const away = await prisma.team.create({
       data: { name: 'GameZone United', leagueId: league.id },
    });
+
+   const venue = await prisma.venue.create({
+      data: {
+         name: 'Old Trafford',
+         city: 'Manchester',
+         country: 'England',
+      },
+   });
+
    const match = await prisma.match.create({
       data: {
          leagueId: league.id,
@@ -18,7 +27,7 @@ async function main() {
          kickoffTime: new Date(Date.now() + 60 * 60 * 1000),
          status: 'UPCOMING',
          score: '0-0',
-         venue: 'Demo Stadium',
+         venueId: venue.id,
       },
    });
    await prisma.stream.create({
