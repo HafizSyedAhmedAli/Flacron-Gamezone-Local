@@ -120,15 +120,8 @@ export const deepDataController = {
    async getStanding(req: Request, res: Response) {
       if (!requireSportSrc(res)) return;
       const slug = await resolveSlug(req.params.id);
-      const leagueId =
-         typeof req.query.leagueId === 'string'
-            ? req.query.leagueId
-            : undefined;
 
-      const data = await sportSrcService.getStanding(
-         slug ?? undefined,
-         leagueId
-      );
+      const data = await sportSrcService.getStanding(slug ?? undefined);
       if (!data)
          return res.status(404).json({ error: 'Standing not available' });
       res.json({ success: true, standing: data });
